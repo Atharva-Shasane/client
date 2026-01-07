@@ -9,6 +9,7 @@ import { ProfileComponent } from './pages/profile/profile';
 import { OwnerDashboardComponent } from './pages/owner/dashboard';
 import { MenuManagementComponent } from './pages/owner/menu-management';
 import { CheckoutComponent } from './pages/checkout/checkout';
+import { NotFoundComponent } from './pages/not-found/not-found';
 import { adminGuard } from './guards/admin';
 import { authGuard } from './guards/auth';
 
@@ -26,6 +27,5 @@ export const routes: Routes = [
 
   { path: 'owner', component: OwnerDashboardComponent, canActivate: [adminGuard] },
   { path: 'owner/menu', component: MenuManagementComponent, canActivate: [adminGuard] },
-
-  { path: '**', redirectTo: 'home' },
+  { path: '**', component: NotFoundComponent },
 ];
