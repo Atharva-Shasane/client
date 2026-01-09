@@ -1,5 +1,6 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { MenuService } from '../../services/menu';
 import { CartService } from '../../services/cart';
 import { MenuItem } from '../../models/menu-item.model';
@@ -7,215 +8,440 @@ import { MenuItem } from '../../models/menu-item.model';
 @Component({
   selector: 'app-menu',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
-    <div class="menu-container">
-      <div class="header">
-        <h2>Our Menu</h2>
-        <div class="filters">
-          <button (click)="filterCategory('All')" [class.active]="selectedCategory() === 'All'">
-            All
-          </button>
+    <div class="menu-wrapper">
+      <!-- Search & Header Section -->
+      <header class="page-header">
+        <div class="header-content">
+          <h1>Taste the <span class="highlight">Difference</span></h1>
+          <p>Discover our chef's special creations and seasonal favorites.</p>
+
+          <div class="search-container">
+            <input
+              type="text"
+              [(ngModel)]="searchQuery"
+              (input)="applyFilters()"
+              placeholder="Search for your favorite dish..."
+            />
+            <span class="search-icon">🔍</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Category Navigation -->
+      <nav class="category-nav">
+        <div class="nav-scroll">
           <button
-            (click)="filterCategory('veg-indian')"
-            [class.active]="selectedCategory() === 'veg-indian'"
+            *ngFor="let cat of categories"
+            (click)="filterByCategory(cat.value)"
+            [class.active]="selectedCategory() === cat.value"
           >
-            Veg Indian
-          </button>
-          <button
-            (click)="filterCategory('non-veg-indian')"
-            [class.active]="selectedCategory() === 'non-veg-indian'"
-          >
-            Non-Veg Indian
-          </button>
-          <button
-            (click)="filterCategory('beverages')"
-            [class.active]="selectedCategory() === 'beverages'"
-          >
-            Beverages
+            {{ cat.label }}
           </button>
         </div>
-      </div>
+      </nav>
 
-      <div *ngIf="loading()" class="loading">Loading delicious items...</div>
-
-      <div *ngIf="!loading()" class="grid">
-        <div *ngFor="let item of filteredItems()" class="food-card">
-          <div class="image-box">
-            <!-- Fallback to placeholder if image fails -->
-            <img [src]="item.imageUrl" (error)="handleImageError($event)" alt="{{ item.name }}" />
-          </div>
-          <div class="details">
-            <h3>{{ item.name }}</h3>
-            <p class="category">{{ item.subCategory }}</p>
-
-            <div class="actions">
-              <!-- Single Price Item -->
-              <div *ngIf="item.pricing.type === 'SINGLE'" class="single-price">
-                <span class="price">₹{{ item.pricing.price }}</span>
-                <button (click)="addToCart(item, 'SINGLE')">Add to Cart</button>
-              </div>
-
-              <!-- Half/Full Price Item -->
-              <div *ngIf="item.pricing.type === 'HALF_FULL'" class="multi-price">
-                <button (click)="addToCart(item, 'HALF')">
-                  Half ₹{{ item.pricing.priceHalf }}
-                </button>
-                <button (click)="addToCart(item, 'FULL')">
-                  Full ₹{{ item.pricing.priceFull }}
-                </button>
+      <main class="menu-container">
+        <!-- Skeleton Loading View -->
+        <div *ngIf="loading()" class="grid-layout">
+          <div class="skeleton-item" *ngFor="let i of [1, 2, 3, 4, 5, 6]">
+            <div class="skeleton-media"></div>
+            <div class="skeleton-info">
+              <div class="skeleton-line title"></div>
+              <div class="skeleton-line desc"></div>
+              <div class="skeleton-footer">
+                <div class="skeleton-price"></div>
+                <div class="skeleton-action"></div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+
+        <!-- Real Menu Content -->
+        <div *ngIf="!loading()" class="grid-layout">
+          <div class="food-card" *ngFor="let item of filteredItems()">
+            <div class="card-media">
+              <img [src]="item.imageUrl" (error)="handleImageError($event)" [alt]="item.name" />
+              <div class="badge" [class.veg]="item.category.includes('veg')">
+                {{ item.category.includes('non-veg') ? 'Non-Veg' : 'Veg' }}
+              </div>
+            </div>
+
+            <div class="card-info">
+              <div class="card-header">
+                <h3>{{ item.name }}</h3>
+                <span class="sub-cat">{{ item.subCategory }}</span>
+              </div>
+
+              <div class="card-actions">
+                <!-- Single Price Flow -->
+                <div *ngIf="item.pricing.type === 'SINGLE'" class="action-row single">
+                  <span class="price-tag">₹{{ item.pricing.price }}</span>
+                  <button (click)="addToCart(item, 'SINGLE')" class="btn-primary">Add</button>
+                </div>
+
+                <!-- Multi Variant Flow -->
+                <div *ngIf="item.pricing.type === 'HALF_FULL'" class="action-row multi">
+                  <button (click)="addToCart(item, 'HALF')" class="btn-variant">
+                    <span class="label">Half</span>
+                    <span class="val">₹{{ item.pricing.priceHalf }}</span>
+                  </button>
+                  <button (click)="addToCart(item, 'FULL')" class="btn-variant">
+                    <span class="label">Full</span>
+                    <span class="val">₹{{ item.pricing.priceFull }}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty State -->
+        <div *ngIf="!loading() && filteredItems().length === 0" class="empty-state">
+          <div class="icon">🍽️</div>
+          <h3>No matches found</h3>
+          <p>Try searching for something else or browse another category.</p>
+          <button (click)="resetFilters()" class="btn-link">Clear all filters</button>
+        </div>
+      </main>
     </div>
   `,
   styles: [
     `
-      .menu-container {
-        padding: 2rem;
-        max-width: 1200px;
+      :host {
+        --brand: #ff6b00;
+        --dark: #121212;
+        --card-bg: #1e1e1e;
+        --text-p: #ffffff;
+        --text-s: #a0a0a0;
+      }
+
+      .menu-wrapper {
+        background: var(--dark);
+        min-height: 100vh;
+        color: var(--text-p);
+        padding-bottom: 80px;
+      }
+
+      /* Header & Search */
+      .page-header {
+        background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(18, 18, 18, 1)),
+          url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=2070')
+            center/cover;
+        padding: 100px 20px 60px;
+        text-align: center;
+      }
+      .header-content {
+        max-width: 800px;
         margin: 0 auto;
       }
-      .header {
-        text-align: center;
-        margin-bottom: 3rem;
+      h1 {
+        font-size: clamp(2.5rem, 5vw, 4rem);
+        font-weight: 800;
+        letter-spacing: -1px;
+        line-height: 1.1;
+        margin-bottom: 15px;
       }
-      h2 {
-        font-size: 2.5rem;
-        margin-bottom: 1.5rem;
-        color: #333;
+      .highlight {
+        color: var(--brand);
+      }
+      .page-header p {
+        font-size: 1.1rem;
+        color: var(--text-s);
+        margin-bottom: 40px;
       }
 
-      .filters {
+      .search-container {
+        position: relative;
+        max-width: 500px;
+        margin: 0 auto;
+      }
+      .search-container input {
+        width: 100%;
+        padding: 16px 50px 16px 25px;
+        border-radius: 50px;
+        border: 1px solid #333;
+        background: rgba(255, 255, 255, 0.05);
+        color: white;
+        font-size: 1rem;
+        backdrop-filter: blur(10px);
+        transition: 0.3s;
+      }
+      .search-container input:focus {
+        outline: none;
+        border-color: var(--brand);
+        background: rgba(255, 255, 255, 0.1);
+      }
+      .search-icon {
+        position: absolute;
+        right: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1.2rem;
+        opacity: 0.5;
+      }
+
+      /* Category Navigation */
+      .category-nav {
+        position: sticky;
+        top: 80px;
+        z-index: 100;
+        background: rgba(18, 18, 18, 0.9);
+        backdrop-filter: blur(10px);
+        padding: 15px 0;
+        border-bottom: 1px solid #222;
+      }
+      .nav-scroll {
         display: flex;
         justify-content: center;
-        flex-wrap: wrap;
         gap: 10px;
+        overflow-x: auto;
+        padding: 0 20px;
       }
-
-      .filters button {
+      .nav-scroll::-webkit-scrollbar {
+        display: none;
+      }
+      .category-nav button {
         padding: 8px 20px;
-        border: 1px solid #ddd;
-        background: white;
-        border-radius: 25px;
+        border-radius: 30px;
+        border: 1px solid #333;
+        background: transparent;
+        color: var(--text-s);
         cursor: pointer;
+        white-space: nowrap;
+        font-weight: 600;
         transition: 0.3s;
-        font-weight: 500;
       }
-
-      .filters button.active,
-      .filters button:hover {
-        background: #ff6b00;
+      .category-nav button.active {
+        background: var(--brand);
         color: white;
-        border-color: #ff6b00;
+        border-color: var(--brand);
       }
 
-      .loading {
-        text-align: center;
-        font-size: 1.5rem;
-        color: #666;
-        margin-top: 2rem;
+      /* Layout */
+      .menu-container {
+        max-width: 1400px;
+        margin: 40px auto;
+        padding: 0 20px;
       }
-
-      .grid {
+      .grid-layout {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 2rem;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 30px;
       }
 
+      /* Food Card */
       .food-card {
-        background: white;
-        border-radius: 12px;
+        background: var(--card-bg);
+        border-radius: 24px;
         overflow: hidden;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        transition: 0.3s;
         display: flex;
         flex-direction: column;
+        transition: 0.4s cubic-bezier(0.2, 0, 0, 1);
+        border: 1px solid #2a2a2a;
       }
-
       .food-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        transform: translateY(-10px);
+        border-color: #444;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
       }
 
-      .image-box {
-        height: 180px;
+      .card-media {
+        height: 220px;
+        position: relative;
         overflow: hidden;
-        background: #eee;
       }
-      .image-box img {
+      .card-media img {
         width: 100%;
         height: 100%;
         object-fit: cover;
-        transition: 0.5s;
+        transition: 0.8s;
       }
-      .food-card:hover .image-box img {
-        transform: scale(1.05);
+      .food-card:hover .card-media img {
+        transform: scale(1.1);
+      }
+      .badge {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        padding: 4px 12px;
+        border-radius: 6px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        background: #ff4444;
+        color: white;
+      }
+      .badge.veg {
+        background: #00c851;
       }
 
-      .details {
-        padding: 1.5rem;
+      .card-info {
+        padding: 20px;
         flex-grow: 1;
         display: flex;
         flex-direction: column;
       }
-      .details h3 {
-        margin: 0 0 0.2rem 0;
-        font-size: 1.2rem;
+      .card-header h3 {
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin-bottom: 5px;
       }
-      .category {
-        color: #888;
+      .sub-cat {
+        color: var(--text-s);
         font-size: 0.85rem;
-        margin-bottom: 1rem;
-        text-transform: capitalize;
+        display: block;
+        margin-bottom: 20px;
       }
 
-      .actions {
+      .card-actions {
         margin-top: auto;
       }
-
-      .single-price {
+      .action-row.single {
         display: flex;
         justify-content: space-between;
         align-items: center;
       }
-      .price {
-        font-weight: bold;
-        font-size: 1.2rem;
-        color: #ff6b00;
+      .price-tag {
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: var(--brand);
       }
-      .single-price button {
-        background: #1a1a1a;
+      .btn-primary {
+        background: var(--brand);
         color: white;
         border: none;
-        padding: 8px 15px;
-        border-radius: 4px;
+        padding: 12px 28px;
+        border-radius: 12px;
+        font-weight: bold;
         cursor: pointer;
+        transition: 0.3s;
       }
-      .single-price button:hover {
-        background: #ff6b00;
+      .btn-primary:hover {
+        transform: scale(1.05);
+        filter: brightness(1.1);
       }
 
-      .multi-price {
-        display: flex;
-        gap: 0.5rem;
+      .action-row.multi {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
       }
-      .multi-price button {
-        flex: 1;
-        background: #f4f4f4;
-        border: 1px solid #ddd;
-        padding: 8px;
-        border-radius: 4px;
+      .btn-variant {
+        background: #2a2a2a;
+        border: 1px solid #333;
+        padding: 10px;
+        border-radius: 14px;
         cursor: pointer;
-        font-size: 0.85rem;
-        transition: 0.2s;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        color: var(--text-s);
+        transition: 0.3s;
       }
-      .multi-price button:hover {
-        background: #ff6b00;
-        color: white;
-        border-color: #ff6b00;
+      .btn-variant .val {
+        font-size: 1.2rem;
+        font-weight: 800;
+        color: var(--brand);
+      }
+      .btn-variant:hover {
+        background: #333;
+        border-color: var(--brand);
+      }
+
+      /* Skeleton Loading */
+      .skeleton-item {
+        background: var(--card-bg);
+        border-radius: 24px;
+        overflow: hidden;
+        height: 420px;
+        position: relative;
+      }
+      .skeleton-media {
+        height: 220px;
+        background: #2a2a2a;
+      }
+      .skeleton-info {
+        padding: 20px;
+      }
+      .skeleton-line {
+        background: #2a2a2a;
+        border-radius: 4px;
+        margin-bottom: 10px;
+        position: relative;
+        overflow: hidden;
+      }
+      .skeleton-line::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+        animation: shm 1.5s infinite;
+      }
+      .skeleton-line.title {
+        height: 24px;
+        width: 60%;
+      }
+      .skeleton-line.desc {
+        height: 16px;
+        width: 40%;
+        margin-bottom: 40px;
+      }
+      .skeleton-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .skeleton-price {
+        height: 30px;
+        width: 30%;
+        background: #2a2a2a;
+        border-radius: 4px;
+      }
+      .skeleton-action {
+        height: 45px;
+        width: 40%;
+        background: #2a2a2a;
+        border-radius: 12px;
+      }
+
+      @keyframes shm {
+        0% {
+          transform: translateX(-100%);
+        }
+        100% {
+          transform: translateX(100%);
+        }
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 100px 20px;
+      }
+      .empty-state .icon {
+        font-size: 4rem;
+        margin-bottom: 20px;
+      }
+      .btn-link {
+        background: none;
+        border: none;
+        color: var(--brand);
+        text-decoration: underline;
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      @media (max-width: 768px) {
+        .grid-layout {
+          grid-template-columns: 1fr;
+        }
+        .page-header {
+          padding-top: 120px;
+        }
+        h1 {
+          font-size: 2.8rem;
+        }
       }
     `,
   ],
@@ -224,39 +450,68 @@ export class MenuComponent implements OnInit {
   menuService = inject(MenuService);
   cartService = inject(CartService);
 
-  menuItems = signal<MenuItem[]>([]);
+  private fullMenuList = signal<MenuItem[]>([]);
   filteredItems = signal<MenuItem[]>([]);
   selectedCategory = signal<string>('All');
   loading = signal<boolean>(true);
+  searchQuery = '';
+
+  categories = [
+    { label: 'All Dishes', value: 'All' },
+    { label: 'Veg Indian', value: 'veg-indian' },
+    { label: 'Non-Veg', value: 'non-veg-indian' },
+    { label: 'Beverages', value: 'beverages' },
+  ];
 
   ngOnInit() {
     this.menuService.getMenu().subscribe({
       next: (items) => {
-        this.menuItems.set(items);
-        this.filterCategory('All');
-        this.loading.set(false);
+        // Reduced wait time for production feel
+        setTimeout(() => {
+          this.fullMenuList.set(items);
+          this.applyFilters();
+          this.loading.set(false);
+        }, 600);
       },
-      error: (err) => {
-        console.error('Failed to load menu', err);
-        this.loading.set(false);
-      },
+      error: () => this.loading.set(false),
     });
   }
 
-  filterCategory(cat: string) {
+  filterByCategory(cat: string) {
     this.selectedCategory.set(cat);
-    if (cat === 'All') {
-      this.filteredItems.set(this.menuItems());
-    } else {
-      this.filteredItems.set(this.menuItems().filter((i) => i.category === cat));
-    }
+    this.applyFilters();
   }
 
-  addToCart(item: MenuItem, variant: any) {
+  applyFilters() {
+    let items = this.fullMenuList();
+
+    // Apply Category Filter
+    if (this.selectedCategory() !== 'All') {
+      items = items.filter((i) => i.category === this.selectedCategory());
+    }
+
+    // Apply Search Filter
+    if (this.searchQuery.trim()) {
+      const q = this.searchQuery.toLowerCase();
+      items = items.filter(
+        (i) => i.name.toLowerCase().includes(q) || i.subCategory.toLowerCase().includes(q)
+      );
+    }
+
+    this.filteredItems.set(items);
+  }
+
+  resetFilters() {
+    this.searchQuery = '';
+    this.selectedCategory.set('All');
+    this.applyFilters();
+  }
+
+  addToCart(item: MenuItem, variant: 'SINGLE' | 'HALF' | 'FULL') {
     this.cartService.addToCart(item, variant);
   }
 
   handleImageError(event: any) {
-    event.target.src = 'https://placehold.co/600x400?text=No+Image';
+    event.target.src = 'https://placehold.co/600x400/1a1a1a/ffffff?text=Delicious+Food';
   }
 }

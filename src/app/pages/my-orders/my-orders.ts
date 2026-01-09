@@ -2,6 +2,7 @@ import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { OrderService } from '../../services/order';
 import { Router } from '@angular/router';
+import { ToastService } from '../../services/toast';
 import { interval, Subscription, startWith, switchMap } from 'rxjs';
 
 @Component({
@@ -12,7 +13,7 @@ import { interval, Subscription, startWith, switchMap } from 'rxjs';
     <div class="orders-container">
       <div class="header-row">
         <h2>My Order History</h2>
-        <span *ngIf="isRefreshing" class="refresh-indicator">🔄 Updating...</span>
+        <span *ngIf="isRefreshing" class="refresh-indicator">Updating...</span>
       </div>
 
       <div *ngIf="loading()" class="loading">Loading orders...</div>
@@ -48,7 +49,6 @@ import { interval, Subscription, startWith, switchMap } from 'rxjs';
               >
               <span class="total-amount">Total: ₹{{ order.totalAmount }}</span>
             </div>
-
             <div class="actions">
               <button
                 *ngIf="order.orderStatus === 'NEW'"
@@ -57,8 +57,7 @@ import { interval, Subscription, startWith, switchMap } from 'rxjs';
               >
                 Cancel Order
               </button>
-
-              <button (click)="onReorder(order)" class="reorder-btn">🔄 Reorder</button>
+              <button (click)="onReorder(order)" class="reorder-btn">Reorder</button>
             </div>
           </div>
         </div>
@@ -76,35 +75,15 @@ import { interval, Subscription, startWith, switchMap } from 'rxjs';
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border-bottom: 3px solid #ff6b00;
+        border-bottom: 3px solid #ff6600;
         margin-bottom: 2rem;
         padding-bottom: 5px;
-      }
-      h2 {
-        margin: 0;
       }
       .refresh-indicator {
         font-size: 0.8rem;
         color: #888;
-        animation: pulse 1s infinite;
       }
-      @keyframes pulse {
-        0% {
-          opacity: 0.5;
-        }
-        50% {
-          opacity: 1;
-        }
-        100% {
-          opacity: 0.5;
-        }
-      }
-
-      .loading {
-        text-align: center;
-        color: #666;
-        font-size: 1.2rem;
-      }
+      .loading,
       .empty-state {
         text-align: center;
         padding: 3rem;
@@ -112,7 +91,7 @@ import { interval, Subscription, startWith, switchMap } from 'rxjs';
         border-radius: 8px;
       }
       .empty-state button {
-        background: #ff6b00;
+        background: #ff6600;
         color: white;
         border: none;
         padding: 10px 20px;
@@ -120,7 +99,6 @@ import { interval, Subscription, startWith, switchMap } from 'rxjs';
         cursor: pointer;
         margin-top: 1rem;
       }
-
       .order-card {
         background: white;
         border: 1px solid #eee;
@@ -128,13 +106,11 @@ import { interval, Subscription, startWith, switchMap } from 'rxjs';
         margin-bottom: 1.5rem;
         overflow: hidden;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        transition: all 0.3s;
       }
       .highlight {
-        border-color: #ff6b00;
+        border-color: #ff6600;
         box-shadow: 0 4px 12px rgba(255, 107, 0, 0.15);
       }
-
       .order-header {
         background: #f8f8f8;
         padding: 1rem;
@@ -148,17 +124,6 @@ import { interval, Subscription, startWith, switchMap } from 'rxjs';
         align-items: center;
         gap: 10px;
       }
-      .order-id {
-        font-weight: bold;
-        color: #333;
-        font-family: monospace;
-        font-size: 1.1rem;
-      }
-      .order-date {
-        font-size: 0.85rem;
-        color: #666;
-      }
-
       .status-badge {
         padding: 4px 10px;
         border-radius: 12px;
@@ -182,7 +147,6 @@ import { interval, Subscription, startWith, switchMap } from 'rxjs';
       .status-cancelled {
         background: #e74c3c;
       }
-
       .order-items {
         padding: 1rem;
       }
@@ -192,7 +156,6 @@ import { interval, Subscription, startWith, switchMap } from 'rxjs';
         margin-bottom: 0.5rem;
         color: #444;
       }
-
       .order-footer {
         padding: 1rem;
         background: #fff;
@@ -206,21 +169,14 @@ import { interval, Subscription, startWith, switchMap } from 'rxjs';
         flex-direction: column;
         gap: 5px;
       }
-      .payment-info {
-        font-size: 0.85rem;
-        color: #888;
-      }
       .total-amount {
         font-size: 1.1rem;
         font-weight: bold;
-        color: #333;
       }
-
       .actions {
         display: flex;
         gap: 10px;
       }
-
       .cancel-btn {
         background: white;
         border: 1px solid #e74c3c;
@@ -229,13 +185,7 @@ import { interval, Subscription, startWith, switchMap } from 'rxjs';
         border-radius: 4px;
         cursor: pointer;
         font-weight: bold;
-        transition: 0.3s;
       }
-      .cancel-btn:hover {
-        background: #e74c3c;
-        color: white;
-      }
-
       .reorder-btn {
         background: #2c3e50;
         color: white;
@@ -244,31 +194,6 @@ import { interval, Subscription, startWith, switchMap } from 'rxjs';
         border-radius: 4px;
         cursor: pointer;
         font-weight: bold;
-        transition: 0.3s;
-      }
-      .reorder-btn:hover {
-        background: #34495e;
-      }
-
-      @media (max-width: 600px) {
-        .order-header {
-          flex-direction: column;
-          align-items: flex-start;
-          gap: 5px;
-        }
-        .meta {
-          width: 100%;
-          justify-content: space-between;
-        }
-        .order-footer {
-          flex-direction: column;
-          align-items: flex-start;
-          gap: 10px;
-        }
-        .actions {
-          width: 100%;
-          justify-content: space-between;
-        }
       }
     `,
   ],
@@ -276,17 +201,15 @@ import { interval, Subscription, startWith, switchMap } from 'rxjs';
 export class MyOrdersComponent implements OnInit, OnDestroy {
   orderService = inject(OrderService);
   router = inject(Router);
+  toast = inject(ToastService);
 
   orders = signal<any[]>([]);
   loading = signal<boolean>(true);
   isRefreshing = false;
-
   private pollSubscription?: Subscription;
 
   ngOnInit() {
-    this.loading.set(true);
-
-    this.pollSubscription = interval(10000)
+    this.pollSubscription = interval(15000) // Poll every 15s
       .pipe(
         startWith(0),
         switchMap(() => {
@@ -301,7 +224,6 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
           this.isRefreshing = false;
         },
         error: (err) => {
-          console.error(err);
           this.loading.set(false);
           this.isRefreshing = false;
         },
@@ -309,31 +231,27 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    if (this.pollSubscription) this.pollSubscription.unsubscribe();
+    this.pollSubscription?.unsubscribe();
   }
 
   cancelOrder(id: string) {
-    if (!confirm('Cancel order?')) return;
+    if (!confirm('Are you sure you want to cancel this order?')) return;
+
     this.orderService.cancelOrder(id).subscribe({
       next: () => {
-        alert('Order Cancelled');
-        // Manually refresh orders after cancellation
+        this.toast.success('Order cancelled successfully');
         this.orderService.getMyOrders().subscribe((data) => this.orders.set(data));
       },
-      error: (err) => alert(err.error.msg || 'Failed to cancel'),
+      error: (err) => this.toast.error(err.error?.msg || 'Failed to cancel'),
     });
   }
 
-  // ✅ CHANGED: Logic to add to cart and redirect
   onReorder(order: any) {
-    if (
-      !confirm(
-        'Add these items to your cart and proceed to checkout? This will clear your current cart.'
-      )
-    )
+    if (!confirm('Add these items to your cart and proceed? This will clear your current cart.'))
       return;
 
     this.orderService.reorderToCart(order);
+    this.toast.success('Items added to cart');
     this.router.navigate(['/checkout']);
   }
 
@@ -350,6 +268,6 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
   isRecent(order: any): boolean {
     const created = new Date(order.createdAt).getTime();
     const now = new Date().getTime();
-    return now - created < 5 * 60 * 1000;
+    return now - created < 5 * 60 * 1000; // Highlight orders from last 5 mins
   }
 }

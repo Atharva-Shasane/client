@@ -1,14 +1,16 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Router } from '@angular/router'; // ✅ Import Router
+import { Router } from '@angular/router';
 import { tap } from 'rxjs/operators';
 import { User } from '../models/user.model';
 import { jwtDecode } from 'jwt-decode';
+import { CartService } from './cart';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private http = inject(HttpClient);
-  private router = inject(Router); // ✅ Inject Router
+  private router = inject(Router);
+  private cartService = inject(CartService);
   private apiUrl = 'http://localhost:5000/api/auth';
 
   currentUser = signal<User | null>(null);
@@ -19,7 +21,7 @@ export class AuthService {
   }
 
   private loadUserFromStorage() {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     if (token) {
       try {
         const decoded: any = jwtDecode(token);
@@ -30,9 +32,8 @@ export class AuthService {
     }
   }
 
-  private getAuthHeaders() {
-    const token = this.getToken();
-    return new HttpHeaders().set('x-auth-token', token || '');
+  requestOtp(email: string) {
+    return this.http.post(`${this.apiUrl}/request-otp`, { email });
   }
 
   register(userData: any) {
@@ -42,28 +43,29 @@ export class AuthService {
   }
 
   login(credentials: any) {
-    return this.http
-      .post<{ token: string; user: User }>(`${this.apiUrl}/login`, credentials)
-      .pipe(tap((res) => this.handleAuthSuccess(res)));
+    // This returns an observable that might contain { requiresOtp: true } or { token: string }
+    return this.http.post<any>(`${this.apiUrl}/login`, credentials);
   }
 
   getProfile() {
-    return this.http.get<User>(`${this.apiUrl}/me`, { headers: this.getAuthHeaders() });
+    const token = this.getToken();
+    const headers = new HttpHeaders().set('x-auth-token', token || '');
+    return this.http.get<User>(`${this.apiUrl}/me`, { headers });
   }
 
-  private handleAuthSuccess(res: { token: string; user: User }) {
-    localStorage.setItem('token', res.token);
+  handleAuthSuccess(res: { token: string; user: User }) {
+    sessionStorage.setItem('token', res.token);
     this.currentUser.set({ ...res.user, token: res.token });
   }
 
-  // ✅ UPDATED: Logout now redirects to Home
   logout() {
-    localStorage.removeItem('token');
+    sessionStorage.removeItem('token');
     this.currentUser.set(null);
-    this.router.navigate(['/home']); // Redirect immediately
+    this.cartService.clearCart();
+    this.router.navigate(['/home']);
   }
 
   getToken() {
-    return localStorage.getItem('token');
+    return sessionStorage.getItem('token');
   }
 }

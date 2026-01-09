@@ -10,7 +10,6 @@ import { User } from '../../models/user.model';
   template: `
     <div class="profile-container">
       <h2>My Profile</h2>
-
       <div *ngIf="loading()" class="loading">Loading details...</div>
 
       <div *ngIf="user()" class="profile-card">
@@ -29,12 +28,10 @@ import { User } from '../../models/user.model';
           </div>
           <div class="detail-row">
             <span class="label">Mobile</span>
-            <!-- ✅ Mobile is now in the interface -->
             <span class="value">{{ user()?.mobile || 'Not set' }}</span>
           </div>
           <div class="detail-row">
             <span class="label">Member Since</span>
-            <!-- ✅ Fixed syntax error and removed 'as any' cast -->
             <span class="value">{{ user()?.createdAt | date : 'mediumDate' }}</span>
           </div>
         </div>
@@ -52,34 +49,27 @@ import { User } from '../../models/user.model';
       }
       h2 {
         text-align: center;
-        border-bottom: 3px solid #ff6b00;
+        border-bottom: 3px solid #ff6600;
         display: inline-block;
         padding-bottom: 5px;
         margin-bottom: 2rem;
         width: 100%;
       }
-
       .loading {
         text-align: center;
         color: #666;
       }
-
       .profile-card {
         background: white;
         border-radius: 15px;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-        overflow: hidden;
         padding: 2rem;
-      }
-
-      .avatar-section {
         text-align: center;
-        margin-bottom: 2rem;
       }
       .avatar {
         width: 80px;
         height: 80px;
-        background: #ff6b00;
+        background: #ff6600;
         color: white;
         font-size: 2.5rem;
         font-weight: bold;
@@ -87,13 +77,8 @@ import { User } from '../../models/user.model';
         display: flex;
         align-items: center;
         justify-content: center;
-        margin: 0 auto 1rem auto;
+        margin: 0 auto 1rem;
         text-transform: uppercase;
-      }
-      h3 {
-        margin: 0;
-        font-size: 1.5rem;
-        color: #333;
       }
       .role-badge {
         background: #eee;
@@ -101,12 +86,12 @@ import { User } from '../../models/user.model';
         border-radius: 12px;
         font-size: 0.8rem;
         color: #666;
-        margin-top: 0.5rem;
         display: inline-block;
+        margin-top: 0.5rem;
       }
-
       .details-section {
-        margin-bottom: 2rem;
+        margin-top: 2rem;
+        text-align: left;
       }
       .detail-row {
         display: flex;
@@ -116,13 +101,10 @@ import { User } from '../../models/user.model';
       }
       .label {
         color: #888;
-        font-weight: 500;
       }
       .value {
-        color: #333;
         font-weight: 600;
       }
-
       .logout-btn {
         width: 100%;
         padding: 12px;
@@ -130,7 +112,7 @@ import { User } from '../../models/user.model';
         color: white;
         border: none;
         border-radius: 8px;
-        font-weight: bold;
+        margin-top: 2rem;
         cursor: pointer;
         transition: 0.3s;
       }
@@ -142,7 +124,6 @@ import { User } from '../../models/user.model';
 })
 export class ProfileComponent implements OnInit {
   authService = inject(AuthService);
-
   user = signal<User | null>(null);
   loading = signal<boolean>(true);
 

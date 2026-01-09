@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MenuService } from '../../services/menu';
 import { MenuItem } from '../../models/menu-item.model';
+import { ToastService } from '../../services/toast';
 
 @Component({
   selector: 'app-menu-management',
@@ -53,10 +54,9 @@ import { MenuItem } from '../../models/menu-item.model';
                 </span>
               </td>
               <td>
-                <button (click)="editItem(item)" class="action-btn edit">✏️</button>
-                <!-- Only show delete if _id exists -->
+                <button (click)="editItem(item)" class="action-btn edit">Edit</button>
                 <button *ngIf="item._id" (click)="deleteItem(item._id!)" class="action-btn delete">
-                  🗑️
+                  Delete
                 </button>
               </td>
             </tr>
@@ -68,7 +68,6 @@ import { MenuItem } from '../../models/menu-item.model';
       <div *ngIf="isModalOpen" class="modal-overlay">
         <div class="modal">
           <h3>{{ isEditing ? 'Edit Item' : 'Add New Item' }}</h3>
-
           <form (ngSubmit)="onSubmit()">
             <div class="form-grid">
               <div class="form-group">
@@ -99,10 +98,10 @@ import { MenuItem } from '../../models/menu-item.model';
               <select
                 [(ngModel)]="currentItem.pricing!.type"
                 name="pricingType"
-                style="margin-bottom: 10px;"
+                style="margin-bottom: 10px; width: 100%;"
               >
                 <option value="SINGLE">Single Price</option>
-                <option value="HALF_FULL">Half / Full</option>
+                <option value="HALF_FULL">Half/Full</option>
               </select>
 
               <div *ngIf="currentItem.pricing!.type === 'SINGLE'" class="form-group">
@@ -112,7 +111,7 @@ import { MenuItem } from '../../models/menu-item.model';
 
               <div *ngIf="currentItem.pricing!.type === 'HALF_FULL'" class="form-grid">
                 <div class="form-group">
-                  <label>Half Price</label>
+                  <label>Half Price (₹)</label>
                   <input
                     type="number"
                     [(ngModel)]="currentItem.pricing!.priceHalf"
@@ -120,7 +119,7 @@ import { MenuItem } from '../../models/menu-item.model';
                   />
                 </div>
                 <div class="form-group">
-                  <label>Full Price</label>
+                  <label>Full Price (₹)</label>
                   <input
                     type="number"
                     [(ngModel)]="currentItem.pricing!.priceFull"
@@ -160,7 +159,7 @@ import { MenuItem } from '../../models/menu-item.model';
         margin-bottom: 2rem;
       }
       .add-btn {
-        background: #ff6b00;
+        background: #ff6600;
         color: white;
         padding: 10px 20px;
         border: none;
@@ -168,13 +167,14 @@ import { MenuItem } from '../../models/menu-item.model';
         cursor: pointer;
         font-weight: bold;
       }
-
-      table {
-        width: 100%;
+      .table-responsive {
+        overflow-x: auto;
         background: white;
         border-radius: 8px;
-        overflow: hidden;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      }
+      table {
+        width: 100%;
         border-collapse: collapse;
       }
       th,
@@ -194,11 +194,16 @@ import { MenuItem } from '../../models/menu-item.model';
         border-radius: 4px;
       }
       .action-btn {
-        background: none;
+        background: #333;
+        color: white;
         border: none;
-        font-size: 1.2rem;
+        padding: 6px 12px;
+        border-radius: 4px;
         cursor: pointer;
-        margin-right: 10px;
+        margin-right: 5px;
+      }
+      .action-btn.delete {
+        background: #ff4444;
       }
       .badge {
         padding: 4px 8px;
@@ -214,7 +219,6 @@ import { MenuItem } from '../../models/menu-item.model';
         background: #f8d7da;
         color: #721c24;
       }
-
       .modal-overlay {
         position: fixed;
         inset: 0;
@@ -284,17 +288,23 @@ import { MenuItem } from '../../models/menu-item.model';
         border-radius: 4px;
         cursor: pointer;
       }
+      .checkbox {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .checkbox input {
+        width: auto;
+      }
     `,
   ],
 })
 export class MenuManagementComponent implements OnInit {
   menuService = inject(MenuService);
+  toast = inject(ToastService);
   menuItems = signal<MenuItem[]>([]);
-
   isModalOpen = false;
   isEditing = false;
-
-  // Initialize with a proper Partial object that has the pricing structure
   currentItem: Partial<MenuItem> = this.getEmptyItem();
 
   ngOnInit() {
@@ -304,7 +314,7 @@ export class MenuManagementComponent implements OnInit {
   loadMenu() {
     this.menuService.getAllMenuItems().subscribe({
       next: (data) => this.menuItems.set(data),
-      error: (err) => console.error('Failed to load menu', err),
+      error: () => this.toast.error('Failed to load menu data'),
     });
   }
 
@@ -338,28 +348,28 @@ export class MenuManagementComponent implements OnInit {
   deleteItem(id: string) {
     if (!confirm('Delete this item permanently?')) return;
     this.menuService.deleteMenuItem(id).subscribe({
-      next: () => this.loadMenu(),
-      error: (err) => alert('Failed to delete'),
+      next: () => {
+        this.toast.success('Item deleted successfully');
+        this.loadMenu();
+      },
+      error: () => this.toast.error('Failed to delete item'),
     });
   }
 
   onSubmit() {
-    if (this.isEditing && this.currentItem._id) {
-      this.menuService.updateMenuItem(this.currentItem._id, this.currentItem).subscribe({
-        next: () => {
-          this.loadMenu();
-          this.closeModal();
-        },
-        error: (err) => alert('Failed to update'),
-      });
-    } else {
-      this.menuService.addMenuItem(this.currentItem).subscribe({
-        next: () => {
-          this.loadMenu();
-          this.closeModal();
-        },
-        error: (err) => alert('Failed to create'),
-      });
-    }
+    const action = this.isEditing
+      ? this.menuService.updateMenuItem(this.currentItem._id!, this.currentItem)
+      : this.menuService.addMenuItem(this.currentItem);
+
+    action.subscribe({
+      next: () => {
+        this.toast.success(this.isEditing ? 'Item updated successfully' : 'New item added');
+        this.loadMenu();
+        this.closeModal();
+      },
+      error: (err) => {
+        this.toast.error(err.error?.msg || 'Operation failed');
+      },
+    });
   }
 }

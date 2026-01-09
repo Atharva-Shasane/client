@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../services/auth';
@@ -10,201 +10,244 @@ import { CartService } from '../../services/cart';
   imports: [CommonModule, RouterLink, RouterLinkActive],
   template: `
     <nav class="navbar">
-      <div class="logo">
-        <a routerLink="/home">KILLA <span class="highlight">RESTO</span></a>
-      </div>
+      <div class="nav-container">
+        <!-- Logo -->
+        <div class="logo">
+          <a routerLink="/home" (click)="closeMenu()"
+            >KILLA <span class="highlight">Restaurant</span></a
+          >
+        </div>
 
-      <!-- Desktop Navigation -->
-      <div class="nav-links">
-        <a routerLink="/home" routerLinkActive="active">Home</a>
-        <a routerLink="/menu" routerLinkActive="active">Menu</a>
+        <!-- Mobile Toggle Button -->
+        <button class="menu-toggle" (click)="toggleMenu()" aria-label="Toggle Menu">
+          <div class="bar" [class.open]="isMenuOpen()"></div>
+          <div class="bar" [class.open]="isMenuOpen()"></div>
+          <div class="bar" [class.open]="isMenuOpen()"></div>
+        </button>
 
-        <!-- User Links -->
-        <a *ngIf="authService.isLoggedIn()" routerLink="/my-orders" routerLinkActive="active"
-          >My Orders</a
-        >
+        <!-- Nav Links (Desktop + Mobile Drawer) -->
+        <div class="nav-content" [class.mobile-open]="isMenuOpen()">
+          <div class="links">
+            <a routerLink="/home" routerLinkActive="active" (click)="closeMenu()">Home</a>
+            <a routerLink="/menu" routerLinkActive="active" (click)="closeMenu()">Menu</a>
+            <a
+              *ngIf="authService.isLoggedIn()"
+              routerLink="/my-orders"
+              routerLinkActive="active"
+              (click)="closeMenu()"
+              >My Orders</a
+            >
 
-        <!-- ✅ OWNER LINKS (Only visible to Owner) -->
-        <ng-container *ngIf="isOwner()">
-          <a routerLink="/owner" routerLinkActive="active" class="owner-link">Dashboard</a>
-          <a routerLink="/owner/menu" routerLinkActive="active" class="owner-link">Manage Menu</a>
-        </ng-container>
+            <ng-container *ngIf="isOwner()">
+              <a
+                routerLink="/owner"
+                routerLinkActive="active"
+                (click)="closeMenu()"
+                class="owner-link"
+                >Dashboard</a
+              >
+              <a
+                routerLink="/owner/menu"
+                routerLinkActive="active"
+                (click)="closeMenu()"
+                class="owner-link"
+                >Manage Menu</a
+              >
+            </ng-container>
+          </div>
 
-        <a routerLink="/cart" routerLinkActive="active" class="cart-link">
-          Cart
-          <span class="badge" *ngIf="cartService.totalItems() > 0">
-            {{ cartService.totalItems() }}
-          </span>
-        </a>
-      </div>
+          <div class="actions">
+            <a routerLink="/cart" routerLinkActive="active" class="cart-btn" (click)="closeMenu()">
+              <span class="icon">🛒</span>
+              <span class="badge" *ngIf="cartService.totalItems() > 0">{{
+                cartService.totalItems()
+              }}</span>
+            </a>
 
-      <!-- Auth Buttons -->
-      <div class="auth-buttons">
-        <ng-container *ngIf="!authService.isLoggedIn()">
-          <a routerLink="/login" class="btn btn-outline">Login</a>
-          <a routerLink="/register" class="btn btn-primary">Register</a>
-        </ng-container>
+            <ng-container *ngIf="!authService.isLoggedIn()">
+              <a routerLink="/login" class="btn-login" (click)="closeMenu()">Login</a>
+              <a routerLink="/register" class="btn btn-primary" (click)="closeMenu()">Join</a>
+            </ng-container>
 
-        <div *ngIf="authService.isLoggedIn()" class="user-info">
-          <!-- Name is a link to Profile -->
-          <a routerLink="/profile" class="profile-link">
-            Hi, {{ authService.currentUser()?.name }}
-            <span *ngIf="isOwner()" class="role-tag">(Owner)</span>
-          </a>
-          <button (click)="authService.logout()" class="btn btn-sm">Logout</button>
+            <div *ngIf="authService.isLoggedIn()" class="user-pill">
+              <a routerLink="/profile" (click)="closeMenu()">
+                Hi, {{ (authService.currentUser()?.name || '').split(' ')[0] }}
+              </a>
+              <button (click)="authService.logout()" class="logout-icon" title="Logout">
+                Logout
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </nav>
+    <!-- Overlay for mobile -->
+    <div class="nav-overlay" *ngIf="isMenuOpen()" (click)="closeMenu()"></div>
   `,
   styles: [
     `
       .navbar {
+        background: #1a1a1a;
+        height: 80px;
+        display: flex;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        z-index: 2000;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      }
+      .nav-container {
+        width: 100%;
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 20px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 1rem 2rem;
-        background: #1a1a1a;
-        color: white;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-        position: sticky;
-        top: 0;
-        z-index: 1000;
       }
-
       .logo a {
-        font-size: 1.5rem;
+        font-size: 1.6rem;
         font-weight: 800;
-        text-decoration: none;
         color: white;
-        letter-spacing: 1px;
+        text-decoration: none;
+        letter-spacing: -1px;
       }
       .highlight {
         color: #ff6b00;
       }
 
-      .nav-links {
+      .nav-content {
         display: flex;
-        gap: 2rem;
         align-items: center;
+        gap: 40px;
       }
-      .nav-links a {
-        text-decoration: none;
-        color: #ccc;
-        font-weight: 500;
-        transition: 0.3s;
-        position: relative;
-        cursor: pointer;
-      }
-      .nav-links a:hover,
-      .nav-links a.active {
-        color: #ff6b00;
-      }
-
-      .owner-link {
-        color: #f39c12 !important;
-      } /* distinct color for owner links */
-      .owner-link:hover {
-        color: #e67e22 !important;
-      }
-
-      .cart-link {
-        position: relative;
-      }
-      .badge {
-        background: #ff6b00;
-        color: white;
-        padding: 2px 6px;
-        border-radius: 10px;
-        font-size: 0.7rem;
-        position: absolute;
-        top: -8px;
-        right: -12px;
-      }
-
-      .auth-buttons {
+      .links {
         display: flex;
-        gap: 1rem;
-        align-items: center;
+        gap: 25px;
       }
-
-      .btn {
-        padding: 8px 16px;
-        border-radius: 4px;
+      .links a {
+        color: #aaa;
         text-decoration: none;
         font-weight: 600;
-        cursor: pointer;
-        border: none;
+        font-size: 0.95rem;
         transition: 0.3s;
-        font-size: 0.9rem;
       }
-
-      .btn-primary {
-        background: #ff6b00;
-        color: white;
-      }
-      .btn-primary:hover {
-        background: #e65100;
-      }
-
-      .btn-outline {
-        border: 1px solid #666;
-        color: white;
-      }
-      .btn-outline:hover {
-        border-color: #ff6b00;
+      .links a:hover,
+      .links a.active {
         color: #ff6b00;
       }
-
-      .btn-sm {
-        padding: 4px 10px;
-        font-size: 0.8rem;
-        margin-left: 10px;
-        background: #333;
-        color: #fff;
-      }
-      .btn-sm:hover {
-        background: #ff4444;
+      .owner-link {
+        color: #f39c12 !important;
       }
 
-      .user-info {
+      .actions {
         display: flex;
         align-items: center;
-        font-size: 0.9rem;
-        color: #aaa;
-        gap: 10px;
+        gap: 20px;
+      }
+      .cart-btn {
+        position: relative;
+        font-size: 1.4rem;
+        text-decoration: none;
+      }
+      .badge {
+        position: absolute;
+        top: -5px;
+        right: -10px;
+        background: #ff6b00;
+        color: white;
+        font-size: 0.7rem;
+        padding: 2px 6px;
+        border-radius: 10px;
+        font-weight: bold;
       }
 
-      /* Profile Link Style */
-      .profile-link {
+      .btn-login {
+        color: white;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .user-pill {
+        background: #333;
+        padding: 5px 15px;
+        border-radius: 30px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        color: white;
+      }
+      .user-pill a {
         color: white;
         text-decoration: none;
         font-weight: bold;
+      }
+      .logout-icon {
+        background: none;
+        border: none;
+        color: #ff4444;
         cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-      }
-      .profile-link:hover {
-        color: #ff6b00;
-        text-decoration: underline;
-      }
-      .role-tag {
-        font-size: 0.7rem;
-        background: #f39c12;
-        color: #000;
-        padding: 1px 4px;
-        border-radius: 4px;
+        font-size: 0.8rem;
+        font-weight: bold;
       }
 
-      @media (max-width: 768px) {
-        .navbar {
-          flex-direction: column;
-          gap: 1rem;
+      /* Mobile Styles */
+      .menu-toggle {
+        display: none;
+        background: none;
+        border: none;
+        cursor: pointer;
+        flex-direction: column;
+        gap: 6px;
+        padding: 10px;
+      }
+      .bar {
+        width: 25px;
+        height: 3px;
+        background: white;
+        transition: 0.3s;
+        border-radius: 2px;
+      }
+
+      @media (max-width: 1024px) {
+        .menu-toggle {
+          display: flex;
         }
-        .nav-links {
-          gap: 1rem;
-          flex-wrap: wrap;
-          justify-content: center;
+        .nav-content {
+          position: fixed;
+          top: 0;
+          right: -100%;
+          height: 100vh;
+          width: 280px;
+          background: #111;
+          flex-direction: column;
+          padding: 100px 30px;
+          transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          align-items: flex-start;
+          gap: 50px;
+        }
+        .nav-content.mobile-open {
+          right: 0;
+        }
+        .links {
+          flex-direction: column;
+          width: 100%;
+        }
+        .links a {
+          font-size: 1.2rem;
+          width: 100%;
+          padding-bottom: 10px;
+          border-bottom: 1px solid #222;
+        }
+        .actions {
+          flex-direction: column;
+          width: 100%;
+          align-items: flex-start;
+        }
+        .nav-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.7);
+          z-index: 1500;
         }
       }
     `,
@@ -213,10 +256,15 @@ import { CartService } from '../../services/cart';
 export class NavbarComponent {
   authService = inject(AuthService);
   cartService = inject(CartService);
+  isMenuOpen = signal(false);
 
-  // Helper to check role
+  toggleMenu() {
+    this.isMenuOpen.set(!this.isMenuOpen());
+  }
+  closeMenu() {
+    this.isMenuOpen.set(false);
+  }
   isOwner() {
-    const user = this.authService.currentUser();
-    return user && user.role === 'OWNER';
+    return this.authService.currentUser()?.role === 'OWNER';
   }
 }
