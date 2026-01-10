@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AuthService } from '../../services/auth';
@@ -51,7 +51,6 @@ import { ToastService } from '../../services/toast';
                   [class.error]="isInvalid('password')"
                 />
               </div>
-              <!-- Note: Forgot password link removed as requested -->
             </div>
           </div>
 
@@ -70,7 +69,11 @@ import { ToastService } from '../../services/toast';
             </div>
           </div>
 
-          <button type="submit" class="btn-auth-main" [disabled]="loading || loginForm.invalid">
+          <button
+            type="submit"
+            class="btn-auth-main"
+            [disabled]="loading || (loginForm.invalid && !requiresOtp)"
+          >
             <span *ngIf="!loading">{{
               requiresOtp ? 'Confirm Identity' : 'Log Into Account'
             }}</span>
@@ -83,7 +86,7 @@ import { ToastService } from '../../services/toast';
         </div>
 
         <div class="auth-footer" *ngIf="requiresOtp">
-          <button class="btn-back-step" (click)="requiresOtp = false">← Change Credentials</button>
+          <button class="btn-back-step" (click)="resetLoginState()">← Change Credentials</button>
         </div>
       </div>
     </div>
@@ -292,6 +295,7 @@ import { ToastService } from '../../services/toast';
 })
 export class LoginComponent {
   private fb = inject(FormBuilder);
+  private cdr = inject(ChangeDetectorRef);
   authService = inject(AuthService);
   router = inject(Router);
   toast = inject(ToastService);
@@ -310,16 +314,26 @@ export class LoginComponent {
     return control?.invalid && (control.dirty || control.touched);
   }
 
+  resetLoginState() {
+    this.requiresOtp = false;
+    this.loginForm.get('otp')?.reset();
+    this.cdr.detectChanges();
+  }
+
   onSubmit() {
-    if (this.loginForm.invalid) return;
+    if (this.loginForm.invalid && !this.requiresOtp) return;
 
     this.loading = true;
     this.authService.login(this.loginForm.value).subscribe({
       next: (res: any) => {
         if (res.requiresOtp) {
-          this.requiresOtp = true;
-          this.loading = false;
-          this.toast.info('Owner verification code sent.');
+          // Wrap in setTimeout to defer state change to next turn, preventing NG0100
+          setTimeout(() => {
+            this.requiresOtp = true;
+            this.loading = false;
+            this.toast.info('Owner verification code sent.');
+            this.cdr.detectChanges();
+          });
         } else {
           this.toast.success('Access granted. Welcome back.');
           this.router.navigate(['/home']);
@@ -328,6 +342,7 @@ export class LoginComponent {
       error: (err) => {
         this.loading = false;
         this.toast.error(err.error?.msg || 'Invalid credentials');
+        this.cdr.detectChanges();
       },
     });
   }
