@@ -151,6 +151,7 @@ import { ToastService } from '../../services/toast';
         padding: 2rem;
         background: #f8f9fa;
         min-height: 100vh;
+        font-family: 'Poppins', sans-serif;
       }
       .header {
         display: flex;
@@ -163,15 +164,15 @@ import { ToastService } from '../../services/toast';
         color: white;
         padding: 10px 20px;
         border: none;
-        border-radius: 5px;
+        border-radius: 8px;
         cursor: pointer;
         font-weight: bold;
       }
       .table-responsive {
         overflow-x: auto;
         background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
       }
       table {
         width: 100%;
@@ -186,29 +187,36 @@ import { ToastService } from '../../services/toast';
       th {
         background: #333;
         color: white;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.8rem;
       }
       .thumb {
         width: 50px;
         height: 50px;
         object-fit: cover;
-        border-radius: 4px;
+        border-radius: 8px;
       }
       .action-btn {
-        background: #333;
         color: white;
         border: none;
-        padding: 6px 12px;
-        border-radius: 4px;
+        padding: 8px 16px;
+        border-radius: 6px;
         cursor: pointer;
         margin-right: 5px;
+        font-weight: 600;
+        font-size: 0.8rem;
+      }
+      .action-btn.edit {
+        background: #3498db;
       }
       .action-btn.delete {
-        background: #ff4444;
+        background: #e74c3c;
       }
       .badge {
-        padding: 4px 8px;
+        padding: 4px 10px;
         border-radius: 12px;
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         font-weight: bold;
       }
       .available {
@@ -219,10 +227,12 @@ import { ToastService } from '../../services/toast';
         background: #f8d7da;
         color: #721c24;
       }
+
       .modal-overlay {
         position: fixed;
         inset: 0;
         background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
         display: flex;
         justify-content: center;
         align-items: center;
@@ -230,68 +240,73 @@ import { ToastService } from '../../services/toast';
       }
       .modal {
         background: white;
-        padding: 2rem;
-        border-radius: 10px;
-        width: 500px;
+        padding: 2.5rem;
+        border-radius: 20px;
+        width: 550px;
         max-width: 90%;
         max-height: 90vh;
         overflow-y: auto;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
       }
       .form-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 15px;
+        gap: 20px;
       }
       .form-group {
         margin-bottom: 15px;
       }
       .form-group label {
         display: block;
-        margin-bottom: 5px;
-        font-weight: 500;
-        font-size: 0.9rem;
+        margin-bottom: 8px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: #555;
       }
       .form-group input,
       .form-group select {
         width: 100%;
-        padding: 8px;
+        padding: 12px;
         border: 1px solid #ddd;
-        border-radius: 4px;
-        box-sizing: border-box;
+        border-radius: 10px;
+        font-family: inherit;
       }
       .pricing-section {
         background: #f9f9f9;
-        padding: 15px;
-        border-radius: 5px;
-        margin-bottom: 15px;
+        padding: 20px;
+        border-radius: 15px;
+        margin: 20px 0;
         border: 1px solid #eee;
       }
       .modal-actions {
         display: flex;
         justify-content: flex-end;
-        gap: 10px;
-        margin-top: 20px;
+        gap: 12px;
+        margin-top: 30px;
       }
       .save-btn {
-        background: #28a745;
+        background: #2ecc71;
         color: white;
-        padding: 10px 20px;
+        padding: 12px 24px;
         border: none;
-        border-radius: 4px;
+        border-radius: 10px;
         cursor: pointer;
+        font-weight: bold;
       }
       .cancel-btn {
-        background: #6c757d;
+        background: #95a5a6;
         color: white;
-        padding: 10px 20px;
+        padding: 12px 24px;
         border: none;
-        border-radius: 4px;
+        border-radius: 10px;
         cursor: pointer;
+        font-weight: bold;
       }
       .checkbox {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
+        margin-top: 10px;
       }
       .checkbox input {
         width: auto;

@@ -45,7 +45,7 @@ import { ToastService } from '../../services/toast';
               <input
                 formControlName="password"
                 type="password"
-                placeholder="********"
+                placeholder="*********"
                 [class.invalid]="isInvalid('password')"
               />
               <div class="error-msg" *ngIf="isInvalid('password')">
@@ -54,7 +54,7 @@ import { ToastService } from '../../services/toast';
             </div>
           </div>
 
-          <!-- Owner OTP Field (Only shown if server identifies as Owner) -->
+          <!-- Owner OTP Field -->
           <div *ngIf="showOtpInput" class="otp-section">
             <div class="form-group">
               <label>6-Digit Security Code</label>
@@ -150,7 +150,7 @@ import { ToastService } from '../../services/toast';
         transition: 0.3s;
       }
       input:focus {
-        border-color: #ff6b00;
+        border-color: #ff6600;
         outline: none;
         background: #fffcf9;
       }
@@ -170,18 +170,18 @@ import { ToastService } from '../../services/toast';
         font-size: 1.6rem;
         letter-spacing: 10px;
         font-weight: 800;
-        border-color: #ff6b00;
+        border-color: #ff6600;
         color: #333;
       }
       .hint {
-        color: #ff6b00;
+        color: #ff6600;
         font-size: 0.75rem;
         margin-top: 10px;
         font-weight: bold;
       }
       .main-btn {
         width: 100%;
-        background: #ff6b00;
+        background: #ff6600;
         color: white;
         padding: 16px;
         border: none;
@@ -215,7 +215,7 @@ import { ToastService } from '../../services/toast';
         padding-top: 1.5rem;
       }
       a {
-        color: #ff6b00;
+        color: #ff6600;
         text-decoration: none;
         cursor: pointer;
         font-weight: bold;
@@ -274,7 +274,6 @@ export class LoginComponent {
     this.authService.login(credentials).subscribe({
       next: (res) => {
         this.loading = false;
-
         if (res.requiresOtp) {
           this.toast.info('Owner verification required. Checking security...');
           this.showOtpInput = true;
@@ -284,7 +283,7 @@ export class LoginComponent {
           this.loginForm.get('otp')?.updateValueAndValidity();
           this.cdr.detectChanges();
         } else {
-          this.authService.handleAuthSuccess(res);
+          // Successfully logged in. State is handled internally by AuthService tap()
           this.toast.success('Successfully logged in!');
           this.router.navigate(['/home']);
         }

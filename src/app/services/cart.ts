@@ -17,20 +17,17 @@ export class CartService {
   );
 
   addToCart(item: MenuItem, variant: 'SINGLE' | 'HALF' | 'FULL' = 'SINGLE') {
-    // 1. Calculate the price based on the selected variant
     let price = 0;
     if (variant === 'SINGLE') price = item.pricing.price || 0;
     if (variant === 'HALF') price = item.pricing.priceHalf || 0;
     if (variant === 'FULL') price = item.pricing.priceFull || 0;
 
     this.cartItems.update((currentItems) => {
-      // 2. Check if this specific item + variant already exists
       const existing = currentItems.find(
         (i) => i._id === item._id && i.selectedVariant === variant
       );
 
       if (existing) {
-        // 3. If yes, just increment quantity
         return currentItems.map((i) =>
           i._id === item._id && i.selectedVariant === variant
             ? { ...i, quantity: i.quantity + 1 }
@@ -38,7 +35,6 @@ export class CartService {
         );
       }
 
-      // 4. If no, add as new item
       return [
         ...currentItems,
         {
@@ -51,13 +47,26 @@ export class CartService {
     });
   }
 
+  /**
+   * New: Update quantity with +/- change
+   */
+  updateQuantity(itemId: string, variant: string, change: number) {
+    this.cartItems.update((items) => {
+      return items
+        .map((i) => {
+          if (i._id === itemId && i.selectedVariant === variant) {
+            const newQty = i.quantity + change;
+            return newQty > 0 ? { ...i, quantity: newQty } : i;
+          }
+          return i;
+        })
+        .filter((i) => i.quantity > 0); // Remove if quantity becomes 0
+    });
+  }
+
   removeFromCart(itemId: string, variant?: string) {
     this.cartItems.update((items) =>
-      items.filter(
-        (i) =>
-          // Filter out item if ID matches AND (variant matches OR no variant specified)
-          !(i._id === itemId && (!variant || i.selectedVariant === variant))
-      )
+      items.filter((i) => !(i._id === itemId && (!variant || i.selectedVariant === variant)))
     );
   }
 

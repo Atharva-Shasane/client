@@ -15,7 +15,7 @@ import { ToastService } from '../../services/toast';
           <p>Manage your kitchen and view sales history</p>
         </div>
         <button (click)="refresh()" class="btn btn-refresh" [disabled]="isRefreshing()">
-          {{ isRefreshing() ? 'Refreshing...' : '🔄 Refresh Orders' }}
+          {{ isRefreshing() ? 'Refreshing...' : 'Refresh Orders' }}
         </button>
       </div>
 
@@ -44,7 +44,6 @@ import { ToastService } from '../../services/toast';
               <div class="cust-name">{{ order.userId?.name || 'Guest User' }}</div>
               <div class="meta-tags">
                 <span class="type-tag">{{ order.orderType }}</span>
-                <!-- Payment Badge -->
                 <span
                   class="pay-tag"
                   [ngClass]="{
@@ -56,8 +55,8 @@ import { ToastService } from '../../services/toast';
                 >
                   {{
                     order.paymentStatus === 'PAID'
-                      ? '✅ PAID (' + order.paymentMethod + ')'
-                      : '⚠️ UNPAID - ' + order.paymentMethod
+                      ? 'PAID (' + order.paymentMethod + ')'
+                      : 'UNPAID - ' + order.paymentMethod
                   }}
                 </span>
               </div>
@@ -93,7 +92,7 @@ import { ToastService } from '../../services/toast';
                 </button>
                 <button
                   *ngIf="order.orderStatus === 'READY'"
-                  (click)="updateStatus(order._id, 'COMPLETED')"
+                  (click)="handleCompletion(order)"
                   class="btn btn-complete"
                 >
                   Complete
@@ -108,13 +107,29 @@ import { ToastService } from '../../services/toast';
         </div>
       </section>
 
+      <!-- CASH PAYMENT PROMPT MODAL -->
+      <div class="modal-overlay" *ngIf="showPaymentModal">
+        <div class="modal-card glass-card">
+          <h3>Confirm Cash Payment</h3>
+          <p>
+            Has the customer paid <strong>₹{{ pendingOrder?.totalAmount }}</strong> in cash?
+          </p>
+          <div class="modal-actions">
+            <button class="btn btn-secondary" (click)="completeWithPayment('PENDING')">
+              No, Not Yet
+            </button>
+            <button class="btn btn-primary" (click)="completeWithPayment('PAID')">Yes, Paid</button>
+          </div>
+        </div>
+      </div>
+
       <div class="spacer"></div>
 
       <!-- SECTION 2: ORDER HISTORY -->
       <section class="order-section history">
         <div class="section-title">
           <div class="title-with-icon">
-            <span class="section-icon">📜</span>
+            <span class="section-icon">📅</span>
             <h2>Order History</h2>
           </div>
           <span class="badge history-count">{{ completedOrders().length }} Total Records</span>
@@ -141,7 +156,7 @@ import { ToastService } from '../../services/toast';
                 <td>{{ getItemsSummary(order) }}</td>
                 <td>
                   <span class="status-pill" [class.success]="order.paymentStatus === 'PAID'">
-                    {{ order.paymentStatus }}
+                    {{ order.paymentStatus }} ({{ order.paymentMethod }})
                   </span>
                 </td>
                 <td>
@@ -179,13 +194,12 @@ import { ToastService } from '../../services/toast';
         margin: 0;
       }
       .accent {
-        color: #ff6b00;
+        color: #ff6600;
       }
       .header-text p {
         color: #666;
         margin: 5px 0 0;
       }
-
       .section-title {
         display: flex;
         align-items: center;
@@ -208,7 +222,6 @@ import { ToastService } from '../../services/toast';
         color: #1a1a1a;
         margin: 0;
       }
-
       .badge {
         padding: 5px 15px;
         border-radius: 30px;
@@ -216,7 +229,7 @@ import { ToastService } from '../../services/toast';
         font-weight: 700;
       }
       .count {
-        background: #ff6b00;
+        background: #ff6600;
         color: white;
         box-shadow: 0 4px 10px rgba(255, 107, 0, 0.2);
       }
@@ -224,14 +237,11 @@ import { ToastService } from '../../services/toast';
         background: #eee;
         color: #666;
       }
-
       .orders-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
         gap: 25px;
       }
-
-      /* Order Card Styling */
       .order-card {
         background: white;
         border-radius: 20px;
@@ -247,7 +257,6 @@ import { ToastService } from '../../services/toast';
         transform: translateY(-5px);
         box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
       }
-
       .status-NEW {
         border-left-color: #3498db;
       }
@@ -257,7 +266,6 @@ import { ToastService } from '../../services/toast';
       .status-READY {
         border-left-color: #2ecc71;
       }
-
       .card-header {
         display: flex;
         justify-content: space-between;
@@ -271,7 +279,6 @@ import { ToastService } from '../../services/toast';
         font-weight: 800;
         color: #333;
       }
-
       .meta-tags {
         display: flex;
         flex-wrap: wrap;
@@ -286,8 +293,6 @@ import { ToastService } from '../../services/toast';
         border-radius: 6px;
         font-weight: 600;
       }
-
-      /* Payment Tags */
       .pay-tag {
         font-size: 0.75rem;
         padding: 4px 10px;
@@ -305,7 +310,6 @@ import { ToastService } from '../../services/toast';
         color: #155724;
         border-color: #c3e6cb;
       }
-
       .order-items {
         background: #f8f9fa;
         padding: 15px;
@@ -330,7 +334,6 @@ import { ToastService } from '../../services/toast';
         font-size: 0.8rem;
         color: #888;
       }
-
       .card-footer {
         display: flex;
         justify-content: space-between;
@@ -362,7 +365,6 @@ import { ToastService } from '../../services/toast';
       .status-READY .dot {
         background: #2ecc71;
       }
-
       .btn {
         padding: 10px 20px;
         border-radius: 10px;
@@ -379,23 +381,26 @@ import { ToastService } from '../../services/toast';
       .btn-prepare {
         background: #f39c12;
         color: white;
-        box-shadow: 0 4px 12px rgba(243, 156, 18, 0.3);
       }
       .btn-ready {
         background: #2ecc71;
         color: white;
-        box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
       }
       .btn-complete {
-        background: #1a1a1a;
+        background: #ff6600;
         color: white;
       }
-
+      .btn-primary {
+        background: #2ecc71;
+        color: white;
+      }
+      .btn-secondary {
+        background: #e74c3c;
+        color: white;
+      }
       .spacer {
         height: 80px;
       }
-
-      /* History Table */
       .history-table-container {
         overflow-x: auto;
         background: white;
@@ -414,14 +419,12 @@ import { ToastService } from '../../services/toast';
         color: #999;
         font-size: 0.8rem;
         text-transform: uppercase;
-        letter-spacing: 1px;
         border-bottom: 2px solid #f5f5f5;
       }
       .history-table td {
         padding: 20px;
         border-bottom: 1px solid #f5f5f5;
         color: #444;
-        font-size: 0.95rem;
       }
       .id-tag {
         font-family: monospace;
@@ -447,7 +450,6 @@ import { ToastService } from '../../services/toast';
         color: #888;
         font-size: 0.85rem;
       }
-
       .empty-state {
         text-align: center;
         padding: 60px;
@@ -455,6 +457,40 @@ import { ToastService } from '../../services/toast';
         font-style: italic;
         background: white;
         border-radius: 20px;
+      }
+
+      /* Modal Styles */
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(5px);
+        z-index: 3000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .modal-card {
+        width: 90%;
+        max-width: 400px;
+        padding: 30px;
+        text-align: center;
+        background: white;
+        border-radius: 20px;
+      }
+      .modal-card h3 {
+        margin-bottom: 15px;
+        font-size: 1.5rem;
+        font-weight: 800;
+      }
+      .modal-card p {
+        color: #666;
+        margin-bottom: 25px;
+      }
+      .modal-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
       }
     `,
   ],
@@ -467,12 +503,14 @@ export class OwnerDashboardComponent implements OnInit {
   orders = signal<any[]>([]);
   isRefreshing = signal<boolean>(false);
 
-  // SECTION 1: Computed signal for active orders
+  // Modal State
+  showPaymentModal = false;
+  pendingOrder: any = null;
+
   activeOrders = computed(() =>
     this.orders().filter((o: any) => o.orderStatus !== 'COMPLETED' && o.orderStatus !== 'CANCELLED')
   );
 
-  // SECTION 2: Computed signal for all history (No 1-day limit)
   completedOrders = computed(() => this.orders().filter((o: any) => o.orderStatus === 'COMPLETED'));
 
   ngOnInit() {
@@ -494,8 +532,27 @@ export class OwnerDashboardComponent implements OnInit {
     });
   }
 
-  updateStatus(id: string, status: string) {
-    this.orderService.updateOrderStatus(id, status).subscribe({
+  handleCompletion(order: any) {
+    // If it's a cash order and still pending, ask for payment confirmation
+    if (order.paymentMethod === 'CASH' && order.paymentStatus === 'PENDING') {
+      this.pendingOrder = order;
+      this.showPaymentModal = true;
+    } else {
+      // If it's already PAID (Online) or owner doesn't care, just complete
+      this.updateStatus(order._id, 'COMPLETED');
+    }
+  }
+
+  completeWithPayment(payStatus: 'PAID' | 'PENDING') {
+    if (!this.pendingOrder) return;
+
+    this.updateStatus(this.pendingOrder._id, 'COMPLETED', payStatus);
+    this.showPaymentModal = false;
+    this.pendingOrder = null;
+  }
+
+  updateStatus(id: string, status: string, paymentStatus?: string) {
+    this.orderService.updateOrderStatus(id, status, paymentStatus).subscribe({
       next: () => {
         this.toast.success(`Order updated to ${status}`);
         this.refresh();

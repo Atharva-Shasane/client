@@ -72,8 +72,11 @@ import { ToastService } from '../../services/toast';
                 placeholder="Min 6 characters"
                 [class.invalid]="isInvalid('password')"
               />
+              <div class="password-hint" [class.valid]="isStrongPassword()">
+                Must include: 6+ chars, 1 Uppercase, 1 Number, 1 Special Char
+              </div>
               <div class="error-msg" *ngIf="isInvalid('password')">
-                Password must be at least 6 characters.
+                Password does not meet security requirements.
               </div>
             </div>
           </div>
@@ -179,13 +182,21 @@ import { ToastService } from '../../services/toast';
         transition: 0.3s;
       }
       input:focus {
-        border-color: #ff6b00;
+        border-color: #ff6600;
         outline: none;
         background: #fffcf9;
       }
       input.invalid {
         border-color: #ff4444;
         background: #fff8f8;
+      }
+      .password-hint {
+        font-size: 0.7rem;
+        color: #888;
+        margin-top: 4px;
+      }
+      .password-hint.valid {
+        color: #2ecc71;
       }
       .error-msg {
         color: #ff4444;
@@ -199,11 +210,11 @@ import { ToastService } from '../../services/toast';
         font-size: 1.6rem;
         letter-spacing: 10px;
         font-weight: 800;
-        border-color: #ff6b00;
+        border-color: #ff6600;
       }
       .resend-hint {
         font-size: 0.75rem;
-        color: #ff6b00;
+        color: #ff6600;
         margin-top: 10px;
         font-weight: 600;
       }
@@ -221,7 +232,7 @@ import { ToastService } from '../../services/toast';
         transition: 0.3s;
       }
       .main-btn:not(:disabled) {
-        background: #ff6b00;
+        background: #ff6600;
         box-shadow: 0 4px 15px rgba(255, 107, 0, 0.3);
       }
       .main-btn:disabled {
@@ -245,7 +256,7 @@ import { ToastService } from '../../services/toast';
         padding-top: 1.5rem;
       }
       a {
-        color: #ff6b00;
+        color: #ff6600;
         text-decoration: none;
         cursor: pointer;
         font-weight: bold;
@@ -286,6 +297,12 @@ export class RegisterComponent {
     return !!(control && control.invalid && (control.dirty || control.touched));
   }
 
+  isStrongPassword(): boolean {
+    const pwd = this.registerForm.get('password')?.value || '';
+    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/;
+    return regex.test(pwd);
+  }
+
   onSubmit() {
     if (!this.showOtpInput) {
       this.handleStepOne();
@@ -295,9 +312,9 @@ export class RegisterComponent {
   }
 
   handleStepOne() {
-    if (this.registerForm.invalid) {
+    if (this.registerForm.invalid || !this.isStrongPassword()) {
       this.registerForm.markAllAsTouched();
-      this.toast.error('Please check all registration details.');
+      this.toast.error('Please fix the errors and ensure your password is strong.');
       return;
     }
 

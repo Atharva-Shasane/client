@@ -1,9 +1,9 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { tap } from 'rxjs/operators';
+import { tap, catchError } from 'rxjs/operators';
+import { of } from 'rxjs';
 import { User } from '../models/user.model';
-import { jwtDecode } from 'jwt-decode';
 import { CartService } from './cart';
 
 @Injectable({ providedIn: 'root' })
@@ -11,61 +11,77 @@ export class AuthService {
   private http = inject(HttpClient);
   private router = inject(Router);
   private cartService = inject(CartService);
+
   private apiUrl = 'http://localhost:5000/api/auth';
 
+  // State managed via Signals
   currentUser = signal<User | null>(null);
   isLoggedIn = computed(() => !!this.currentUser());
 
   constructor() {
-    this.loadUserFromStorage();
+    // On app startup, check if we have a valid session cookie
+    this.checkSession();
   }
 
-  private loadUserFromStorage() {
-    const token = sessionStorage.getItem('token');
-    if (token) {
-      try {
-        const decoded: any = jwtDecode(token);
-        this.currentUser.set({ ...decoded.user, token });
-      } catch (e) {
-        this.logout();
-      }
-    }
+  /**
+   * Verified if the user has a valid HttpOnly cookie session
+   */
+  private checkSession() {
+    this.getProfile().subscribe({
+      next: (user) => this.currentUser.set(user),
+      error: () => this.currentUser.set(null),
+    });
   }
 
   requestOtp(email: string) {
-    return this.http.post(`${this.apiUrl}/request-otp`, { email });
+    return this.http.post(`${this.apiUrl}/request-otp`, { email }, { withCredentials: true });
   }
 
   register(userData: any) {
     return this.http
-      .post<{ token: string; user: User }>(`${this.apiUrl}/register`, userData)
-      .pipe(tap((res) => this.handleAuthSuccess(res)));
+      .post<any>(`${this.apiUrl}/register`, userData, { withCredentials: true })
+      .pipe(tap((res) => this.currentUser.set(res.user)));
   }
 
   login(credentials: any) {
-    // This returns an observable that might contain { requiresOtp: true } or { token: string }
-    return this.http.post<any>(`${this.apiUrl}/login`, credentials);
+    // Note: Token is now handled by the browser via HttpOnly cookies
+    return this.http.post<any>(`${this.apiUrl}/login`, credentials, { withCredentials: true }).pipe(
+      tap((res) => {
+        if (!res.requiresOtp) {
+          this.currentUser.set(res.user);
+        }
+      })
+    );
   }
 
   getProfile() {
-    const token = this.getToken();
-    const headers = new HttpHeaders().set('x-auth-token', token || '');
-    return this.http.get<User>(`${this.apiUrl}/me`, { headers });
-  }
-
-  handleAuthSuccess(res: { token: string; user: User }) {
-    sessionStorage.setItem('token', res.token);
-    this.currentUser.set({ ...res.user, token: res.token });
+    // This call sends the HttpOnly cookie automatically thanks to withCredentials
+    return this.http.get<User>(`${this.apiUrl}/me`, { withCredentials: true });
   }
 
   logout() {
-    sessionStorage.removeItem('token');
-    this.currentUser.set(null);
-    this.cartService.clearCart();
-    this.router.navigate(['/home']);
+    return this.http
+      .post(`${this.apiUrl}/logout`, {}, { withCredentials: true })
+      .pipe(
+        tap(() => {
+          this.currentUser.set(null);
+          this.cartService.clearCart();
+          this.router.navigate(['/home']);
+        }),
+        catchError(() => {
+          // Force logout even if server call fails
+          this.currentUser.set(null);
+          this.router.navigate(['/home']);
+          return of(null);
+        })
+      )
+      .subscribe();
   }
 
+  // Helper used by interceptor or guards
   getToken() {
-    return sessionStorage.getItem('token');
+    // With HttpOnly cookies, we don't have a token to return manually
+    // The browser handles it. We return a dummy or null.
+    return null;
   }
 }

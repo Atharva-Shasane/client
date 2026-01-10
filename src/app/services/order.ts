@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { AuthService } from './auth';
 import { CartService } from './cart';
 import { MenuService } from './menu';
@@ -18,55 +18,45 @@ export class OrderService {
 
   private apiUrl = 'http://localhost:5000/api/orders';
 
-  private getAuthHeaders() {
-    const token = this.authService.getToken();
-    return new HttpHeaders().set('x-auth-token', token || '');
-  }
-
   createOrder(orderData: any): Observable<any> {
-    return this.http.post(this.apiUrl, orderData, { headers: this.getAuthHeaders() });
+    return this.http.post(this.apiUrl, orderData, { withCredentials: true });
   }
 
   getMyOrders(): Observable<any[]> {
-    // Explicitly calling the /my-orders endpoint
-    return this.http.get<any[]>(`${this.apiUrl}/my-orders`, { headers: this.getAuthHeaders() });
+    return this.http.get<any[]>(`${this.apiUrl}/my-orders`, { withCredentials: true });
   }
 
   cancelOrder(orderId: string): Observable<any> {
-    return this.http.put(
-      `${this.apiUrl}/${orderId}/cancel`,
-      {},
-      { headers: this.getAuthHeaders() }
-    );
+    return this.http.put(`${this.apiUrl}/${orderId}/cancel`, {}, { withCredentials: true });
   }
 
   getOwnerDashboardData(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/owner/all`, { headers: this.getAuthHeaders() });
+    return this.http.get<any[]>(`${this.apiUrl}/owner/all`, { withCredentials: true });
   }
 
-  updateOrderStatus(orderId: string, status: string): Observable<any> {
+  updateOrderStatus(orderId: string, status: string, paymentStatus?: string): Observable<any> {
     return this.http.put(
       `${this.apiUrl}/owner/${orderId}/status`,
-      { status },
-      { headers: this.getAuthHeaders() }
+      { status, paymentStatus },
+      { withCredentials: true }
     );
   }
 
   async reorderToCart(oldOrder: any) {
     try {
-      this.toast.show('Syncing with menu...', 'info');
+      this.toast.info('Syncing with menu...');
       const latestMenu = await firstValueFrom(this.menuService.getMenu());
       this.cartService.clearCart();
-
       let itemsAdded = 0;
+
       for (const oldItem of oldOrder.items) {
         const currentItem = latestMenu.find((m) => m._id === (oldItem.menuItemId || oldItem._id));
         if (currentItem && currentItem.isAvailable) {
           const variant = oldItem.selectedVariant || oldItem.variant || 'SINGLE';
           for (let i = 0; i < oldItem.quantity; i++) {
             this.cartService.addToCart(currentItem, variant);
+            itemsAdded++;
           }
-          itemsAdded++;
         }
       }
 

@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, ChangeDetectorRef, signal } from '@angular/core';
+import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -13,134 +13,173 @@ import { ToastService } from '../../services/toast';
   template: `
     <div class="checkout-container">
       <div class="header">
-        <button class="back-link" (click)="router.navigate(['/cart'])">← Back to Cart</button>
-        <h2>Complete Your Order</h2>
+        <button class="back-link" (click)="router.navigate(['/cart'])">← Edit Cart</button>
+        <h2>Finalize <span class="highlight">Order</span></h2>
       </div>
 
       <div class="grid-layout">
-        <div class="form-section glass-card">
-          <!-- Step 1: Order Preferences -->
-          <div class="section-group">
-            <h3>1. Order Preferences</h3>
-            <div class="radio-card-group">
-              <label class="radio-card" [class.active]="orderType === 'DINE_IN'">
+        <!-- Main Form -->
+        <div class="form-side">
+          <!-- Order Type Card -->
+          <div class="config-card glass-card">
+            <h3>Dining Preference</h3>
+            <div class="preference-grid">
+              <label class="pref-option" [class.active]="orderType === 'DINE_IN'">
                 <input type="radio" name="orderType" [(ngModel)]="orderType" value="DINE_IN" />
-                <span class="icon">🍽️</span>
-                <span class="label">Dine In</span>
+                <div class="pref-content">
+                  <span class="pref-icon">🍽️</span>
+                  <div class="pref-text">
+                    <span class="title">Dine In</span>
+                    <span class="desc">Reserved Table</span>
+                  </div>
+                </div>
               </label>
-              <label class="radio-card" [class.active]="orderType === 'TAKEAWAY'">
+
+              <label class="pref-option" [class.active]="orderType === 'TAKEAWAY'">
                 <input type="radio" name="orderType" [(ngModel)]="orderType" value="TAKEAWAY" />
-                <span class="icon">🥡</span>
-                <span class="label">Takeaway</span>
+                <div class="pref-content">
+                  <span class="pref-icon">🥡</span>
+                  <div class="pref-text">
+                    <span class="title">Takeaway</span>
+                    <span class="desc">Self-Pickup</span>
+                  </div>
+                </div>
               </label>
             </div>
 
-            <div *ngIf="orderType === 'DINE_IN'" class="fade-in mt-4">
-              <div class="input-row">
-                <div class="input-group">
-                  <label>Guests</label>
-                  <input type="number" [(ngModel)]="numberOfPeople" min="1" max="20" />
+            <!-- Custom Schedule UI -->
+            <div *ngIf="orderType === 'DINE_IN'" class="schedule-box fade-in">
+              <div class="schedule-header">
+                <span class="icon">📅</span>
+                <h4>Schedule Your Visit</h4>
+              </div>
+
+              <div class="schedule-grid">
+                <!-- Guest Count -->
+                <div class="schedule-item">
+                  <label>Number of Guests</label>
+                  <div class="number-stepper">
+                    <button type="button" (click)="updateGuests(-1)">-</button>
+                    <span class="count">{{ numberOfPeople }}</span>
+                    <button type="button" (click)="updateGuests(1)">+</button>
+                  </div>
                 </div>
-                <div class="input-group">
-                  <label>Arrival Time</label>
-                  <input type="datetime-local" [(ngModel)]="scheduledTime" [min]="minTime" />
+
+                <!-- Date Picker -->
+                <div class="schedule-item">
+                  <label>Visit Date</label>
+                  <input
+                    type="date"
+                    class="custom-date-input"
+                    [(ngModel)]="selectedDate"
+                    [min]="minDate"
+                    (change)="generateTimeSlots()"
+                  />
+                </div>
+              </div>
+
+              <!-- Time Slot Grid -->
+              <div class="time-slot-container">
+                <label>Available Slots</label>
+                <div class="slots-grid">
+                  <button
+                    type="button"
+                    *ngFor="let slot of availableSlots"
+                    class="slot-btn"
+                    [class.active]="selectedSlot === slot"
+                    (click)="selectedSlot = slot"
+                  >
+                    {{ slot }}
+                  </button>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Step 2: Payment -->
-          <div class="section-group">
-            <h3>2. Payment Method</h3>
-            <div class="radio-card-group">
-              <label class="radio-card" [class.active]="paymentMethod === 'CASH'">
-                <input type="radio" name="paymentMethod" [(ngModel)]="paymentMethod" value="CASH" />
-                <span class="icon">💵</span>
-                <span class="label">Cash / Counter</span>
+          <!-- Payment Card -->
+          <div class="config-card glass-card">
+            <h3>Payment Selection</h3>
+            <div class="payment-options">
+              <label class="pay-item" [class.active]="paymentMethod === 'CASH'">
+                <input type="radio" name="payMethod" [(ngModel)]="paymentMethod" value="CASH" />
+                <span class="dot"></span>
+                <span class="label">Pay at Restaurant (Cash/UPI)</span>
               </label>
-              <label class="radio-card" [class.active]="paymentMethod === 'ONLINE'">
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  [(ngModel)]="paymentMethod"
-                  value="ONLINE"
-                />
-                <span class="icon">💳</span>
-                <span class="label">Online Payment</span>
+
+              <label class="pay-item" [class.active]="paymentMethod === 'ONLINE'">
+                <input type="radio" name="payMethod" [(ngModel)]="paymentMethod" value="ONLINE" />
+                <span class="dot"></span>
+                <span class="label">Secure Online Payment</span>
               </label>
             </div>
-
-            <p class="payment-note" *ngIf="paymentMethod === 'CASH'">
-              ℹ️ You can pay at the restaurant counter using Cash, UPI, or Card upon arrival.
-            </p>
-            <p class="payment-note" *ngIf="paymentMethod === 'ONLINE'">
-              🔒 Secured by Killa-Pay. Supports UPI, Cards, and NetBanking.
-            </p>
           </div>
 
           <button
             (click)="handleCheckout()"
-            class="place-btn"
-            [disabled]="loading || cartService.totalItems() === 0"
+            class="main-order-btn"
+            [disabled]="
+              loading ||
+              cartService.totalItems() === 0 ||
+              (orderType === 'DINE_IN' && !selectedSlot)
+            "
           >
             <span *ngIf="!loading">
               {{ paymentMethod === 'ONLINE' ? 'Pay & Place Order' : 'Confirm Order' }}
             </span>
-            <span *ngIf="loading">Processing...</span>
+            <span *ngIf="loading">Processing Legends...</span>
           </button>
         </div>
 
-        <!-- Order Summary -->
-        <div class="summary-section glass-card">
-          <h3>Summary</h3>
-          <div class="summary-list">
-            <div *ngFor="let item of cartService.cartItems()" class="summary-item">
-              <div class="item-info">
-                <span class="item-qty">{{ item.quantity }}x</span>
-                <span class="item-name">{{ item.name }}</span>
+        <!-- Sidebar Summary -->
+        <div class="summary-side">
+          <div class="sticky-box glass-card">
+            <div class="summary-header">
+              <h3>Order Detail</h3>
+              <span class="item-count">{{ cartService.totalItems() }} items</span>
+            </div>
+
+            <div class="item-list">
+              <div *ngFor="let item of cartService.cartItems()" class="mini-item">
+                <div class="info">
+                  <span class="qty">{{ item.quantity }}x</span>
+                  <span class="name">{{ item.name }}</span>
+                </div>
+                <span class="price">₹{{ item.computedPrice * item.quantity }}</span>
               </div>
-              <span class="item-price">₹{{ item.computedPrice * item.quantity }}</span>
             </div>
-          </div>
-          <div class="total-box">
-            <div class="row">
-              <span>Subtotal</span><span>₹{{ cartService.totalPrice() }}</span>
-            </div>
-            <div class="row">
-              <span>GST (5%)</span><span>₹{{ (cartService.totalPrice() * 0.05).toFixed(0) }}</span>
-            </div>
-            <div class="row grand-total">
-              <span>Total</span><span>₹{{ (cartService.totalPrice() * 1.05).toFixed(0) }}</span>
+
+            <div class="bill-details">
+              <div class="bill-row">
+                <span>Subtotal</span>
+                <span>₹{{ cartService.totalPrice() }}</span>
+              </div>
+              <div class="bill-row">
+                <span>Restaurant GST (5%)</span>
+                <span>₹{{ (cartService.totalPrice() * 0.05).toFixed(0) }}</span>
+              </div>
+              <div class="bill-row grand">
+                <span>Total Amount</span>
+                <span>₹{{ (cartService.totalPrice() * 1.05).toFixed(0) }}</span>
+              </div>
+
+              <!-- Selected Time Display -->
+              <div class="schedule-summary" *ngIf="orderType === 'DINE_IN' && selectedSlot">
+                <span class="icon">🕒</span> Scheduled for {{ selectedSlot }} on {{ selectedDate }}
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- PAYMENT GATEWAY MODAL (Simulated) -->
-    <div class="payment-modal-overlay" *ngIf="showPaymentModal">
-      <div class="payment-modal glass-card">
-        <div class="gateway-header">
-          <img
-            src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg"
-            height="24"
-            alt="Gateway"
-          />
-          <span class="security">🔒 Secure Checkout</span>
-        </div>
-        <div class="gateway-body">
-          <h4>Payment for Order #{{ tempOrderId }}</h4>
-          <div class="amount-display">₹{{ (cartService.totalPrice() * 1.05).toFixed(0) }}</div>
-
-          <div class="loading-state" *ngIf="paymentStep === 'PROCESSING'">
-            <div class="spinner"></div>
-            <p>Contacting your bank...</p>
-          </div>
-
-          <div class="success-state" *ngIf="paymentStep === 'SUCCESS'">
-            <div class="check-icon">✓</div>
-            <p>Payment Authorized Successfully!</p>
-          </div>
+    <!-- Payment Overlay -->
+    <div class="pay-overlay" *ngIf="showPaymentModal">
+      <div class="pay-dialog glass-card">
+        <div class="loader-circle"></div>
+        <h4>Securing Payment</h4>
+        <p>Connecting to secure server... Please do not refresh.</p>
+        <div class="payment-status" *ngIf="paymentStep === 'SUCCESS'">
+          <span class="check">✔</span> Authorized Successfully!
         </div>
       </div>
     </div>
@@ -149,7 +188,7 @@ import { ToastService } from '../../services/toast';
     `
       .checkout-container {
         max-width: 1200px;
-        margin: 2rem auto;
+        margin: 3rem auto;
         padding: 0 20px;
         font-family: 'Poppins', sans-serif;
       }
@@ -159,148 +198,302 @@ import { ToastService } from '../../services/toast';
       .back-link {
         background: none;
         border: none;
-        color: #ff6b00;
+        color: #ff6600;
+        font-weight: 700;
         cursor: pointer;
-        font-weight: 600;
         margin-bottom: 10px;
       }
-      h2 {
-        font-size: 2rem;
+      .header h2 {
+        font-size: 2.5rem;
         font-weight: 800;
         color: #1a1a1a;
+        margin: 0;
+      }
+      .highlight {
+        color: #ff6600;
       }
 
       .grid-layout {
         display: grid;
         grid-template-columns: 1fr 400px;
-        gap: 2rem;
-      }
-      .section-group {
-        margin-bottom: 2.5rem;
-      }
-      h3 {
-        font-size: 1.1rem;
-        color: #666;
-        margin-bottom: 1.5rem;
-        text-transform: uppercase;
-        letter-spacing: 1px;
+        gap: 2.5rem;
       }
 
-      .radio-card-group {
+      /* Cards */
+      .config-card {
+        padding: 2.5rem;
+        margin-bottom: 2rem;
+        border-radius: 24px;
+      }
+      .config-card h3 {
+        margin-top: 0;
+        font-size: 1.1rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #888;
+        margin-bottom: 1.5rem;
+      }
+
+      /* Preference Selector */
+      .preference-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 15px;
       }
-      .radio-card {
-        background: #f8f9fa;
+      .pref-option {
         border: 2px solid #eee;
-        padding: 20px;
-        border-radius: 15px;
+        border-radius: 20px;
         cursor: pointer;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 10px;
         transition: 0.3s;
+        padding: 20px;
       }
-      .radio-card input {
+      .pref-option input {
         display: none;
       }
-      .radio-card.active {
-        border-color: #ff6b00;
+      .pref-option.active {
+        border-color: #ff6600;
         background: #fffcf9;
-        transform: scale(1.02);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(255, 107, 0, 0.1);
       }
-      .radio-card .icon {
-        font-size: 1.5rem;
+      .pref-content {
+        display: flex;
+        align-items: center;
+        gap: 15px;
       }
-      .radio-card .label {
+      .pref-icon {
+        font-size: 2rem;
+      }
+      .pref-text .title {
+        display: block;
+        font-weight: 800;
+        font-size: 1.1rem;
+        color: #333;
+      }
+      .pref-text .desc {
+        font-size: 0.8rem;
+        color: #888;
+      }
+
+      /* Custom Schedule UI */
+      .schedule-box {
+        margin-top: 2rem;
+        background: #fdfdfd;
+        padding: 25px;
+        border-radius: 20px;
+        border: 1px solid #eee;
+      }
+      .schedule-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+      .schedule-header h4 {
+        margin: 0;
         font-weight: 700;
         color: #333;
       }
-
-      .input-row {
+      .schedule-grid {
         display: grid;
-        grid-template-columns: 100px 1fr;
-        gap: 15px;
-        margin-top: 15px;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 20px;
       }
-      .input-group label {
+
+      .schedule-item label {
         display: block;
         font-size: 0.8rem;
-        font-weight: 600;
-        color: #666;
-        margin-bottom: 5px;
+        font-weight: 700;
+        color: #888;
+        margin-bottom: 8px;
+        text-transform: uppercase;
       }
-      input {
+
+      .number-stepper {
+        display: flex;
+        align-items: center;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 12px;
+        padding: 5px;
+        justify-content: space-between;
+      }
+      .number-stepper button {
+        width: 35px;
+        height: 35px;
+        border: none;
+        background: #f0f0f0;
+        border-radius: 8px;
+        font-weight: 800;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .number-stepper button:hover {
+        background: #ff6600;
+        color: white;
+      }
+      .number-stepper .count {
+        font-weight: 800;
+        font-size: 1.1rem;
+      }
+
+      .custom-date-input {
         width: 100%;
         padding: 12px;
         border: 1px solid #ddd;
-        border-radius: 8px;
+        border-radius: 12px;
         font-family: inherit;
+        font-weight: 600;
       }
 
-      .payment-note {
+      .time-slot-container label {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #888;
+        margin-bottom: 12px;
+        text-transform: uppercase;
+      }
+      .slots-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        gap: 10px;
+      }
+      .slot-btn {
+        padding: 10px;
+        background: white;
+        border: 1px solid #eee;
+        border-radius: 10px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: 0.2s;
         font-size: 0.85rem;
-        color: #ff6b00;
-        margin-top: 15px;
-        font-weight: 500;
+      }
+      .slot-btn:hover {
+        border-color: #ff6600;
+        color: #ff6600;
+      }
+      .slot-btn.active {
+        background: #ff6600;
+        color: white;
+        border-color: #ff6600;
+        transform: scale(1.05);
       }
 
-      .place-btn {
+      /* Payment */
+      .payment-options {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .pay-item {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 15px 20px;
+        border-radius: 12px;
+        background: #f9f9f9;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .pay-item .dot {
+        width: 12px;
+        height: 12px;
+        border: 2px solid #ccc;
+        border-radius: 50%;
+      }
+      .pay-item.active {
+        background: #fffcf9;
+        border: 1px solid #ff6600;
+      }
+      .pay-item.active .dot {
+        background: #ff6600;
+        border-color: #ff6600;
+      }
+      .pay-item input {
+        display: none;
+      }
+
+      /* Order Button */
+      .main-order-btn {
         width: 100%;
-        padding: 18px;
+        padding: 22px;
         background: #1a1a1a;
         color: white;
         border: none;
-        border-radius: 12px;
+        border-radius: 18px;
         font-weight: 800;
-        font-size: 1.1rem;
+        font-size: 1.2rem;
         cursor: pointer;
         transition: 0.3s;
+        margin-top: 1rem;
       }
-      .place-btn:hover:not(:disabled) {
-        background: #ff6b00;
-        box-shadow: 0 10px 20px rgba(255, 107, 0, 0.3);
+      .main-order-btn:hover:not(:disabled) {
+        background: #ff6600;
+        transform: translateY(-5px);
+        box-shadow: 0 15px 30px rgba(255, 107, 0, 0.3);
       }
 
-      .summary-section {
+      /* Sidebar */
+      .sticky-box {
         padding: 2rem;
-        height: fit-content;
+        position: sticky;
+        top: 100px;
       }
-      .summary-list {
-        margin-bottom: 20px;
-      }
-      .summary-item {
+      .summary-header {
         display: flex;
         justify-content: space-between;
-        margin-bottom: 12px;
+        align-items: baseline;
+        margin-bottom: 1.5rem;
+      }
+      .item-count {
+        font-size: 0.8rem;
+        color: #888;
+        font-weight: 600;
+      }
+      .item-list {
+        border-bottom: 1px solid #eee;
+        padding-bottom: 1.5rem;
+        margin-bottom: 1.5rem;
+      }
+      .mini-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
         font-size: 0.95rem;
       }
-      .item-qty {
+      .mini-item .qty {
         font-weight: 800;
-        color: #ff6b00;
+        color: #ff6600;
         margin-right: 8px;
       }
-      .total-box {
-        border-top: 2px dashed #eee;
-        padding-top: 20px;
-      }
-      .row {
+      .bill-row {
         display: flex;
         justify-content: space-between;
-        margin-bottom: 8px;
+        margin-bottom: 10px;
         color: #666;
+        font-size: 0.9rem;
       }
-      .grand-total {
-        font-size: 1.5rem;
-        color: #1a1a1a;
+      .bill-row.grand {
+        margin-top: 1.5rem;
+        font-size: 1.4rem;
         font-weight: 800;
-        margin-top: 10px;
+        color: #1a1a1a;
+      }
+      .schedule-summary {
+        margin-top: 1.5rem;
+        padding: 12px;
+        background: #fff8f0;
+        border-radius: 10px;
+        border: 1px solid #ffead0;
+        font-size: 0.85rem;
+        color: #b05000;
+        font-weight: 600;
       }
 
-      /* Payment Modal Styles */
-      .payment-modal-overlay {
+      /* Payment Modal */
+      .pay-overlay {
         position: fixed;
         inset: 0;
         background: rgba(0, 0, 0, 0.8);
@@ -310,58 +503,34 @@ import { ToastService } from '../../services/toast';
         align-items: center;
         justify-content: center;
       }
-      .payment-modal {
-        width: 90%;
-        max-width: 400px;
-        padding: 2rem;
-        background: white;
+      .pay-dialog {
+        padding: 3rem;
         text-align: center;
+        width: 350px;
       }
-      .gateway-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 2rem;
-        border-bottom: 1px solid #eee;
-        padding-bottom: 15px;
-      }
-      .security {
-        font-size: 0.75rem;
-        color: #27ae60;
-        font-weight: bold;
-      }
-      .amount-display {
-        font-size: 2.5rem;
-        font-weight: 800;
-        color: #1a1a1a;
-        margin: 1rem 0;
-      }
-
-      .spinner {
-        width: 40px;
-        height: 40px;
-        border: 4px solid #f3f3f3;
-        border-top: 4px solid #ff6b00;
+      .loader-circle {
+        width: 50px;
+        height: 50px;
+        border: 5px solid #f3f3f3;
+        border-top-color: #ff6600;
         border-radius: 50%;
         animation: spin 1s linear infinite;
-        margin: 20px auto;
+        margin: 0 auto 20px;
       }
       @keyframes spin {
-        0% {
-          transform: rotate(0deg);
-        }
-        100% {
+        to {
           transform: rotate(360deg);
         }
-      }
-      .check-icon {
-        font-size: 3rem;
-        color: #27ae60;
-        margin: 20px 0;
       }
 
       @media (max-width: 900px) {
         .grid-layout {
+          grid-template-columns: 1fr;
+        }
+        .summary-side {
+          order: -1;
+        }
+        .schedule-grid {
           grid-template-columns: 1fr;
         }
       }
@@ -378,28 +547,54 @@ export class CheckoutComponent implements OnInit {
   orderType: 'DINE_IN' | 'TAKEAWAY' = 'DINE_IN';
   paymentMethod: 'CASH' | 'ONLINE' = 'CASH';
   numberOfPeople = 2;
-  scheduledTime = '';
-  loading = false;
 
-  // Payment UI state
+  // Custom Scheduling State
+  selectedDate = '';
+  selectedSlot = '';
+  availableSlots: string[] = [];
+
+  loading = false;
   showPaymentModal = false;
   paymentStep: 'PROCESSING' | 'SUCCESS' = 'PROCESSING';
-  tempOrderId = Math.floor(100000 + Math.random() * 900000);
 
   ngOnInit() {
-    this.setDefaultTime();
+    this.setDefaultValues();
+    this.generateTimeSlots();
   }
 
-  setDefaultTime() {
+  setDefaultValues() {
     const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset() + 30); // 30 mins from now
-    this.scheduledTime = now.toISOString().slice(0, 16);
+    this.selectedDate = now.toISOString().slice(0, 10);
   }
 
-  get minTime() {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    return now.toISOString().slice(0, 16);
+  get minDate() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  updateGuests(change: number) {
+    const newCount = this.numberOfPeople + change;
+    if (newCount >= 1 && newCount <= 20) {
+      this.numberOfPeople = newCount;
+    }
+  }
+
+  /**
+   * Generates dining slots from 11:00 AM to 11:00 PM
+   */
+  generateTimeSlots() {
+    const slots = [];
+    const startHour = 11;
+    const endHour = 23;
+
+    for (let h = startHour; h < endHour; h++) {
+      const hour = h > 12 ? h - 12 : h;
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      slots.push(`${hour}:00 ${ampm}`);
+      slots.push(`${hour}:30 ${ampm}`);
+    }
+
+    // In a real app, you might filter out slots that have passed for 'today'
+    this.availableSlots = slots;
   }
 
   async handleCheckout() {
@@ -414,7 +609,6 @@ export class CheckoutComponent implements OnInit {
     this.showPaymentModal = true;
     this.paymentStep = 'PROCESSING';
 
-    // Simulate Payment Gateway Delay
     setTimeout(() => {
       this.paymentStep = 'SUCCESS';
       setTimeout(() => {
@@ -428,10 +622,14 @@ export class CheckoutComponent implements OnInit {
     this.loading = true;
     this.cdr.detectChanges();
 
+    // Format the final scheduled time for the backend
+    const finalSchedule =
+      this.orderType === 'DINE_IN' ? `${this.selectedDate} ${this.selectedSlot}` : null;
+
     const orderData = {
       orderType: this.orderType,
       numberOfPeople: this.orderType === 'DINE_IN' ? this.numberOfPeople : 0,
-      scheduledTime: this.orderType === 'DINE_IN' ? this.scheduledTime : null,
+      scheduledTime: finalSchedule,
       paymentMethod: this.paymentMethod,
       paymentStatus: paymentStatus,
       transactionId: txId,
@@ -450,8 +648,8 @@ export class CheckoutComponent implements OnInit {
         this.loading = false;
         this.toast.success(
           paymentStatus === 'PAID'
-            ? 'Payment Received & Order Placed!'
-            : 'Order Placed! Please pay at counter.'
+            ? 'Legendary! Payment Received & Order Placed.'
+            : 'Order Confirmed! Please pay at the counter.'
         );
         this.cartService.clearCart();
         this.router.navigate(['/my-orders']);
@@ -459,7 +657,7 @@ export class CheckoutComponent implements OnInit {
       error: (err) => {
         this.loading = false;
         this.cdr.detectChanges();
-        this.toast.error(err.error?.msg || 'Failed to place order.');
+        this.toast.error(err.error?.msg || 'Failed to finalize order.');
       },
     });
   }
