@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { MenuItem } from '../models/menu-item.model';
 import { AuthService } from './auth';
 
@@ -9,30 +9,30 @@ export class MenuService {
   private authService = inject(AuthService);
   private apiUrl = 'http://localhost:5000/api/menu';
 
-  private getAuthHeaders() {
-    const token = this.authService.getToken();
-    return new HttpHeaders().set('x-auth-token', token || '');
-  }
-
   // Public: Get only available items
   getMenu() {
     return this.http.get<MenuItem[]>(this.apiUrl);
   }
 
-  // Owner: Get ALL items (including unavailable)
+  // AI Integration: Get recommendations for current user
+  getAiRecommendations() {
+    return this.http.get<MenuItem[]>(`${this.apiUrl}/recommendations`, { withCredentials: true });
+  }
+
+  // Owner: Get ALL items
   getAllMenuItems() {
-    return this.http.get<MenuItem[]>(`${this.apiUrl}?all=true`, { headers: this.getAuthHeaders() });
+    return this.http.get<MenuItem[]>(`${this.apiUrl}?all=true`, { withCredentials: true });
   }
 
   addMenuItem(item: any) {
-    return this.http.post(this.apiUrl, item, { headers: this.getAuthHeaders() });
+    return this.http.post(this.apiUrl, item, { withCredentials: true });
   }
 
   updateMenuItem(id: string, item: any) {
-    return this.http.put(`${this.apiUrl}/${id}`, item, { headers: this.getAuthHeaders() });
+    return this.http.put(`${this.apiUrl}/${id}`, item, { withCredentials: true });
   }
 
   deleteMenuItem(id: string) {
-    return this.http.delete(`${this.apiUrl}/${id}`, { headers: this.getAuthHeaders() });
+    return this.http.delete(`${this.apiUrl}/${id}`, { withCredentials: true });
   }
 }

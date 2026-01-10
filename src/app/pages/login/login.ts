@@ -1,4 +1,4 @@
-import { Component, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AuthService } from '../../services/auth';
@@ -10,224 +10,281 @@ import { ToastService } from '../../services/toast';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   template: `
-    <div class="auth-container">
-      <div class="auth-box glass-card">
-        <h2>{{ showOtpInput ? 'Owner Verification' : 'Welcome Back' }}</h2>
-        <p class="subtitle">
-          {{
-            showOtpInput
-              ? 'Enter the security code sent to your email'
-              : 'Access your Killa Resto account'
-          }}
-        </p>
+    <div class="auth-wrapper fade-in">
+      <div class="auth-card glass-card">
+        <div class="brand-header">
+          <span class="k-logo">KILLA ACCESS</span>
+          <h2>{{ requiresOtp ? 'Identity Check' : 'Sign In' }}</h2>
+          <p class="subtitle">
+            {{
+              requiresOtp
+                ? 'A security code was sent to your owner email.'
+                : 'Access your legendary account to manage orders.'
+            }}
+          </p>
+        </div>
 
         <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
-          <!-- Normal Login Fields -->
-          <div *ngIf="!showOtpInput">
-            <div class="form-group">
+          <!-- Standard Credentials -->
+          <div *ngIf="!requiresOtp" class="form-step">
+            <div class="field">
               <label>Email Address</label>
-              <input
-                formControlName="email"
-                type="email"
-                placeholder="owner@killa.com"
-                [class.invalid]="isInvalid('email')"
-              />
-              <div class="error-msg" *ngIf="isInvalid('email')">
-                <span *ngIf="loginForm.get('email')?.errors?.['required']">Email is required</span>
-                <span *ngIf="loginForm.get('email')?.errors?.['email']"
-                  >Please enter a valid email address</span
-                >
+              <div class="input-group">
+                <span class="icon">✉️</span>
+                <input
+                  formControlName="email"
+                  type="email"
+                  placeholder="name@domain.com"
+                  [class.error]="isInvalid('email')"
+                />
               </div>
             </div>
 
-            <div class="form-group">
+            <div class="field">
               <label>Password</label>
-              <input
-                formControlName="password"
-                type="password"
-                placeholder="*********"
-                [class.invalid]="isInvalid('password')"
-              />
-              <div class="error-msg" *ngIf="isInvalid('password')">
-                Password must be at least 6 characters.
+              <div class="input-group">
+                <span class="icon">🔒</span>
+                <input
+                  formControlName="password"
+                  type="password"
+                  placeholder="••••••••"
+                  [class.error]="isInvalid('password')"
+                />
               </div>
+              <!-- Note: Forgot password link removed as requested -->
             </div>
           </div>
 
-          <!-- Owner OTP Field -->
-          <div *ngIf="showOtpInput" class="otp-section">
-            <div class="form-group">
-              <label>6-Digit Security Code</label>
+          <!-- Owner OTP Verification -->
+          <div *ngIf="requiresOtp" class="form-step fade-in">
+            <div class="field centered">
+              <label>Verification Code</label>
               <input
                 formControlName="otp"
                 type="text"
-                placeholder="000000"
                 maxlength="6"
                 class="otp-input"
-                [class.invalid]="isInvalid('otp')"
+                placeholder="000000"
               />
-              <p class="hint">Check your email (or server console) for the code.</p>
-              <div class="error-msg" *ngIf="isInvalid('otp')">
-                Please enter the 6-digit verification code.
-              </div>
+              <p class="otp-hint">Please enter the 6-digit code to continue as owner.</p>
             </div>
           </div>
 
-          <button
-            type="submit"
-            [disabled]="
-              loading ||
-              (loginForm.invalid && !showOtpInput) ||
-              (showOtpInput && loginForm.get('otp')?.invalid)
-            "
-            class="main-btn"
-          >
-            <span *ngIf="loading">Verifying...</span>
-            <span *ngIf="!loading">{{ showOtpInput ? 'Verify & Dashboard' : 'Login' }}</span>
-          </button>
-
-          <button *ngIf="showOtpInput" type="button" (click)="resetLoginFlow()" class="btn-link">
-            Back to Password Login
+          <button type="submit" class="btn-auth-main" [disabled]="loading || loginForm.invalid">
+            <span *ngIf="!loading">{{
+              requiresOtp ? 'Confirm Identity' : 'Log Into Account'
+            }}</span>
+            <span *ngIf="loading" class="spinner"></span>
           </button>
         </form>
 
-        <div class="footer" *ngIf="!showOtpInput">
-          <p>Don't have an account? <a (click)="router.navigate(['/register'])">Register Now</a></p>
+        <div class="auth-footer" *ngIf="!requiresOtp">
+          <p>New here? <a (click)="router.navigate(['/register'])">Create an Account</a></p>
+        </div>
+
+        <div class="auth-footer" *ngIf="requiresOtp">
+          <button class="btn-back-step" (click)="requiresOtp = false">← Change Credentials</button>
         </div>
       </div>
     </div>
   `,
   styles: [
     `
-      .auth-container {
+      .auth-wrapper {
+        min-height: 100vh;
         display: flex;
-        justify-content: center;
         align-items: center;
-        min-height: 85vh;
-        background: #f8f9fa;
-        padding: 20px;
+        justify-content: center;
+        background: #0a0a0a;
+        padding: 24px;
+        font-family: 'Poppins', sans-serif;
       }
-      .auth-box {
+      .auth-card {
         width: 100%;
-        max-width: 400px;
-        padding: 2.5rem;
+        max-width: 440px;
+        padding: 50px;
+        border-radius: 32px;
+        border: 1px solid #222;
         text-align: center;
-        background: white;
-        border-radius: 20px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        background: rgba(22, 22, 22, 0.8);
+        backdrop-filter: blur(20px);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      }
+      .brand-header {
+        margin-bottom: 40px;
+      }
+      .k-logo {
+        display: inline-block;
+        font-weight: 900;
+        color: #ff6600;
+        letter-spacing: 2px;
+        font-size: 0.75rem;
+        border: 1px solid rgba(255, 102, 0, 0.4);
+        padding: 5px 15px;
+        border-radius: 50px;
+        margin-bottom: 20px;
+        text-transform: uppercase;
       }
       h2 {
+        font-size: 2.2rem;
+        font-weight: 900;
         margin: 0;
-        color: #1a1a1a;
-        font-size: 1.8rem;
-        font-weight: 800;
+        color: white;
+        letter-spacing: -1.5px;
       }
       .subtitle {
         color: #666;
-        margin-bottom: 2rem;
-        font-size: 0.9rem;
+        font-size: 0.95rem;
         margin-top: 10px;
+        line-height: 1.5;
       }
-      .form-group {
+
+      .field {
         text-align: left;
-        margin-bottom: 1.5rem;
+        margin-bottom: 25px;
+      }
+      .field.centered {
+        text-align: center;
+      }
+      .field label {
+        display: block;
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: #555;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        margin-bottom: 10px;
+      }
+
+      .input-group {
         position: relative;
       }
-      label {
-        display: block;
-        margin-bottom: 0.5rem;
-        color: #333;
-        font-weight: 600;
-        font-size: 0.85rem;
+      .input-group .icon {
+        position: absolute;
+        left: 18px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1.1rem;
+        opacity: 0.4;
       }
+
       input {
         width: 100%;
-        padding: 14px;
-        border: 2px solid #eee;
-        border-radius: 10px;
-        box-sizing: border-box;
+        padding: 16px 20px 16px 52px;
+        background: #111;
+        border: 1px solid #222;
+        border-radius: 14px;
+        color: white;
         font-size: 1rem;
-        transition: 0.3s;
+        font-family: inherit;
+        transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       }
       input:focus {
-        border-color: #ff6600;
         outline: none;
-        background: #fffcf9;
-      }
-      input.invalid {
-        border-color: #ff4444;
-        background: #fff8f8;
-      }
-      .error-msg {
-        color: #ff4444;
-        font-size: 0.75rem;
-        margin-top: 5px;
-        font-weight: 600;
-        animation: fadeIn 0.3s;
-      }
-      .otp-input {
-        text-align: center;
-        font-size: 1.6rem;
-        letter-spacing: 10px;
-        font-weight: 800;
         border-color: #ff6600;
-        color: #333;
+        box-shadow: 0 0 15px rgba(255, 102, 0, 0.1);
+        background: #161616;
       }
-      .hint {
+      input.error {
+        border-color: #ff4444;
+      }
+
+      .otp-input {
+        padding: 15px;
+        text-align: center;
+        font-size: 2.2rem;
+        letter-spacing: 12px;
+        font-weight: 900;
         color: #ff6600;
-        font-size: 0.75rem;
-        margin-top: 10px;
-        font-weight: bold;
+        border-color: #ff6600;
+        background: #000;
       }
-      .main-btn {
+      .otp-hint {
+        font-size: 0.8rem;
+        color: #555;
+        margin-top: 12px;
+        font-weight: 500;
+      }
+
+      .btn-auth-main {
         width: 100%;
+        padding: 18px;
         background: #ff6600;
         color: white;
-        padding: 16px;
         border: none;
-        border-radius: 12px;
-        font-weight: bold;
+        border-radius: 16px;
+        font-weight: 900;
+        font-size: 1.1rem;
         cursor: pointer;
-        margin-top: 1rem;
-        font-size: 1.05rem;
-        box-shadow: 0 4px 15px rgba(255, 107, 0, 0.3);
         transition: 0.3s;
+        margin-top: 10px;
+        box-shadow: 0 10px 25px rgba(255, 102, 0, 0.3);
+        letter-spacing: 0.5px;
       }
-      .main-btn:disabled {
-        background: #ccc;
+      .btn-auth-main:hover:not(:disabled) {
+        transform: translateY(-3px);
+        filter: brightness(1.1);
+        box-shadow: 0 15px 35px rgba(255, 102, 0, 0.4);
+      }
+      .btn-auth-main:disabled {
+        background: #222;
+        color: #555;
         cursor: not-allowed;
         box-shadow: none;
       }
-      .btn-link {
-        background: none;
+
+      .auth-footer {
+        margin-top: 40px;
+        padding-top: 25px;
+        border-top: 1px solid #222;
+        font-size: 0.95rem;
         color: #666;
-        font-size: 0.85rem;
-        margin-top: 20px;
-        border: none;
-        text-decoration: underline;
-        cursor: pointer;
       }
-      .footer {
-        margin-top: 2.5rem;
-        font-size: 0.9rem;
-        color: #666;
-        border-top: 1px solid #eee;
-        padding-top: 1.5rem;
-      }
-      a {
+      .auth-footer a {
         color: #ff6600;
-        text-decoration: none;
+        font-weight: 800;
         cursor: pointer;
-        font-weight: bold;
+        margin-left: 5px;
+        text-decoration: none;
       }
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-          transform: translateY(-5px);
-        }
+      .auth-footer a:hover {
+        text-decoration: underline;
+      }
+
+      .btn-back-step {
+        background: none;
+        border: none;
+        color: #555;
+        font-weight: 800;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: 0.2s;
+      }
+      .btn-back-step:hover {
+        color: #888;
+      }
+
+      .spinner {
+        display: inline-block;
+        width: 22px;
+        height: 22px;
+        border: 3px solid rgba(255, 255, 255, 0.2);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
         to {
-          opacity: 1;
-          transform: translateY(0);
+          transform: rotate(360deg);
+        }
+      }
+
+      @media (max-width: 480px) {
+        .auth-card {
+          padding: 40px 25px;
+        }
+        h2 {
+          font-size: 1.8rem;
         }
       }
     `,
@@ -238,59 +295,39 @@ export class LoginComponent {
   authService = inject(AuthService);
   router = inject(Router);
   toast = inject(ToastService);
-  cdr = inject(ChangeDetectorRef);
 
-  showOtpInput = false;
+  requiresOtp = false;
   loading = false;
 
   loginForm: FormGroup = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(6)]],
+    password: ['', Validators.required],
     otp: [''],
   });
 
-  isInvalid(field: string): boolean {
+  isInvalid(field: string) {
     const control = this.loginForm.get(field);
-    return !!(control && control.invalid && (control.dirty || control.touched));
-  }
-
-  resetLoginFlow() {
-    this.showOtpInput = false;
-    this.loginForm.get('otp')?.clearValidators();
-    this.loginForm.get('otp')?.setValue('');
-    this.loginForm.get('otp')?.updateValueAndValidity();
+    return control?.invalid && (control.dirty || control.touched);
   }
 
   onSubmit() {
-    if (this.loginForm.invalid && !this.showOtpInput) {
-      this.loginForm.markAllAsTouched();
-      this.toast.error('Please fix the errors in the form.');
-      return;
-    }
+    if (this.loginForm.invalid) return;
 
     this.loading = true;
-    const credentials = this.loginForm.value;
-
-    this.authService.login(credentials).subscribe({
-      next: (res) => {
-        this.loading = false;
+    this.authService.login(this.loginForm.value).subscribe({
+      next: (res: any) => {
         if (res.requiresOtp) {
-          this.toast.info('Owner verification required. Checking security...');
-          this.showOtpInput = true;
-          this.loginForm
-            .get('otp')
-            ?.setValidators([Validators.required, Validators.pattern('^[0-9]{6}$')]);
-          this.loginForm.get('otp')?.updateValueAndValidity();
-          this.cdr.detectChanges();
+          this.requiresOtp = true;
+          this.loading = false;
+          this.toast.info('Owner verification code sent.');
         } else {
-          // Successfully logged in. State is handled internally by AuthService tap()
-          this.toast.success('Successfully logged in!');
+          this.toast.success('Access granted. Welcome back.');
           this.router.navigate(['/home']);
         }
       },
       error: (err) => {
         this.loading = false;
-        this.toast.error(err.error?.msg || 'Invalid email or password.');
+        this.toast.error(err.error?.msg || 'Invalid credentials');
       },
     });
   }

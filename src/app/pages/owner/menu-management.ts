@@ -10,116 +10,135 @@ import { ToastService } from '../../services/toast';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="admin-container">
-      <div class="header">
-        <h2>Menu Management</h2>
-        <button (click)="openModal()" class="add-btn">+ Add New Item</button>
-      </div>
+    <div class="admin-wrapper fade-in">
+      <div class="container-fluid">
+        <header class="header">
+          <div class="title-group">
+            <h1>Menu <span class="highlight">Master</span></h1>
+            <p>Curate your restaurant's digital collection</p>
+          </div>
+          <button (click)="openModal()" class="btn-add">+ New Item</button>
+        </header>
 
-      <!-- Items Table -->
-      <div class="table-responsive">
-        <table>
-          <thead>
-            <tr>
-              <th>Image</th>
-              <th>Name</th>
-              <th>Category</th>
-              <th>Price</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let item of menuItems()">
-              <td><img [src]="item.imageUrl" class="thumb" alt="Item" /></td>
-              <td>
-                <strong>{{ item.name }}</strong
-                ><br />
-                <small>{{ item.subCategory }}</small>
-              </td>
-              <td>{{ item.category }}</td>
-              <td>
-                <div *ngIf="item.pricing.type === 'SINGLE'">₹{{ item.pricing.price }}</div>
-                <div *ngIf="item.pricing.type === 'HALF_FULL'">
-                  H: ₹{{ item.pricing.priceHalf }} / F: ₹{{ item.pricing.priceFull }}
-                </div>
-              </td>
-              <td>
-                <span
-                  class="badge"
-                  [class.available]="item.isAvailable"
-                  [class.unavailable]="!item.isAvailable"
-                >
-                  {{ item.isAvailable ? 'Active' : 'Hidden' }}
-                </span>
-              </td>
-              <td>
-                <button (click)="editItem(item)" class="action-btn edit">Edit</button>
-                <button *ngIf="item._id" (click)="deleteItem(item._id!)" class="action-btn delete">
-                  Delete
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="table-container glass-card">
+          <table class="menu-table">
+            <thead>
+              <tr>
+                <th>Dish</th>
+                <th>Category</th>
+                <th>Pricing Structure</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of menuItems()" [class.hidden]="!item.isAvailable">
+                <td class="dish-cell">
+                  <img [src]="item.imageUrl" alt="Food" />
+                  <div class="meta">
+                    <strong>{{ item.name }}</strong>
+                    <span>{{ item.subCategory }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="cat-chip">{{ item.category | uppercase }}</span>
+                </td>
+                <td class="price-cell">
+                  <div *ngIf="item.pricing.type === 'SINGLE'" class="p-single">
+                    ₹{{ item.pricing.price }}
+                  </div>
+                  <div *ngIf="item.pricing.type === 'HALF_FULL'" class="p-variants">
+                    <span>H: ₹{{ item.pricing.priceHalf }}</span>
+                    <span>F: ₹{{ item.pricing.priceFull }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="status-badge" [class.active]="item.isAvailable">
+                    {{ item.isAvailable ? 'LIVE' : 'HIDDEN' }}
+                  </span>
+                </td>
+                <td class="actions-cell">
+                  <button (click)="editItem(item)" class="btn-edit">Edit</button>
+                  <button (click)="deleteItem(item._id!)" class="btn-del">Delete</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <!-- Add/Edit Modal -->
       <div *ngIf="isModalOpen" class="modal-overlay">
-        <div class="modal">
-          <h3>{{ isEditing ? 'Edit Item' : 'Add New Item' }}</h3>
-          <form (ngSubmit)="onSubmit()">
+        <div class="modal glass-card">
+          <header class="modal-header">
+            <h3>{{ isEditing ? 'Update Creation' : 'Add New Item' }}</h3>
+            <button (click)="closeModal()" class="close-modal">&times;</button>
+          </header>
+
+          <form (ngSubmit)="onSubmit()" class="modal-form">
             <div class="form-grid">
-              <div class="form-group">
-                <label>Name</label>
-                <input [(ngModel)]="currentItem.name" name="name" required />
+              <div class="field">
+                <label>Dish Name</label>
+                <input
+                  [(ngModel)]="currentItem.name"
+                  name="name"
+                  placeholder="e.g. Legendary Butter Chicken"
+                  required
+                />
               </div>
-              <div class="form-group">
+              <div class="field">
                 <label>Image URL</label>
-                <input [(ngModel)]="currentItem.imageUrl" name="imageUrl" required />
+                <input
+                  [(ngModel)]="currentItem.imageUrl"
+                  name="imageUrl"
+                  placeholder="HTTPS Link"
+                  required
+                />
               </div>
-              <div class="form-group">
+              <div class="field">
                 <label>Category</label>
                 <select [(ngModel)]="currentItem.category" name="category" required>
-                  <option value="veg-indian">Veg Indian</option>
-                  <option value="non-veg-indian">Non-Veg Indian</option>
-                  <option value="beverages">Beverages</option>
+                  <option value="veg">Veg</option>
+                  <option value="non-veg">Non-Veg</option>
+                  <option value="drinks">Drinks</option>
                 </select>
               </div>
-              <div class="form-group">
+              <div class="field">
                 <label>Sub Category</label>
-                <input [(ngModel)]="currentItem.subCategory" name="subCategory" required />
+                <input
+                  [(ngModel)]="currentItem.subCategory"
+                  name="subCategory"
+                  placeholder="e.g. Appetizer / Soda"
+                  required
+                />
               </div>
             </div>
 
-            <!-- Pricing Section -->
-            <div class="pricing-section">
-              <label>Pricing Type</label>
-              <select
-                [(ngModel)]="currentItem.pricing!.type"
-                name="pricingType"
-                style="margin-bottom: 10px; width: 100%;"
-              >
-                <option value="SINGLE">Single Price</option>
-                <option value="HALF_FULL">Half/Full</option>
-              </select>
+            <div class="pricing-config">
+              <div class="field">
+                <label>Pricing Model</label>
+                <select [(ngModel)]="currentItem.pricing!.type" name="pricingType">
+                  <option value="SINGLE">Flat Price</option>
+                  <option value="HALF_FULL">Variant Pricing (Half/Full)</option>
+                </select>
+              </div>
 
-              <div *ngIf="currentItem.pricing!.type === 'SINGLE'" class="form-group">
-                <label>Price (₹)</label>
+              <div *ngIf="currentItem.pricing!.type === 'SINGLE'" class="field fade-in">
+                <label>Amount (₹)</label>
                 <input type="number" [(ngModel)]="currentItem.pricing!.price" name="price" />
               </div>
 
-              <div *ngIf="currentItem.pricing!.type === 'HALF_FULL'" class="form-grid">
-                <div class="form-group">
-                  <label>Half Price (₹)</label>
+              <div *ngIf="currentItem.pricing!.type === 'HALF_FULL'" class="dual-fields fade-in">
+                <div class="field">
+                  <label>Half (₹)</label>
                   <input
                     type="number"
                     [(ngModel)]="currentItem.pricing!.priceHalf"
                     name="priceHalf"
                   />
                 </div>
-                <div class="form-group">
-                  <label>Full Price (₹)</label>
+                <div class="field">
+                  <label>Full (₹)</label>
                   <input
                     type="number"
                     [(ngModel)]="currentItem.pricing!.priceFull"
@@ -129,17 +148,17 @@ import { ToastService } from '../../services/toast';
               </div>
             </div>
 
-            <div class="form-group checkbox">
-              <label>
+            <div class="availability">
+              <label class="toggle">
                 <input type="checkbox" [(ngModel)]="currentItem.isAvailable" name="isAvailable" />
-                Available to Customers?
+                <span class="slider"></span>
+                Show in Customer Menu
               </label>
             </div>
 
-            <div class="modal-actions">
-              <button type="button" (click)="closeModal()" class="cancel-btn">Cancel</button>
-              <button type="submit" class="save-btn">Save Item</button>
-            </div>
+            <button type="submit" class="btn-save">
+              {{ isEditing ? 'Sync Changes' : 'Publish Dish' }}
+            </button>
           </form>
         </div>
       </div>
@@ -147,169 +166,279 @@ import { ToastService } from '../../services/toast';
   `,
   styles: [
     `
-      .admin-container {
-        padding: 2rem;
-        background: #f8f9fa;
+      .admin-wrapper {
+        background: #0a0a0a;
         min-height: 100vh;
+        color: white;
+        padding: 120px 24px 60px;
         font-family: 'Poppins', sans-serif;
+      }
+      .container-fluid {
+        max-width: 1400px;
+        margin: 0 auto;
       }
       .header {
         display: flex;
         justify-content: space-between;
-        align-items: center;
-        margin-bottom: 2rem;
+        align-items: flex-end;
+        margin-bottom: 50px;
       }
-      .add-btn {
-        background: #ff6600;
-        color: white;
-        padding: 10px 20px;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-weight: bold;
+      .title-group h1 {
+        font-size: 3rem;
+        font-weight: 900;
+        margin: 0;
+        letter-spacing: -1.5px;
       }
-      .table-responsive {
-        overflow-x: auto;
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      .highlight {
+        color: #ff6600;
       }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-      }
-      th,
-      td {
-        padding: 15px;
-        text-align: left;
-        border-bottom: 1px solid #eee;
-      }
-      th {
-        background: #333;
-        color: white;
-        font-weight: 600;
-        text-transform: uppercase;
-        font-size: 0.8rem;
-      }
-      .thumb {
-        width: 50px;
-        height: 50px;
-        object-fit: cover;
-        border-radius: 8px;
-      }
-      .action-btn {
-        color: white;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 6px;
-        cursor: pointer;
-        margin-right: 5px;
-        font-weight: 600;
-        font-size: 0.8rem;
-      }
-      .action-btn.edit {
-        background: #3498db;
-      }
-      .action-btn.delete {
-        background: #e74c3c;
-      }
-      .badge {
-        padding: 4px 10px;
-        border-radius: 12px;
-        font-size: 0.75rem;
-        font-weight: bold;
-      }
-      .available {
-        background: #d4edda;
-        color: #155724;
-      }
-      .unavailable {
-        background: #f8d7da;
-        color: #721c24;
+      .title-group p {
+        color: #666;
+        margin-top: 5px;
       }
 
+      .btn-add {
+        background: #ff6600;
+        color: white;
+        border: none;
+        padding: 14px 30px;
+        border-radius: 14px;
+        font-weight: 900;
+        cursor: pointer;
+        box-shadow: 0 8px 25px rgba(255, 107, 0, 0.3);
+        transition: 0.3s;
+      }
+      .btn-add:hover {
+        transform: translateY(-3px);
+        filter: brightness(1.1);
+      }
+
+      .table-container {
+        border-radius: 32px;
+        overflow: hidden;
+        border: 1px solid #222;
+      }
+      .menu-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+      }
+      .menu-table th {
+        padding: 25px;
+        background: #161616;
+        color: #555;
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 1.5px;
+      }
+      .menu-table td {
+        padding: 20px 25px;
+        border-bottom: 1px solid #222;
+      }
+
+      .dish-cell {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+      }
+      .dish-cell img {
+        width: 60px;
+        height: 60px;
+        border-radius: 14px;
+        object-fit: cover;
+      }
+      .dish-cell .meta {
+        display: flex;
+        flex-direction: column;
+      }
+      .dish-cell strong {
+        font-size: 1.1rem;
+      }
+      .dish-cell span {
+        font-size: 0.8rem;
+        color: #666;
+        font-weight: 600;
+      }
+
+      .cat-chip {
+        font-size: 0.65rem;
+        font-weight: 900;
+        color: #ff6600;
+        background: rgba(255, 102, 0, 0.1);
+        padding: 5px 12px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 102, 0, 0.2);
+      }
+      .p-variants {
+        display: flex;
+        flex-direction: column;
+        font-size: 0.8rem;
+        color: #888;
+        font-weight: 700;
+        gap: 3px;
+      }
+      .p-variants span {
+        background: #1a1a1a;
+        padding: 2px 8px;
+        border-radius: 6px;
+      }
+
+      .status-badge {
+        font-size: 0.65rem;
+        font-weight: 900;
+        padding: 5px 12px;
+        border-radius: 50px;
+        background: #222;
+        color: #666;
+      }
+      .status-badge.active {
+        background: rgba(46, 204, 113, 0.1);
+        color: #2ecc71;
+        border: 1px solid rgba(46, 204, 113, 0.2);
+      }
+
+      .actions-cell {
+        display: flex;
+        gap: 10px;
+      }
+      .btn-edit {
+        background: #222;
+        color: #ddd;
+        border: 1px solid #333;
+        padding: 8px 16px;
+        border-radius: 10px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .btn-edit:hover {
+        background: #333;
+        border-color: #ff6600;
+        color: white;
+      }
+      .btn-del {
+        background: rgba(231, 76, 60, 0.1);
+        color: #e74c3c;
+        border: 1px solid rgba(231, 76, 60, 0.2);
+        padding: 8px 16px;
+        border-radius: 10px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .btn-del:hover {
+        background: #e74c3c;
+        color: white;
+      }
+
+      /* Modal */
       .modal-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(4px);
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(12px);
+        z-index: 4000;
         display: flex;
-        justify-content: center;
         align-items: center;
-        z-index: 2000;
+        justify-content: center;
       }
       .modal {
-        background: white;
-        padding: 2.5rem;
-        border-radius: 20px;
-        width: 550px;
-        max-width: 90%;
-        max-height: 90vh;
-        overflow-y: auto;
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+        width: 600px;
+        padding: 45px;
+        border-radius: 40px;
+        border: 1px solid #333;
       }
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 35px;
+      }
+      .modal-header h3 {
+        margin: 0;
+        font-size: 1.8rem;
+        font-weight: 900;
+      }
+      .close-modal {
+        background: #222;
+        border: none;
+        color: #fff;
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        font-size: 1.5rem;
+        cursor: pointer;
+      }
+
       .form-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 20px;
       }
-      .form-group {
-        margin-bottom: 15px;
+      .field {
+        margin-bottom: 20px;
       }
-      .form-group label {
+      .field label {
         display: block;
-        margin-bottom: 8px;
-        font-weight: 600;
-        font-size: 0.85rem;
+        font-size: 0.7rem;
+        font-weight: 900;
         color: #555;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+        letter-spacing: 1px;
       }
-      .form-group input,
-      .form-group select {
+      .field input,
+      .field select {
         width: 100%;
-        padding: 12px;
-        border: 1px solid #ddd;
-        border-radius: 10px;
+        padding: 15px;
+        background: #111;
+        border: 1px solid #222;
+        border-radius: 14px;
+        color: white;
         font-family: inherit;
       }
-      .pricing-section {
-        background: #f9f9f9;
-        padding: 20px;
-        border-radius: 15px;
-        margin: 20px 0;
-        border: 1px solid #eee;
+
+      .pricing-config {
+        background: #0a0a0a;
+        padding: 25px;
+        border-radius: 24px;
+        border: 1px solid #222;
+        margin: 10px 0 30px;
       }
-      .modal-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 12px;
-        margin-top: 30px;
+      .dual-fields {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
       }
-      .save-btn {
-        background: #2ecc71;
-        color: white;
-        padding: 12px 24px;
-        border: none;
-        border-radius: 10px;
-        cursor: pointer;
-        font-weight: bold;
+
+      .availability {
+        margin-bottom: 30px;
       }
-      .cancel-btn {
-        background: #95a5a6;
-        color: white;
-        padding: 12px 24px;
-        border: none;
-        border-radius: 10px;
-        cursor: pointer;
-        font-weight: bold;
-      }
-      .checkbox {
+      .toggle {
         display: flex;
         align-items: center;
-        gap: 10px;
-        margin-top: 10px;
+        gap: 12px;
+        font-weight: 700;
+        color: #aaa;
+        cursor: pointer;
       }
-      .checkbox input {
-        width: auto;
+
+      .btn-save {
+        width: 100%;
+        padding: 20px;
+        background: #ff6600;
+        color: white;
+        border: none;
+        border-radius: 18px;
+        font-weight: 900;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: 0.3s;
+        box-shadow: 0 10px 25px rgba(255, 107, 0, 0.3);
+      }
+      .btn-save:hover {
+        transform: translateY(-3px);
+        filter: brightness(1.1);
       }
     `,
   ],
@@ -328,15 +457,15 @@ export class MenuManagementComponent implements OnInit {
 
   loadMenu() {
     this.menuService.getAllMenuItems().subscribe({
-      next: (data) => this.menuItems.set(data),
-      error: () => this.toast.error('Failed to load menu data'),
+      next: (d) => this.menuItems.set(d),
+      error: () => this.toast.error('Failed to load menu.'),
     });
   }
 
   getEmptyItem(): Partial<MenuItem> {
     return {
       name: '',
-      category: 'veg-indian',
+      category: 'veg',
       subCategory: '',
       imageUrl: '',
       isAvailable: true,
@@ -349,25 +478,23 @@ export class MenuManagementComponent implements OnInit {
     this.currentItem = this.getEmptyItem();
     this.isModalOpen = true;
   }
-
   editItem(item: MenuItem) {
     this.isEditing = true;
     this.currentItem = JSON.parse(JSON.stringify(item));
     this.isModalOpen = true;
   }
-
   closeModal() {
     this.isModalOpen = false;
   }
 
   deleteItem(id: string) {
-    if (!confirm('Delete this item permanently?')) return;
+    if (!confirm('Erase this dish from existence?')) return;
     this.menuService.deleteMenuItem(id).subscribe({
       next: () => {
-        this.toast.success('Item deleted successfully');
+        this.toast.success('Dish erased.');
         this.loadMenu();
       },
-      error: () => this.toast.error('Failed to delete item'),
+      error: () => this.toast.error('Failed to delete.'),
     });
   }
 
@@ -375,16 +502,13 @@ export class MenuManagementComponent implements OnInit {
     const action = this.isEditing
       ? this.menuService.updateMenuItem(this.currentItem._id!, this.currentItem)
       : this.menuService.addMenuItem(this.currentItem);
-
     action.subscribe({
       next: () => {
-        this.toast.success(this.isEditing ? 'Item updated successfully' : 'New item added');
+        this.toast.success('Collection synced.');
         this.loadMenu();
         this.closeModal();
       },
-      error: (err) => {
-        this.toast.error(err.error?.msg || 'Operation failed');
-      },
+      error: (e) => this.toast.error(e.error?.msg || 'Failed to save.'),
     });
   }
 }

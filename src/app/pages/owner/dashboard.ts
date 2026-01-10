@@ -8,489 +8,472 @@ import { ToastService } from '../../services/toast';
   standalone: true,
   imports: [CommonModule, DatePipe],
   template: `
-    <div class="dashboard-container">
-      <div class="dashboard-header">
-        <div class="header-text">
-          <h1>Owner <span class="accent">Dashboard</span></h1>
-          <p>Manage your kitchen and view sales history</p>
-        </div>
-        <button (click)="refresh()" class="btn btn-refresh" [disabled]="isRefreshing()">
-          {{ isRefreshing() ? 'Refreshing...' : 'Refresh Orders' }}
-        </button>
-      </div>
-
-      <!-- SECTION 1: LIVE KITCHEN QUEUE -->
-      <section class="order-section">
-        <div class="section-title">
-          <div class="title-with-icon">
-            <span class="section-icon">🔥</span>
-            <h2>Live Kitchen Queue</h2>
+    <div class="dashboard-wrapper">
+      <div class="container-fluid">
+        <header class="dash-header">
+          <div class="title-group">
+            <h1>Kitchen <span class="highlight">Control</span></h1>
+            <p>Real-time queue and performance history</p>
           </div>
-          <span class="badge count">{{ activeOrders().length }} Active</span>
-        </div>
-
-        <div class="orders-grid">
-          <div
-            *ngFor="let order of activeOrders()"
-            class="order-card"
-            [ngClass]="'status-' + order.orderStatus"
-          >
-            <div class="card-header">
-              <span class="order-id">#{{ order._id | slice : -6 }}</span>
-              <span class="order-time">{{ order.createdAt | date : 'shortTime' }}</span>
+          <div class="stats-bar">
+            <div class="stat-item">
+              <span class="val">{{ activeOrders().length }}</span>
+              <span class="label">In Queue</span>
             </div>
-
-            <div class="customer-info">
-              <div class="cust-name">{{ order.userId?.name || 'Guest User' }}</div>
-              <div class="meta-tags">
-                <span class="type-tag">{{ order.orderType }}</span>
-                <span
-                  class="pay-tag"
-                  [ngClass]="{
-                    paid: order.paymentStatus === 'PAID',
-                    'pending-cash':
-                      order.paymentStatus === 'PENDING' && order.paymentMethod === 'CASH',
-                    failed: order.paymentStatus === 'FAILED'
-                  }"
-                >
-                  {{
-                    order.paymentStatus === 'PAID'
-                      ? 'PAID (' + order.paymentMethod + ')'
-                      : 'UNPAID - ' + order.paymentMethod
-                  }}
-                </span>
-              </div>
-            </div>
-
-            <div class="order-items">
-              <div *ngFor="let item of order.items" class="item-row">
-                <span class="qty">{{ item.quantity }}x</span>
-                <span class="name">{{ item.name }}</span>
-                <span class="variant" *ngIf="item.variant !== 'SINGLE'">({{ item.variant }})</span>
-              </div>
-            </div>
-
-            <div class="card-footer">
-              <div class="status-indicator">
-                <span class="dot"></span>
-                <strong>{{ order.orderStatus }}</strong>
-              </div>
-              <div class="action-buttons">
-                <button
-                  *ngIf="order.orderStatus === 'NEW'"
-                  (click)="updateStatus(order._id, 'PREPARING')"
-                  class="btn btn-prepare"
-                >
-                  Accept & Cook
-                </button>
-                <button
-                  *ngIf="order.orderStatus === 'PREPARING'"
-                  (click)="updateStatus(order._id, 'READY')"
-                  class="btn btn-ready"
-                >
-                  Mark Ready
-                </button>
-                <button
-                  *ngIf="order.orderStatus === 'READY'"
-                  (click)="handleCompletion(order)"
-                  class="btn btn-complete"
-                >
-                  Complete
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div *ngIf="activeOrders().length === 0" class="empty-state glass-card">
-          <p>No active orders in the queue. Everything is served!</p>
-        </div>
-      </section>
-
-      <!-- CASH PAYMENT PROMPT MODAL -->
-      <div class="modal-overlay" *ngIf="showPaymentModal">
-        <div class="modal-card glass-card">
-          <h3>Confirm Cash Payment</h3>
-          <p>
-            Has the customer paid <strong>₹{{ pendingOrder?.totalAmount }}</strong> in cash?
-          </p>
-          <div class="modal-actions">
-            <button class="btn btn-secondary" (click)="completeWithPayment('PENDING')">
-              No, Not Yet
+            <button (click)="refresh()" class="btn-refresh" [class.loading]="isRefreshing()">
+              {{ isRefreshing() ? '🔄 Syncing...' : 'Sync Data' }}
             </button>
-            <button class="btn btn-primary" (click)="completeWithPayment('PAID')">Yes, Paid</button>
           </div>
-        </div>
-      </div>
+        </header>
 
-      <div class="spacer"></div>
+        <!-- Live Queue -->
+        <section class="queue-section">
+          <div class="grid">
+            <div
+              *ngFor="let order of activeOrders()"
+              class="order-card"
+              [ngClass]="'status-' + order.orderStatus"
+            >
+              <div class="card-head">
+                <span class="id-tag">#{{ order._id | slice : -6 }}</span>
+                <span class="timer">{{ order.createdAt | date : 'shortTime' }}</span>
+              </div>
 
-      <!-- SECTION 2: ORDER HISTORY -->
-      <section class="order-section history">
-        <div class="section-title">
-          <div class="title-with-icon">
-            <span class="section-icon">📅</span>
-            <h2>Order History</h2>
-          </div>
-          <span class="badge history-count">{{ completedOrders().length }} Total Records</span>
-        </div>
-
-        <div class="history-table-container glass-card">
-          <table class="history-table">
-            <thead>
-              <tr>
-                <th>Order ID</th>
-                <th>Customer</th>
-                <th>Items Summary</th>
-                <th>Payment</th>
-                <th>Total</th>
-                <th>Date & Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let order of completedOrders()">
-                <td>
-                  <span class="id-tag">#{{ order._id | slice : -6 }}</span>
-                </td>
-                <td>{{ order.userId?.name || 'Guest' }}</td>
-                <td>{{ getItemsSummary(order) }}</td>
-                <td>
-                  <span class="status-pill" [class.success]="order.paymentStatus === 'PAID'">
-                    {{ order.paymentStatus }} ({{ order.paymentMethod }})
+              <div class="cust-info">
+                <h3>{{ order.userId?.name || 'Guest' }}</h3>
+                <div class="pills">
+                  <span class="type-pill">{{ order.orderType }}</span>
+                  <span class="pay-pill" [class.paid]="order.paymentStatus === 'PAID'">
+                    {{ order.paymentStatus === 'PAID' ? 'PAID' : 'PENDING ' + order.paymentMethod }}
                   </span>
-                </td>
-                <td>
-                  <strong>₹{{ order.totalAmount }}</strong>
-                </td>
-                <td class="time-col">{{ order.updatedAt | date : 'medium' }}</td>
-              </tr>
-            </tbody>
-          </table>
-          <div *ngIf="completedOrders().length === 0" class="empty-history">
-            No completed orders found in history yet.
+                </div>
+              </div>
+
+              <div class="item-list">
+                <div *ngFor="let item of order.items" class="food-line">
+                  <span class="q">{{ item.quantity }}x</span>
+                  <span class="n">{{ item.name }}</span>
+                  <span class="v" *ngIf="item.variant !== 'SINGLE'">{{ item.variant }}</span>
+                </div>
+              </div>
+
+              <div class="card-footer">
+                <div class="status-msg">
+                  <div class="pulse-dot"></div>
+                  {{ order.orderStatus }}
+                </div>
+                <div class="actions">
+                  <button
+                    *ngIf="order.orderStatus === 'NEW'"
+                    (click)="updateStatus(order._id, 'PREPARING')"
+                    class="btn-step cook"
+                  >
+                    Start Cooking
+                  </button>
+                  <button
+                    *ngIf="order.orderStatus === 'PREPARING'"
+                    (click)="updateStatus(order._id, 'READY')"
+                    class="btn-step ready"
+                  >
+                    Mark Ready
+                  </button>
+                  <button
+                    *ngIf="order.orderStatus === 'READY'"
+                    (click)="handleCompletion(order)"
+                    class="btn-step done"
+                  >
+                    Complete
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div *ngIf="activeOrders().length === 0" class="empty-kitchen glass-card">
+            <p>The kitchen is quiet. No active orders in queue.</p>
+          </div>
+        </section>
+
+        <!-- Payment Prompt -->
+        <div class="modal-overlay" *ngIf="showPaymentModal">
+          <div class="modal glass-card">
+            <h3>Verify Cash Receipt</h3>
+            <p>
+              Has the customer paid <strong>₹{{ pendingOrder?.totalAmount }}</strong> for order #{{
+                pendingOrder?._id | slice : -6
+              }}?
+            </p>
+            <div class="modal-btns">
+              <button (click)="completeWithPayment('PENDING')" class="btn-no">Not Yet</button>
+              <button (click)="completeWithPayment('PAID')" class="btn-yes">Yes, Collected</button>
+            </div>
           </div>
         </div>
-      </section>
+
+        <!-- History Table -->
+        <section class="history-section">
+          <h2>Sales <span class="highlight">History</span></h2>
+          <div class="table-box glass-card">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Customer</th>
+                  <th>Payment</th>
+                  <th>Total</th>
+                  <th>Completed At</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let order of completedOrders()">
+                  <td>
+                    <span class="id-small">#{{ order._id | slice : -6 }}</span>
+                  </td>
+                  <td>{{ order.userId?.name || 'Guest' }}</td>
+                  <td>
+                    <span class="pay-status" [class.green]="order.paymentStatus === 'PAID'">
+                      {{ order.paymentStatus }} ({{ order.paymentMethod }})
+                    </span>
+                  </td>
+                  <td>
+                    <strong>₹{{ order.totalAmount }}</strong>
+                  </td>
+                  <td class="time-col">{{ order.updatedAt | date : 'medium' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
     </div>
   `,
   styles: [
     `
-      .dashboard-container {
-        padding: 40px 20px 100px;
-        max-width: 1400px;
-        margin: 0 auto;
+      .dashboard-wrapper {
+        background: #0a0a0a;
+        min-height: 100vh;
+        color: white;
         font-family: 'Poppins', sans-serif;
+        padding: 120px 24px 60px;
       }
-      .dashboard-header {
+      .container-fluid {
+        max-width: 1600px;
+        margin: 0 auto;
+      }
+      .dash-header {
         display: flex;
         justify-content: space-between;
-        align-items: center;
-        margin-bottom: 50px;
+        align-items: flex-end;
+        margin-bottom: 60px;
+        border-bottom: 1px solid #222;
+        padding-bottom: 30px;
       }
-      h1 {
-        font-size: 2.5rem;
-        font-weight: 800;
-        letter-spacing: -1px;
+      .title-group h1 {
+        font-size: 3rem;
+        font-weight: 900;
         margin: 0;
+        letter-spacing: -1.5px;
       }
-      .accent {
+      .highlight {
         color: #ff6600;
       }
-      .header-text p {
+      .title-group p {
         color: #666;
         margin: 5px 0 0;
       }
-      .section-title {
+
+      .stats-bar {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        margin-bottom: 25px;
-        border-bottom: 2px solid #eee;
-        padding-bottom: 15px;
+        gap: 30px;
       }
-      .title-with-icon {
-        display: flex;
-        align-items: center;
-        gap: 12px;
+      .stat-item {
+        text-align: right;
       }
-      .section-icon {
-        font-size: 1.5rem;
+      .stat-item .val {
+        display: block;
+        font-size: 2.2rem;
+        font-weight: 900;
+        color: #ff6600;
+        line-height: 1;
       }
-      .section-title h2 {
-        font-size: 1.6rem;
-        font-weight: 700;
-        color: #1a1a1a;
-        margin: 0;
-      }
-      .badge {
-        padding: 5px 15px;
-        border-radius: 30px;
-        font-size: 0.85rem;
-        font-weight: 700;
-      }
-      .count {
-        background: #ff6600;
-        color: white;
-        box-shadow: 0 4px 10px rgba(255, 107, 0, 0.2);
-      }
-      .history-count {
-        background: #eee;
-        color: #666;
-      }
-      .orders-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-        gap: 25px;
-      }
-      .order-card {
-        background: white;
-        border-radius: 20px;
-        padding: 25px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-        border-left: 8px solid #ccc;
-        display: flex;
-        flex-direction: column;
-        transition: 0.3s;
-        position: relative;
-      }
-      .order-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
-      }
-      .status-NEW {
-        border-left-color: #3498db;
-      }
-      .status-PREPARING {
-        border-left-color: #f39c12;
-      }
-      .status-READY {
-        border-left-color: #2ecc71;
-      }
-      .card-header {
-        display: flex;
-        justify-content: space-between;
-        font-weight: 700;
-        color: #aaa;
-        font-size: 0.85rem;
-        margin-bottom: 15px;
-      }
-      .cust-name {
-        font-size: 1.25rem;
-        font-weight: 800;
-        color: #333;
-      }
-      .meta-tags {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 10px;
-      }
-      .type-tag {
-        background: #333;
-        color: white;
-        font-size: 0.7rem;
-        padding: 4px 10px;
-        border-radius: 6px;
-        font-weight: 600;
-      }
-      .pay-tag {
+      .stat-item .label {
         font-size: 0.75rem;
-        padding: 4px 10px;
-        border-radius: 6px;
-        font-weight: 700;
-        border: 1px solid transparent;
-      }
-      .pay-tag.pending-cash {
-        background: #fff3cd;
-        color: #856404;
-        border-color: #ffeeba;
-      }
-      .pay-tag.paid {
-        background: #d4edda;
-        color: #155724;
-        border-color: #c3e6cb;
-      }
-      .order-items {
-        background: #f8f9fa;
-        padding: 15px;
-        border-radius: 12px;
-        margin: 20px 0;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      .item-row {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 0.95rem;
-      }
-      .qty {
         font-weight: 800;
-        color: #ff6b00;
-        min-width: 25px;
-      }
-      .variant {
-        font-size: 0.8rem;
-        color: #888;
-      }
-      .card-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-top: auto;
-        padding-top: 20px;
-        border-top: 1px solid #eee;
-      }
-      .status-indicator {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 0.85rem;
+        color: #555;
         text-transform: uppercase;
         letter-spacing: 1px;
       }
-      .dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: #ccc;
-      }
-      .status-NEW .dot {
-        background: #3498db;
-      }
-      .status-PREPARING .dot {
-        background: #f39c12;
-      }
-      .status-READY .dot {
-        background: #2ecc71;
-      }
-      .btn {
-        padding: 10px 20px;
-        border-radius: 10px;
-        border: none;
-        font-weight: 700;
-        cursor: pointer;
-        transition: 0.2s;
-        font-size: 0.9rem;
-      }
+
       .btn-refresh {
-        background: #1a1a1a;
-        color: white;
-      }
-      .btn-prepare {
-        background: #f39c12;
-        color: white;
-      }
-      .btn-ready {
-        background: #2ecc71;
-        color: white;
-      }
-      .btn-complete {
-        background: #ff6600;
-        color: white;
-      }
-      .btn-primary {
-        background: #2ecc71;
-        color: white;
-      }
-      .btn-secondary {
-        background: #e74c3c;
-        color: white;
-      }
-      .spacer {
-        height: 80px;
-      }
-      .history-table-container {
-        overflow-x: auto;
         background: white;
-        border-radius: 20px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-      }
-      .history-table {
-        width: 100%;
-        border-collapse: collapse;
-        text-align: left;
-        min-width: 800px;
-      }
-      .history-table th {
-        padding: 20px;
-        background: #fdfdfd;
-        color: #999;
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        border-bottom: 2px solid #f5f5f5;
-      }
-      .history-table td {
-        padding: 20px;
-        border-bottom: 1px solid #f5f5f5;
-        color: #444;
-      }
-      .id-tag {
-        font-family: monospace;
-        color: #888;
-        font-weight: bold;
-        background: #f0f0f0;
-        padding: 2px 6px;
-        border-radius: 4px;
-      }
-      .status-pill {
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 0.75rem;
+        color: black;
+        border: none;
+        padding: 12px 25px;
+        border-radius: 12px;
         font-weight: 800;
-        background: #eee;
-        color: #666;
+        cursor: pointer;
+        transition: 0.3s;
       }
-      .status-pill.success {
-        background: #d4edda;
-        color: #155724;
-      }
-      .time-col {
-        color: #888;
-        font-size: 0.85rem;
-      }
-      .empty-state {
-        text-align: center;
-        padding: 60px;
-        color: #888;
-        font-style: italic;
-        background: white;
-        border-radius: 20px;
+      .btn-refresh.loading {
+        opacity: 0.5;
+        pointer-events: none;
       }
 
-      /* Modal Styles */
+      /* Queue Grid */
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+        gap: 30px;
+      }
+      .order-card {
+        background: #161616;
+        border-radius: 28px;
+        padding: 30px;
+        border: 1px solid #222;
+        transition: 0.3s;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .order-card:hover {
+        border-color: #444;
+        transform: translateY(-5px);
+      }
+
+      .status-NEW {
+        border-left: 8px solid #3498db;
+      }
+      .status-PREPARING {
+        border-left: 8px solid #f39c12;
+      }
+      .status-READY {
+        border-left: 8px solid #2ecc71;
+      }
+
+      .card-head {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+      .id-tag {
+        color: #666;
+        font-weight: 800;
+        font-family: monospace;
+      }
+      .timer {
+        color: #ff6600;
+        font-weight: 800;
+        font-size: 0.85rem;
+      }
+
+      .cust-info h3 {
+        margin: 0 0 10px;
+        font-size: 1.5rem;
+        font-weight: 900;
+      }
+      .pills {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 25px;
+      }
+      .type-pill {
+        font-size: 0.65rem;
+        font-weight: 800;
+        background: #333;
+        padding: 4px 10px;
+        border-radius: 6px;
+        text-transform: uppercase;
+      }
+      .pay-pill {
+        font-size: 0.65rem;
+        font-weight: 800;
+        background: rgba(231, 76, 60, 0.1);
+        color: #e74c3c;
+        padding: 4px 10px;
+        border-radius: 6px;
+        border: 1px solid rgba(231, 76, 60, 0.2);
+      }
+      .pay-pill.paid {
+        background: rgba(46, 204, 113, 0.1);
+        color: #2ecc71;
+        border-color: rgba(46, 204, 113, 0.2);
+      }
+
+      .item-list {
+        background: #0a0a0a;
+        padding: 20px;
+        border-radius: 18px;
+        margin-bottom: 25px;
+        flex-grow: 1;
+        border: 1px solid #222;
+      }
+      .food-line {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 8px;
+        font-size: 1rem;
+      }
+      .food-line .q {
+        font-weight: 900;
+        color: #ff6600;
+      }
+      .food-line .v {
+        font-size: 0.75rem;
+        color: #666;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .card-footer {
+        border-top: 1px solid #222;
+        padding-top: 25px;
+      }
+      .status-msg {
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: #888;
+        letter-spacing: 1px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 15px;
+      }
+      .pulse-dot {
+        width: 8px;
+        height: 8px;
+        background: #ff6600;
+        border-radius: 50%;
+        box-shadow: 0 0 0 0 rgba(255, 102, 0, 0.4);
+        animation: pulse 2s infinite;
+      }
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(255, 102, 0, 0.7);
+        }
+        70% {
+          box-shadow: 0 0 0 10px rgba(255, 102, 0, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(255, 102, 0, 0);
+        }
+      }
+
+      .btn-step {
+        width: 100%;
+        padding: 15px;
+        border: none;
+        border-radius: 14px;
+        font-weight: 900;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .btn-step.cook {
+        background: #3498db;
+        color: white;
+      }
+      .btn-step.ready {
+        background: #f39c12;
+        color: white;
+      }
+      .btn-step.done {
+        background: #2ecc71;
+        color: white;
+      }
+
+      /* Modal */
       .modal-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(0, 0, 0, 0.6);
-        backdrop-filter: blur(5px);
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(8px);
         z-index: 3000;
         display: flex;
         align-items: center;
         justify-content: center;
       }
-      .modal-card {
-        width: 90%;
-        max-width: 400px;
-        padding: 30px;
+      .modal {
+        padding: 40px;
+        border-radius: 32px;
+        width: 450px;
         text-align: center;
-        background: white;
-        border-radius: 20px;
+        border: 1px solid #333;
       }
-      .modal-card h3 {
-        margin-bottom: 15px;
-        font-size: 1.5rem;
-        font-weight: 800;
-      }
-      .modal-card p {
-        color: #666;
-        margin-bottom: 25px;
-      }
-      .modal-actions {
+      .modal-btns {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 15px;
+        margin-top: 30px;
+      }
+      .btn-no {
+        background: #222;
+        color: #888;
+        border: none;
+        padding: 15px;
+        border-radius: 14px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+      .btn-yes {
+        background: #ff6600;
+        color: white;
+        border: none;
+        padding: 15px;
+        border-radius: 14px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      /* History */
+      .history-section {
+        margin-top: 80px;
+      }
+      .history-section h2 {
+        font-size: 2.2rem;
+        font-weight: 900;
+        margin-bottom: 30px;
+      }
+      .table-box {
+        overflow-x: auto;
+        border-radius: 28px;
+        border: 1px solid #222;
+      }
+      .history-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+      }
+      .history-table th {
+        padding: 25px;
+        background: #1a1a1a;
+        color: #555;
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        font-weight: 800;
+      }
+      .history-table td {
+        padding: 25px;
+        border-bottom: 1px solid #222;
+        font-size: 0.95rem;
+      }
+      .id-small {
+        font-family: monospace;
+        color: #ff6600;
+        font-weight: 800;
+      }
+      .pay-status {
+        font-weight: 800;
+        font-size: 0.8rem;
+      }
+      .pay-status.green {
+        color: #2ecc71;
+      }
+      .time-col {
+        color: #555;
       }
     `,
   ],
@@ -502,16 +485,13 @@ export class OwnerDashboardComponent implements OnInit {
 
   orders = signal<any[]>([]);
   isRefreshing = signal<boolean>(false);
-
-  // Modal State
   showPaymentModal = false;
   pendingOrder: any = null;
 
   activeOrders = computed(() =>
-    this.orders().filter((o: any) => o.orderStatus !== 'COMPLETED' && o.orderStatus !== 'CANCELLED')
+    this.orders().filter((o) => o.orderStatus !== 'COMPLETED' && o.orderStatus !== 'CANCELLED')
   );
-
-  completedOrders = computed(() => this.orders().filter((o: any) => o.orderStatus === 'COMPLETED'));
+  completedOrders = computed(() => this.orders().filter((o) => o.orderStatus === 'COMPLETED'));
 
   ngOnInit() {
     this.refresh();
@@ -520,33 +500,30 @@ export class OwnerDashboardComponent implements OnInit {
   refresh() {
     this.isRefreshing.set(true);
     this.orderService.getOwnerDashboardData().subscribe({
-      next: (data: any) => {
-        this.orders.set(data);
+      next: (d) => {
+        this.orders.set(d);
         this.isRefreshing.set(false);
         this.cdr.detectChanges();
       },
-      error: (err: any) => {
-        this.toast.error('Failed to sync dashboard.');
+      error: () => {
+        this.toast.error('Sync failed.');
         this.isRefreshing.set(false);
       },
     });
   }
 
   handleCompletion(order: any) {
-    // If it's a cash order and still pending, ask for payment confirmation
     if (order.paymentMethod === 'CASH' && order.paymentStatus === 'PENDING') {
       this.pendingOrder = order;
       this.showPaymentModal = true;
     } else {
-      // If it's already PAID (Online) or owner doesn't care, just complete
       this.updateStatus(order._id, 'COMPLETED');
     }
   }
 
-  completeWithPayment(payStatus: 'PAID' | 'PENDING') {
+  completeWithPayment(s: 'PAID' | 'PENDING') {
     if (!this.pendingOrder) return;
-
-    this.updateStatus(this.pendingOrder._id, 'COMPLETED', payStatus);
+    this.updateStatus(this.pendingOrder._id, 'COMPLETED', s);
     this.showPaymentModal = false;
     this.pendingOrder = null;
   }
@@ -554,17 +531,10 @@ export class OwnerDashboardComponent implements OnInit {
   updateStatus(id: string, status: string, paymentStatus?: string) {
     this.orderService.updateOrderStatus(id, status, paymentStatus).subscribe({
       next: () => {
-        this.toast.success(`Order updated to ${status}`);
+        this.toast.success(`Order moved to ${status}`);
         this.refresh();
       },
       error: () => this.toast.error('Update failed.'),
     });
-  }
-
-  getItemsSummary(order: any): string {
-    if (!order.items || order.items.length === 0) return 'No items';
-    const firstItem = order.items[0].name;
-    const others = order.items.length - 1;
-    return others > 0 ? `${firstItem} + ${others} others` : firstItem;
   }
 }

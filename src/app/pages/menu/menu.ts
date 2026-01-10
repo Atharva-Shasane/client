@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MenuService } from '../../services/menu';
 import { CartService } from '../../services/cart';
+import { AuthService } from '../../services/auth';
 import { MenuItem } from '../../models/menu-item.model';
 
 @Component({
@@ -11,436 +12,419 @@ import { MenuItem } from '../../models/menu-item.model';
   imports: [CommonModule, FormsModule],
   template: `
     <div class="menu-wrapper">
-      <!-- Search & Header Section -->
-      <header class="page-header">
-        <div class="header-content">
-          <h1>Taste the <span class="highlight">Difference</span></h1>
-          <p>Discover our chef's special creations and seasonal favorites.</p>
-
-          <div class="search-container">
-            <input
-              type="text"
-              [(ngModel)]="searchQuery"
-              (input)="applyFilters()"
-              placeholder="Search for your favorite dish..."
-            />
-            <span class="search-icon">🔍</span>
+      <header class="menu-header">
+        <div class="container">
+          <div class="header-inner">
+            <div class="title-group">
+              <h1>The <span class="highlight">Collection</span></h1>
+              <p>Curated flavors from our legendary kitchen.</p>
+            </div>
+            <div class="search-bar">
+              <span class="icon">🔍</span>
+              <input
+                type="text"
+                [(ngModel)]="searchQuery"
+                (input)="applyFilters()"
+                placeholder="Search by name or category..."
+              />
+            </div>
           </div>
         </div>
       </header>
 
-      <!-- Category Navigation -->
-      <nav class="category-nav">
-        <div class="nav-scroll">
-          <button
-            *ngFor="let cat of categories"
-            (click)="filterByCategory(cat.value)"
-            [class.active]="selectedCategory() === cat.value"
-          >
-            {{ cat.label }}
-          </button>
+      <nav class="category-sticky">
+        <div class="container">
+          <div class="chips-container">
+            <button
+              *ngFor="let cat of activeCategories()"
+              (click)="filterByCategory(cat.value)"
+              [class.active]="selectedCategory() === cat.value"
+              [class.special]="cat.value === 'Recommended'"
+            >
+              <span class="dot" *ngIf="cat.value === 'Recommended'"></span>
+              {{ cat.label }}
+            </button>
+          </div>
         </div>
       </nav>
 
-      <main class="menu-container">
-        <!-- Skeleton Loading View -->
-        <div *ngIf="loading()" class="grid-layout">
-          <div class="skeleton-item" *ngFor="let i of [1, 2, 3, 4, 5, 6]">
-            <div class="skeleton-media"></div>
-            <div class="skeleton-info">
-              <div class="skeleton-line title"></div>
-              <div class="skeleton-line desc"></div>
-              <div class="skeleton-footer">
-                <div class="skeleton-price"></div>
-                <div class="skeleton-action"></div>
-              </div>
-            </div>
+      <main class="menu-content container">
+        <div *ngIf="loading()" class="grid">
+          <div class="skeleton-card" *ngFor="let i of [1, 2, 3, 4, 5, 6]">
+            <div class="s-img"></div>
+            <div class="s-line long"></div>
+            <div class="s-line short"></div>
           </div>
         </div>
 
-        <!-- Real Menu Content -->
-        <div *ngIf="!loading()" class="grid-layout">
-          <div class="food-card" *ngFor="let item of filteredItems()">
-            <div class="card-media">
+        <div *ngIf="!loading()" class="grid">
+          <div
+            class="food-item"
+            *ngFor="let item of filteredItems()"
+            [class.recommended-border]="selectedCategory() === 'Recommended'"
+          >
+            <div class="media">
               <img [src]="item.imageUrl" (error)="handleImageError($event)" [alt]="item.name" />
-              <div class="badge" [class.veg]="item.category.includes('veg')">
-                {{ item.category.includes('non-veg') ? 'Non-Veg' : 'Veg' }}
+              <div class="category-pill">
+                {{
+                  item.category === 'non-veg'
+                    ? 'Non-Veg'
+                    : item.category === 'veg'
+                    ? 'Veg'
+                    : 'Drink'
+                }}
               </div>
             </div>
 
-            <div class="card-info">
-              <div class="card-header">
+            <div class="info">
+              <div class="meta">
                 <h3>{{ item.name }}</h3>
-                <span class="sub-cat">{{ item.subCategory }}</span>
+                <p class="subtitle">{{ item.subCategory }}</p>
               </div>
 
-              <div class="card-actions">
-                <!-- Single Price Flow -->
-                <div *ngIf="item.pricing.type === 'SINGLE'" class="action-row single">
-                  <span class="price-tag">₹{{ item.pricing.price }}</span>
-                  <button (click)="addToCart(item, 'SINGLE')" class="btn-primary">Add</button>
+              <div class="pricing-actions">
+                <div *ngIf="item.pricing.type === 'SINGLE'" class="single-price">
+                  <span class="price">₹{{ item.pricing.price }}</span>
+                  <button (click)="addToCart(item, 'SINGLE')" class="add-main">Add to Cart</button>
                 </div>
 
-                <!-- Multi Variant Flow -->
-                <div *ngIf="item.pricing.type === 'HALF_FULL'" class="action-row multi">
-                  <button (click)="addToCart(item, 'HALF')" class="btn-variant">
-                    <span class="label">Half</span>
-                    <span class="val">₹{{ item.pricing.priceHalf }}</span>
+                <div *ngIf="item.pricing.type === 'HALF_FULL'" class="multi-price">
+                  <button (click)="addToCart(item, 'HALF')" class="variant-btn">
+                    <span class="v-name">Half</span>
+                    <span class="v-price">₹{{ item.pricing.priceHalf }}</span>
                   </button>
-                  <button (click)="addToCart(item, 'FULL')" class="btn-variant">
-                    <span class="label">Full</span>
-                    <span class="val">₹{{ item.pricing.priceFull }}</span>
+                  <button (click)="addToCart(item, 'FULL')" class="variant-btn">
+                    <span class="v-name">Full</span>
+                    <span class="v-price">₹{{ item.pricing.priceFull }}</span>
                   </button>
                 </div>
               </div>
+            </div>
+
+            <div class="ai-recommendation-badge" *ngIf="selectedCategory() === 'Recommended'">
+              AI Match
             </div>
           </div>
         </div>
 
-        <!-- Empty State -->
-        <div *ngIf="!loading() && filteredItems().length === 0" class="empty-state">
-          <div class="icon">🍽️</div>
-          <h3>No matches found</h3>
-          <p>Try searching for something else or browse another category.</p>
-          <button (click)="resetFilters()" class="btn-link">Clear all filters</button>
+        <div *ngIf="!loading() && filteredItems().length === 0" class="empty-results">
+          <div class="empty-icon">🍽️</div>
+          <h2>Nothing found</h2>
+          <p>We couldn't find anything matching your search.</p>
+          <button (click)="resetFilters()" class="reset-btn">View All Dishes</button>
         </div>
       </main>
     </div>
   `,
   styles: [
     `
-      :host {
-        --brand: #ff6b00;
-        --dark: #121212;
-        --card-bg: #1e1e1e;
-        --text-p: #ffffff;
-        --text-s: #a0a0a0;
-      }
-
       .menu-wrapper {
-        background: var(--dark);
+        background: #0a0a0a;
         min-height: 100vh;
-        color: var(--text-p);
-        padding-bottom: 80px;
+        color: white;
+        padding-bottom: 100px;
+        font-family: 'Poppins', sans-serif;
       }
-
-      /* Header & Search */
-      .page-header {
-        background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(18, 18, 18, 1)),
-          url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=2070')
-            center/cover;
-        padding: 100px 20px 60px;
-        text-align: center;
-      }
-      .header-content {
-        max-width: 800px;
+      .container {
+        max-width: 1400px;
         margin: 0 auto;
-      }
-      h1 {
-        font-size: clamp(2.5rem, 5vw, 4rem);
-        font-weight: 800;
-        letter-spacing: -1px;
-        line-height: 1.1;
-        margin-bottom: 15px;
+        padding: 0 24px;
       }
       .highlight {
-        color: var(--brand);
+        color: #ff6600;
       }
-      .page-header p {
+      .menu-header {
+        padding: 120px 0 60px;
+        background: linear-gradient(to bottom, #111, #0a0a0a);
+      }
+      .header-inner {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 40px;
+        flex-wrap: wrap;
+      }
+      .title-group h1 {
+        font-size: 3.5rem;
+        font-weight: 800;
+        margin: 0;
+        letter-spacing: -1px;
+      }
+      .title-group p {
+        color: #888;
+        margin-top: 10px;
         font-size: 1.1rem;
-        color: var(--text-s);
-        margin-bottom: 40px;
       }
-
-      .search-container {
+      .search-bar {
         position: relative;
-        max-width: 500px;
-        margin: 0 auto;
+        flex-grow: 1;
+        max-width: 450px;
       }
-      .search-container input {
-        width: 100%;
-        padding: 16px 50px 16px 25px;
-        border-radius: 50px;
-        border: 1px solid #333;
-        background: rgba(255, 255, 255, 0.05);
-        color: white;
-        font-size: 1rem;
-        backdrop-filter: blur(10px);
-        transition: 0.3s;
-      }
-      .search-container input:focus {
-        outline: none;
-        border-color: var(--brand);
-        background: rgba(255, 255, 255, 0.1);
-      }
-      .search-icon {
+      .search-bar .icon {
         position: absolute;
-        right: 20px;
+        left: 20px;
         top: 50%;
         transform: translateY(-50%);
-        font-size: 1.2rem;
-        opacity: 0.5;
+        color: #666;
       }
-
-      /* Category Navigation */
-      .category-nav {
+      .search-bar input {
+        width: 100%;
+        background: #1a1a1a;
+        border: 1px solid #333;
+        padding: 16px 16px 16px 50px;
+        border-radius: 16px;
+        color: white;
+        font-size: 1rem;
+        transition: 0.3s;
+      }
+      .search-bar input:focus {
+        outline: none;
+        border-color: #ff6600;
+        background: #222;
+      }
+      .category-sticky {
         position: sticky;
         top: 80px;
         z-index: 100;
-        background: rgba(18, 18, 18, 0.9);
-        backdrop-filter: blur(10px);
+        background: rgba(10, 10, 10, 0.8);
+        backdrop-filter: blur(15px);
         padding: 15px 0;
         border-bottom: 1px solid #222;
       }
-      .nav-scroll {
+      .chips-container {
         display: flex;
-        justify-content: center;
-        gap: 10px;
+        gap: 12px;
         overflow-x: auto;
-        padding: 0 20px;
+        padding-bottom: 5px;
       }
-      .nav-scroll::-webkit-scrollbar {
+      .chips-container::-webkit-scrollbar {
         display: none;
       }
-      .category-nav button {
-        padding: 8px 20px;
-        border-radius: 30px;
+      .chips-container button {
+        padding: 10px 24px;
+        border-radius: 50px;
         border: 1px solid #333;
         background: transparent;
-        color: var(--text-s);
+        color: #888;
+        font-weight: 600;
         cursor: pointer;
         white-space: nowrap;
-        font-weight: 600;
         transition: 0.3s;
-      }
-      .category-nav button.active {
-        background: var(--brand);
-        color: white;
-        border-color: var(--brand);
-      }
-
-      /* Layout */
-      .menu-container {
-        max-width: 1400px;
-        margin: 40px auto;
-        padding: 0 20px;
-      }
-      .grid-layout {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 30px;
-      }
-
-      /* Food Card */
-      .food-card {
-        background: var(--card-bg);
-        border-radius: 24px;
-        overflow: hidden;
         display: flex;
-        flex-direction: column;
-        transition: 0.4s cubic-bezier(0.2, 0, 0, 1);
-        border: 1px solid #2a2a2a;
+        align-items: center;
+        gap: 8px;
       }
-      .food-card:hover {
+      .chips-container button.active {
+        background: #ff6600;
+        color: white;
+        border-color: #ff6600;
+      }
+      .chips-container button.special {
+        border-color: #ff6600;
+        color: #ff6600;
+      }
+      .chips-container button.special.active {
+        background: #ff6600;
+        color: white;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        background: #ff6600;
+        border-radius: 50%;
+      }
+      .active .dot {
+        background: white;
+      }
+      .menu-content {
+        margin-top: 50px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 32px;
+      }
+      .food-item {
+        background: #161616;
+        border-radius: 28px;
+        overflow: hidden;
+        border: 1px solid #222;
+        transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        position: relative;
+      }
+      .food-item:hover {
         transform: translateY(-10px);
         border-color: #444;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
       }
-
-      .card-media {
-        height: 220px;
+      .recommended-border {
+        border: 2px solid #ff6600;
+      }
+      .media {
+        height: 230px;
         position: relative;
         overflow: hidden;
       }
-      .card-media img {
+      .media img {
         width: 100%;
         height: 100%;
         object-fit: cover;
-        transition: 0.8s;
+        transition: 0.6s;
       }
-      .food-card:hover .card-media img {
+      .food-item:hover .media img {
         transform: scale(1.1);
       }
-      .badge {
+      .category-pill {
         position: absolute;
-        top: 15px;
-        right: 15px;
-        padding: 4px 12px;
-        border-radius: 6px;
+        top: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(5px);
+        color: white;
+        padding: 5px 15px;
+        border-radius: 10px;
         font-size: 0.7rem;
         font-weight: 800;
         text-transform: uppercase;
-        background: #ff4444;
-        color: white;
       }
-      .badge.veg {
-        background: #00c851;
+      .info {
+        padding: 25px;
       }
-
-      .card-info {
-        padding: 20px;
-        flex-grow: 1;
-        display: flex;
-        flex-direction: column;
+      .meta h3 {
+        font-size: 1.5rem;
+        margin: 0;
+        font-weight: 800;
       }
-      .card-header h3 {
-        font-size: 1.4rem;
-        font-weight: 700;
-        margin-bottom: 5px;
+      .subtitle {
+        color: #666;
+        font-size: 0.9rem;
+        margin: 6px 0 25px;
       }
-      .sub-cat {
-        color: var(--text-s);
-        font-size: 0.85rem;
-        display: block;
-        margin-bottom: 20px;
-      }
-
-      .card-actions {
+      .pricing-actions {
         margin-top: auto;
       }
-      .action-row.single {
+      .single-price {
         display: flex;
         justify-content: space-between;
         align-items: center;
       }
-      .price-tag {
-        font-size: 1.6rem;
-        font-weight: 800;
-        color: var(--brand);
+      .price {
+        font-size: 1.8rem;
+        font-weight: 900;
+        color: #ff6600;
       }
-      .btn-primary {
-        background: var(--brand);
+      .add-main {
+        background: #ff6600;
         color: white;
         border: none;
-        padding: 12px 28px;
-        border-radius: 12px;
-        font-weight: bold;
+        padding: 12px 25px;
+        border-radius: 14px;
+        font-weight: 700;
         cursor: pointer;
-        transition: 0.3s;
+        transition: 0.2s;
       }
-      .btn-primary:hover {
+      .add-main:hover {
         transform: scale(1.05);
         filter: brightness(1.1);
       }
-
-      .action-row.multi {
+      .multi-price {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 10px;
+        gap: 12px;
       }
-      .btn-variant {
-        background: #2a2a2a;
+      .variant-btn {
+        background: #222;
         border: 1px solid #333;
-        padding: 10px;
-        border-radius: 14px;
+        padding: 12px;
+        border-radius: 16px;
         cursor: pointer;
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        color: var(--text-s);
-        transition: 0.3s;
+        text-align: left;
+        transition: 0.2s;
       }
-      .btn-variant .val {
+      .variant-btn .v-name {
+        display: block;
+        font-size: 0.75rem;
+        color: #888;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+      .variant-btn .v-price {
+        display: block;
         font-size: 1.2rem;
         font-weight: 800;
-        color: var(--brand);
+        color: #ff6600;
+        margin-top: 4px;
       }
-      .btn-variant:hover {
-        background: #333;
-        border-color: var(--brand);
-      }
-
-      /* Skeleton Loading */
-      .skeleton-item {
-        background: var(--card-bg);
-        border-radius: 24px;
-        overflow: hidden;
-        height: 420px;
-        position: relative;
-      }
-      .skeleton-media {
-        height: 220px;
+      .variant-btn:hover {
+        border-color: #ff6600;
         background: #2a2a2a;
       }
-      .skeleton-info {
-        padding: 20px;
-      }
-      .skeleton-line {
-        background: #2a2a2a;
-        border-radius: 4px;
-        margin-bottom: 10px;
-        position: relative;
-        overflow: hidden;
-      }
-      .skeleton-line::after {
-        content: '';
+      .ai-recommendation-badge {
         position: absolute;
-        inset: 0;
-        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
-        animation: shm 1.5s infinite;
+        bottom: 15px;
+        right: 20px;
+        background: #ff6600;
+        color: white;
+        font-size: 0.6rem;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-weight: 800;
       }
-      .skeleton-line.title {
-        height: 24px;
-        width: 60%;
-      }
-      .skeleton-line.desc {
-        height: 16px;
-        width: 40%;
-        margin-bottom: 40px;
-      }
-      .skeleton-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .skeleton-price {
-        height: 30px;
-        width: 30%;
-        background: #2a2a2a;
-        border-radius: 4px;
-      }
-      .skeleton-action {
-        height: 45px;
-        width: 40%;
-        background: #2a2a2a;
-        border-radius: 12px;
-      }
-
-      @keyframes shm {
-        0% {
-          transform: translateX(-100%);
-        }
-        100% {
-          transform: translateX(100%);
-        }
-      }
-
-      .empty-state {
+      .empty-results {
         text-align: center;
-        padding: 100px 20px;
+        padding: 80px 0;
       }
-      .empty-state .icon {
+      .empty-icon {
         font-size: 4rem;
         margin-bottom: 20px;
       }
-      .btn-link {
-        background: none;
+      .reset-btn {
+        background: #333;
+        color: white;
         border: none;
-        color: var(--brand);
-        text-decoration: underline;
+        padding: 12px 30px;
+        border-radius: 12px;
+        font-weight: 700;
         cursor: pointer;
-        font-weight: 600;
+        margin-top: 20px;
       }
-
+      .skeleton-card {
+        background: #161616;
+        height: 400px;
+        border-radius: 28px;
+        padding: 20px;
+      }
+      .s-img {
+        height: 200px;
+        background: #222;
+        border-radius: 20px;
+        margin-bottom: 20px;
+      }
+      .s-line {
+        height: 20px;
+        background: #222;
+        border-radius: 4px;
+        margin-bottom: 10px;
+      }
+      .s-line.long {
+        width: 80%;
+      }
+      .s-line.short {
+        width: 40%;
+      }
       @media (max-width: 768px) {
-        .grid-layout {
-          grid-template-columns: 1fr;
+        .menu-header {
+          padding-top: 100px;
+          text-align: center;
         }
-        .page-header {
-          padding-top: 120px;
+        .header-inner {
+          justify-content: center;
         }
-        h1 {
+        .title-group h1 {
           font-size: 2.8rem;
+        }
+        .grid {
+          grid-template-columns: 1fr;
         }
       }
     `,
@@ -449,32 +433,58 @@ import { MenuItem } from '../../models/menu-item.model';
 export class MenuComponent implements OnInit {
   menuService = inject(MenuService);
   cartService = inject(CartService);
+  authService = inject(AuthService);
 
   private fullMenuList = signal<MenuItem[]>([]);
+  private recommendedItems = signal<MenuItem[]>([]);
+
   filteredItems = signal<MenuItem[]>([]);
   selectedCategory = signal<string>('All');
   loading = signal<boolean>(true);
   searchQuery = '';
 
+  // UPDATED: Simplified internal mapping to match new DB keys
   categories = [
-    { label: 'All Dishes', value: 'All' },
-    { label: 'Veg Indian', value: 'veg-indian' },
-    { label: 'Non-Veg', value: 'non-veg-indian' },
-    { label: 'Beverages', value: 'beverages' },
+    { label: 'All', value: 'All' },
+    { label: 'Veg', value: 'veg' },
+    { label: 'Non-Veg', value: 'non-veg' },
+    { label: 'Drinks', value: 'drinks' },
   ];
 
+  activeCategories = computed(() => {
+    if (this.recommendedItems().length > 0) {
+      return [{ label: 'For You', value: 'Recommended' }, ...this.categories];
+    }
+    return this.categories;
+  });
+
   ngOnInit() {
+    this.loadData();
+  }
+
+  loadData() {
+    this.loading.set(true);
     this.menuService.getMenu().subscribe({
       next: (items) => {
-        // Reduced wait time for production feel
-        setTimeout(() => {
-          this.fullMenuList.set(items);
-          this.applyFilters();
-          this.loading.set(false);
-        }, 600);
+        this.fullMenuList.set(items);
+        this.applyFilters();
+        this.loading.set(false);
       },
       error: () => this.loading.set(false),
     });
+
+    if (this.authService.isLoggedIn()) {
+      this.menuService.getAiRecommendations().subscribe({
+        next: (items) => {
+          this.recommendedItems.set(items);
+          if (items.length > 0) {
+            this.selectedCategory.set('Recommended');
+            this.applyFilters();
+          }
+        },
+        error: () => console.warn('AI recommendations not available.'),
+      });
+    }
   }
 
   filterByCategory(cat: string) {
@@ -483,21 +493,21 @@ export class MenuComponent implements OnInit {
   }
 
   applyFilters() {
-    let items = this.fullMenuList();
-
-    // Apply Category Filter
-    if (this.selectedCategory() !== 'All') {
-      items = items.filter((i) => i.category === this.selectedCategory());
+    let items: MenuItem[] = [];
+    if (this.selectedCategory() === 'Recommended') {
+      items = this.recommendedItems();
+    } else if (this.selectedCategory() === 'All') {
+      items = this.fullMenuList();
+    } else {
+      items = this.fullMenuList().filter((i) => i.category === this.selectedCategory());
     }
 
-    // Apply Search Filter
     if (this.searchQuery.trim()) {
       const q = this.searchQuery.toLowerCase();
       items = items.filter(
         (i) => i.name.toLowerCase().includes(q) || i.subCategory.toLowerCase().includes(q)
       );
     }
-
     this.filteredItems.set(items);
   }
 
@@ -512,6 +522,6 @@ export class MenuComponent implements OnInit {
   }
 
   handleImageError(event: any) {
-    event.target.src = 'https://placehold.co/600x400/1a1a1a/ffffff?text=Delicious+Food';
+    event.target.src = 'https://placehold.co/600x400/1a1a1a/ffffff?text=Killa+Kitchen';
   }
 }

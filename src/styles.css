@@ -1,16 +1,19 @@
 /* You can add global styles to this file, and also import other style files */
 
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap');
+
 /* Modern Reset and Variables */
 :root {
   --primary: #ff6b00;
   --primary-dark: #e65100;
   --secondary: #1a1a1a;
-  --text-main: #2d3436;
-  --text-muted: #636e72;
-  --bg-light: #f8f9fa;
+  /* Updated to Dark Theme Defaults */
+  --bg-dark: #0a0a0a;
+  --bg-card: #161616;
+  --text-main: #ffffff;
+  --text-muted: #a0a0a0;
   --white: #ffffff;
-  --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
@@ -18,12 +21,15 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  /* Smooth scrolling for internal links */
+  scroll-behavior: smooth;
   -webkit-tap-highlight-color: transparent;
 }
 
 body {
   font-family: 'Poppins', sans-serif;
-  background-color: var(--bg-light);
+  /* Changed background to dark to eliminate white spaces */
+  background-color: var(--bg-dark);
   color: var(--text-main);
   line-height: 1.6;
   overflow-x: hidden;
@@ -31,9 +37,9 @@ body {
 
 /* Global Button Polish */
 .btn {
-  padding: 12px 24px;
-  border-radius: 50px;
-  font-weight: 600;
+  padding: 12px 28px;
+  border-radius: 12px;
+  font-weight: 700;
   cursor: pointer;
   transition: var(--transition);
   text-decoration: none;
@@ -53,26 +59,54 @@ body {
 .btn-primary:hover {
   background: var(--primary-dark);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(255, 107, 0, 0.4);
+  box-shadow: 0 8px 25px rgba(255, 107, 0, 0.5);
 }
 
 /* Card Polish */
 .glass-card {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(26, 26, 26, 0.8);
+  backdrop-filter: blur(15px);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
   box-shadow: var(--shadow);
 }
 
-/* Responsive Container */
+/* FIX: Removed max-width and margin from 'main' 
+   This allows Hero sections to be 100% width of the screen.
+*/
 main {
+  display: block;
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Global Transitions */
+.fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Utility classes */
+.container {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 0 15px;
+  padding: 0 20px;
 }
 
 @media (max-width: 768px) {
+  h1 {
+    font-size: 2.5rem;
+  }
   h2 {
     font-size: 1.8rem;
   }

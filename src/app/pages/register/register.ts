@@ -1,4 +1,4 @@
-import { Component, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AuthService } from '../../services/auth';
@@ -10,265 +10,359 @@ import { ToastService } from '../../services/toast';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   template: `
-    <div class="auth-container">
-      <div class="auth-box glass-card">
-        <h2>{{ showOtpInput ? 'Verify Your Email' : 'Join Killa Resto' }}</h2>
-        <p class="subtitle">
-          {{
-            showOtpInput
-              ? 'We sent a 6-digit code to ' + registerForm.get('email')?.value
-              : 'Create an account to start ordering'
-          }}
-        </p>
+    <div class="auth-wrapper fade-in">
+      <div class="auth-card glass-card">
+        <div class="brand-header">
+          <span class="k-tag">EST. 2024</span>
+          <h2>{{ showOtpInput ? 'Verify Account' : 'Join the Legend' }}</h2>
+          <p class="subtitle">
+            {{
+              showOtpInput
+                ? 'We sent a secure code to ' + registerForm.get('email')?.value
+                : 'Create an account to start your culinary journey'
+            }}
+          </p>
+        </div>
 
         <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
-          <!-- STEP 1: Registration Details -->
-          <div *ngIf="!showOtpInput">
-            <div class="form-group">
+          <!-- STEP 1: Personal Details -->
+          <div *ngIf="!showOtpInput" class="form-step">
+            <div class="field">
               <label>Full Name</label>
-              <input
-                formControlName="name"
-                placeholder="John Doe"
-                [class.invalid]="isInvalid('name')"
-              />
-              <div class="error-msg" *ngIf="isInvalid('name')">Name is required.</div>
-            </div>
-
-            <div class="form-group">
-              <label>Email Address</label>
-              <input
-                formControlName="email"
-                type="email"
-                placeholder="john@example.com"
-                [class.invalid]="isInvalid('email')"
-              />
-              <div class="error-msg" *ngIf="isInvalid('email')">
-                <span *ngIf="registerForm.get('email')?.errors?.['email']"
-                  >Please enter a valid email.</span
-                >
-                <span *ngIf="registerForm.get('email')?.errors?.['required']"
-                  >Email is required.</span
-                >
+              <div class="input-container">
+                <span class="prefix-icon">👤</span>
+                <input
+                  formControlName="name"
+                  placeholder="John Doe"
+                  [class.error]="isInvalid('name')"
+                />
               </div>
             </div>
 
-            <div class="form-group">
-              <label>Mobile Number</label>
-              <input
-                formControlName="mobile"
-                placeholder="10-digit mobile number"
-                [class.invalid]="isInvalid('mobile')"
-              />
-              <div class="error-msg" *ngIf="isInvalid('mobile')">
-                10-digit mobile number is required.
+            <div class="form-grid">
+              <div class="field">
+                <label>Email Address</label>
+                <div class="input-container">
+                  <span class="prefix-icon">✉️</span>
+                  <input
+                    formControlName="email"
+                    type="email"
+                    placeholder="john@example.com"
+                    [class.error]="isInvalid('email')"
+                  />
+                </div>
+              </div>
+              <div class="field">
+                <label>Mobile Number</label>
+                <div class="input-container">
+                  <span class="prefix-icon">📱</span>
+                  <input
+                    formControlName="mobile"
+                    placeholder="10-digit #"
+                    [class.error]="isInvalid('mobile')"
+                  />
+                </div>
               </div>
             </div>
 
-            <div class="form-group">
-              <label>Password</label>
-              <input
-                formControlName="password"
-                type="password"
-                placeholder="Min 6 characters"
-                [class.invalid]="isInvalid('password')"
-              />
-              <div class="password-hint" [class.valid]="isStrongPassword()">
-                Must include: 6+ chars, 1 Uppercase, 1 Number, 1 Special Char
+            <div class="field">
+              <label>Secure Password</label>
+              <div class="input-container">
+                <span class="prefix-icon">🔒</span>
+                <input
+                  formControlName="password"
+                  type="password"
+                  placeholder="••••••••"
+                  [class.error]="isInvalid('password')"
+                />
               </div>
-              <div class="error-msg" *ngIf="isInvalid('password')">
-                Password does not meet security requirements.
+              <div class="password-check" [class.met]="isStrongPassword()">
+                <span class="check-dot"></span>
+                <span class="check-text">6+ chars, 1 uppercase, 1 special character</span>
               </div>
             </div>
           </div>
 
-          <!-- STEP 2: OTP Verification -->
-          <div *ngIf="showOtpInput" class="otp-section">
-            <div class="form-group">
-              <label>Verification Code</label>
+          <!-- STEP 2: Email OTP -->
+          <div *ngIf="showOtpInput" class="form-step fade-in">
+            <div class="field centered">
+              <label>6-Digit Verification Code</label>
               <input
                 formControlName="otp"
                 type="text"
-                placeholder="000000"
                 maxlength="6"
-                class="otp-input"
-                [class.invalid]="isInvalid('otp')"
+                class="otp-field"
+                placeholder="000000"
               />
-              <p class="resend-hint">Check your email or server console for the code.</p>
-              <div class="error-msg" *ngIf="isInvalid('otp')">Valid 6-digit code is required.</div>
+              <div class="otp-actions">
+                <p>Didn't receive the code?</p>
+                <button type="button" class="resend-btn" (click)="handleRequestOtp()">
+                  Resend Code
+                </button>
+              </div>
             </div>
           </div>
 
           <button
             type="submit"
-            [disabled]="
-              loading ||
-              (registerForm.invalid && !showOtpInput) ||
-              (showOtpInput && registerForm.get('otp')?.invalid)
-            "
-            class="main-btn"
+            class="btn-primary-auth"
+            [disabled]="loading || (registerForm.invalid && !showOtpInput)"
           >
-            <span *ngIf="loading">Processing...</span>
             <span *ngIf="!loading">{{
-              showOtpInput ? 'Complete Registration' : 'Send Verification Code'
+              showOtpInput ? 'Complete Registration' : 'Send Security Code'
             }}</span>
-          </button>
-
-          <button
-            *ngIf="showOtpInput"
-            type="button"
-            (click)="showOtpInput = false"
-            class="btn-link"
-          >
-            Edit Details
+            <span *ngIf="loading" class="auth-spinner"></span>
           </button>
         </form>
 
-        <div class="footer" *ngIf="!showOtpInput">
-          <p>Already have an account? <a (click)="router.navigate(['/login'])">Login here</a></p>
+        <div class="auth-footer" *ngIf="!showOtpInput">
+          <p>Already have an account? <a (click)="router.navigate(['/login'])">Sign In</a></p>
+        </div>
+
+        <div class="auth-footer" *ngIf="showOtpInput">
+          <button class="btn-back-auth" (click)="showOtpInput = false">← Edit My Details</button>
         </div>
       </div>
     </div>
   `,
   styles: [
     `
-      .auth-container {
+      .auth-wrapper {
+        min-height: 100vh;
         display: flex;
-        justify-content: center;
         align-items: center;
-        min-height: 85vh;
-        background: #f8f9fa;
-        padding: 20px;
+        justify-content: center;
+        background: #0a0a0a;
+        padding: 24px;
+        font-family: 'Poppins', sans-serif;
       }
-      .auth-box {
+
+      .auth-card {
         width: 100%;
-        max-width: 420px;
-        padding: 2.5rem;
+        max-width: 500px;
+        padding: 50px 40px;
+        border-radius: 32px;
+        border: 1px solid #222;
         text-align: center;
-        background: white;
-        border-radius: 20px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
       }
+
+      .brand-header {
+        margin-bottom: 40px;
+      }
+      .k-tag {
+        display: inline-block;
+        font-weight: 900;
+        color: #ff6600;
+        letter-spacing: 2px;
+        font-size: 0.7rem;
+        border: 1px solid rgba(255, 102, 0, 0.3);
+        padding: 4px 12px;
+        border-radius: 50px;
+        margin-bottom: 15px;
+        background: rgba(255, 102, 0, 0.05);
+      }
+
       h2 {
+        font-size: 2.4rem;
+        font-weight: 900;
         margin: 0;
-        color: #1a1a1a;
-        font-size: 1.8rem;
-        font-weight: 800;
+        color: white;
+        letter-spacing: -1.5px;
       }
       .subtitle {
         color: #666;
-        margin-bottom: 2rem;
-        font-size: 0.9rem;
+        font-size: 0.95rem;
         margin-top: 10px;
+        line-height: 1.6;
       }
-      .form-group {
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 15px;
+      }
+      .field {
         text-align: left;
-        margin-bottom: 1.2rem;
+        margin-bottom: 24px;
+      }
+      .field.centered {
+        text-align: center;
+      }
+      .field label {
+        display: block;
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: #555;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        margin-bottom: 10px;
+      }
+
+      .input-container {
         position: relative;
       }
-      label {
-        display: block;
-        margin-bottom: 0.5rem;
-        color: #333;
-        font-weight: 600;
-        font-size: 0.85rem;
+      .prefix-icon {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1.1rem;
+        opacity: 0.5;
       }
+
       input {
         width: 100%;
-        padding: 12px;
-        border: 2px solid #eee;
-        border-radius: 10px;
-        box-sizing: border-box;
+        padding: 16px 20px 16px 48px;
+        background: #111;
+        border: 1px solid #222;
+        border-radius: 14px;
+        color: white;
         font-size: 1rem;
+        font-family: inherit;
+        transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .form-grid input {
+        padding: 16px 20px 16px 48px;
+      }
+
+      input:focus {
+        outline: none;
+        border-color: #ff6600;
+        box-shadow: 0 0 15px rgba(255, 102, 0, 0.1);
+        background: #161616;
+      }
+      input.error {
+        border-color: #ff4444;
+      }
+
+      .password-check {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 10px;
+        color: #444;
+        font-size: 0.7rem;
+        font-weight: 700;
         transition: 0.3s;
       }
-      input:focus {
-        border-color: #ff6600;
-        outline: none;
-        background: #fffcf9;
+      .check-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #333;
       }
-      input.invalid {
-        border-color: #ff4444;
-        background: #fff8f8;
-      }
-      .password-hint {
-        font-size: 0.7rem;
-        color: #888;
-        margin-top: 4px;
-      }
-      .password-hint.valid {
+      .password-check.met {
         color: #2ecc71;
       }
-      .error-msg {
-        color: #ff4444;
-        font-size: 0.75rem;
-        margin-top: 5px;
-        font-weight: 600;
-        animation: fadeIn 0.3s;
+      .password-check.met .check-dot {
+        background: #2ecc71;
+        box-shadow: 0 0 8px #2ecc71;
       }
-      .otp-input {
+
+      .otp-field {
+        padding: 15px;
         text-align: center;
-        font-size: 1.6rem;
-        letter-spacing: 10px;
-        font-weight: 800;
+        font-size: 2.2rem;
+        letter-spacing: 12px;
+        font-weight: 900;
+        color: #ff6600;
         border-color: #ff6600;
-      }
-      .resend-hint {
-        font-size: 0.75rem;
-        color: #ff6600;
+        background: #000;
         margin-top: 10px;
-        font-weight: 600;
       }
-      .main-btn {
-        width: 100%;
-        background: #333;
-        color: white;
-        padding: 16px;
-        border: none;
-        border-radius: 12px;
-        font-weight: bold;
-        cursor: pointer;
-        margin-top: 1rem;
-        font-size: 1rem;
-        transition: 0.3s;
-      }
-      .main-btn:not(:disabled) {
-        background: #ff6600;
-        box-shadow: 0 4px 15px rgba(255, 107, 0, 0.3);
-      }
-      .main-btn:disabled {
-        background: #ccc;
-        cursor: not-allowed;
-      }
-      .btn-link {
-        background: none;
-        color: #666;
+      .otp-actions {
+        margin-top: 20px;
         font-size: 0.85rem;
-        margin-top: 15px;
+        color: #555;
+      }
+      .resend-btn {
+        background: none;
         border: none;
-        text-decoration: underline;
-        cursor: pointer;
-      }
-      .footer {
-        margin-top: 2rem;
-        font-size: 0.9rem;
-        color: #666;
-        border-top: 1px solid #eee;
-        padding-top: 1.5rem;
-      }
-      a {
         color: #ff6600;
-        text-decoration: none;
+        font-weight: 800;
         cursor: pointer;
-        font-weight: bold;
+        text-decoration: underline;
+        margin-left: 5px;
       }
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-          transform: translateY(-5px);
-        }
+
+      .btn-primary-auth {
+        width: 100%;
+        padding: 20px;
+        background: #ff6600;
+        color: white;
+        border: none;
+        border-radius: 18px;
+        font-weight: 900;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: 0.3s;
+        margin-top: 10px;
+        box-shadow: 0 10px 25px rgba(255, 107, 0, 0.3);
+        letter-spacing: 0.5px;
+      }
+
+      .btn-primary-auth:hover:not(:disabled) {
+        transform: translateY(-3px);
+        filter: brightness(1.1);
+        box-shadow: 0 15px 35px rgba(255, 107, 0, 0.4);
+      }
+      .btn-primary-auth:disabled {
+        background: #222;
+        color: #555;
+        cursor: not-allowed;
+        box-shadow: none;
+      }
+
+      .auth-footer {
+        margin-top: 40px;
+        padding-top: 25px;
+        border-top: 1px solid #222;
+        font-size: 0.95rem;
+        color: #666;
+      }
+      .auth-footer a {
+        color: #ff6600;
+        font-weight: 800;
+        cursor: pointer;
+        margin-left: 5px;
+      }
+      .btn-back-auth {
+        background: none;
+        border: none;
+        color: #555;
+        font-weight: 800;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .btn-back-auth:hover {
+        color: #888;
+      }
+
+      .auth-spinner {
+        display: inline-block;
+        width: 22px;
+        height: 22px;
+        border: 3px solid rgba(255, 255, 255, 0.2);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: auth-spin 0.8s linear infinite;
+      }
+      @keyframes auth-spin {
         to {
-          opacity: 1;
-          transform: translateY(0);
+          transform: rotate(360deg);
+        }
+      }
+
+      @media (max-width: 600px) {
+        .form-grid {
+          grid-template-columns: 1fr;
+        }
+        .auth-card {
+          padding: 40px 24px;
+        }
+        h2 {
+          font-size: 2rem;
         }
       }
     `,
@@ -279,7 +373,6 @@ export class RegisterComponent {
   authService = inject(AuthService);
   router = inject(Router);
   toast = inject(ToastService);
-  cdr = inject(ChangeDetectorRef);
 
   showOtpInput = false;
   loading = false;
@@ -292,68 +385,61 @@ export class RegisterComponent {
     otp: [''],
   });
 
-  isInvalid(field: string): boolean {
+  isInvalid(field: string) {
     const control = this.registerForm.get(field);
-    return !!(control && control.invalid && (control.dirty || control.touched));
+    return control?.invalid && (control.dirty || control.touched);
   }
 
   isStrongPassword(): boolean {
     const pwd = this.registerForm.get('password')?.value || '';
-    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/;
+    const regex = /^(?=.*[A-Z])(?=.*[!@#$%^&*])(?=.{6,})/;
     return regex.test(pwd);
   }
 
   onSubmit() {
     if (!this.showOtpInput) {
-      this.handleStepOne();
+      this.handleRequestOtp();
     } else {
-      this.handleStepTwo();
+      this.handleRegister();
     }
   }
 
-  handleStepOne() {
+  handleRequestOtp() {
     if (this.registerForm.invalid || !this.isStrongPassword()) {
       this.registerForm.markAllAsTouched();
-      this.toast.error('Please fix the errors and ensure your password is strong.');
+      this.toast.error('Please fix form errors and ensure a strong password.');
       return;
     }
 
     this.loading = true;
     this.authService.requestOtp(this.registerForm.get('email')?.value).subscribe({
       next: () => {
-        this.loading = false;
         this.showOtpInput = true;
-        this.registerForm
-          .get('otp')
-          ?.setValidators([Validators.required, Validators.pattern('^[0-9]{6}$')]);
-        this.registerForm.get('otp')?.updateValueAndValidity();
-        this.cdr.detectChanges();
-        this.toast.success('Verification code sent! Please check your email.');
+        this.loading = false;
+        this.toast.success('Verification code sent! Check your inbox.');
       },
       error: (err) => {
         this.loading = false;
-        this.toast.error(err.error?.msg || 'Could not send OTP.');
+        this.toast.error(err.error?.msg || 'Failed to send verification code.');
       },
     });
   }
 
-  handleStepTwo() {
-    if (this.registerForm.get('otp')?.invalid) {
-      this.registerForm.get('otp')?.markAsTouched();
-      this.toast.error('Invalid verification code.');
+  handleRegister() {
+    if (!this.registerForm.get('otp')?.value) {
+      this.toast.error('Please enter the verification code.');
       return;
     }
 
     this.loading = true;
     this.authService.register(this.registerForm.value).subscribe({
       next: () => {
-        this.loading = false;
-        this.toast.success('Registration complete! Welcome to Killa Resto.');
+        this.toast.success('Registration successful! Welcome to the club.');
         this.router.navigate(['/home']);
       },
       error: (err) => {
         this.loading = false;
-        this.toast.error(err.error?.msg || 'Verification failed.');
+        this.toast.error(err.error?.msg || 'Registration failed. Check your code.');
       },
     });
   }
