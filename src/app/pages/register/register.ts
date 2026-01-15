@@ -14,10 +14,10 @@ import { ToastService } from '../../services/toast';
       <div class="auth-card glass-card">
         <div class="brand-header">
           <span class="k-tag">EST. 2024</span>
-          <h2>{{ showOtpInput ? 'Verify Account' : 'Join the Legend' }}</h2>
+          <h2>{{ showOtpInput() ? 'Verify Account' : 'Join the Legend' }}</h2>
           <p class="subtitle">
             {{
-              showOtpInput
+              showOtpInput()
                 ? 'We sent a secure code to ' + registerForm.get('email')?.value
                 : 'Create an account to start your culinary journey'
             }}
@@ -25,8 +25,7 @@ import { ToastService } from '../../services/toast';
         </div>
 
         <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
-          <!-- STEP 1: Personal Details -->
-          <div *ngIf="!showOtpInput" class="form-step">
+          <div *ngIf="!showOtpInput()" class="form-step">
             <div class="field">
               <label>Full Name</label>
               <div class="input-container">
@@ -83,8 +82,7 @@ import { ToastService } from '../../services/toast';
             </div>
           </div>
 
-          <!-- STEP 2: Email OTP -->
-          <div *ngIf="showOtpInput" class="form-step fade-in">
+          <div *ngIf="showOtpInput()" class="form-step fade-in">
             <div class="field centered">
               <label>6-Digit Verification Code</label>
               <input
@@ -106,21 +104,21 @@ import { ToastService } from '../../services/toast';
           <button
             type="submit"
             class="btn-primary-auth"
-            [disabled]="loading || (registerForm.invalid && !showOtpInput)"
+            [disabled]="loading() || (registerForm.invalid && !showOtpInput())"
           >
-            <span *ngIf="!loading">{{
-              showOtpInput ? 'Complete Registration' : 'Send Security Code'
+            <span *ngIf="!loading()">{{
+              showOtpInput() ? 'Complete Registration' : 'Send Security Code'
             }}</span>
-            <span *ngIf="loading" class="auth-spinner"></span>
+            <span *ngIf="loading()" class="auth-spinner"></span>
           </button>
         </form>
 
-        <div class="auth-footer" *ngIf="!showOtpInput">
+        <div class="auth-footer" *ngIf="!showOtpInput()">
           <p>Already have an account? <a (click)="router.navigate(['/login'])">Sign In</a></p>
         </div>
 
-        <div class="auth-footer" *ngIf="showOtpInput">
-          <button class="btn-back-auth" (click)="showOtpInput = false">← Edit My Details</button>
+        <div class="auth-footer" *ngIf="showOtpInput()">
+          <button class="btn-back-auth" (click)="showOtpInput.set(false)">← Edit My Details</button>
         </div>
       </div>
     </div>
@@ -374,8 +372,9 @@ export class RegisterComponent {
   router = inject(Router);
   toast = inject(ToastService);
 
-  showOtpInput = false;
-  loading = false;
+  // Converted to signals to fix CD issues and match project style
+  showOtpInput = signal(false);
+  loading = signal(false);
 
   registerForm: FormGroup = this.fb.group({
     name: ['', Validators.required],
@@ -397,7 +396,7 @@ export class RegisterComponent {
   }
 
   onSubmit() {
-    if (!this.showOtpInput) {
+    if (!this.showOtpInput()) {
       this.handleRequestOtp();
     } else {
       this.handleRegister();
@@ -411,15 +410,19 @@ export class RegisterComponent {
       return;
     }
 
-    this.loading = true;
+    this.loading.set(true);
     this.authService.requestOtp(this.registerForm.get('email')?.value).subscribe({
       next: () => {
-        this.showOtpInput = true;
-        this.loading = false;
-        this.toast.success('Verification code sent! Check your inbox.');
+        // Wrapping in setTimeout ensures state changes happen after the current CD cycle
+        // resolving the ExpressionChangedAfterItHasBeenCheckedError
+        setTimeout(() => {
+          this.showOtpInput.set(true);
+          this.loading.set(false);
+          this.toast.success('Verification code sent! Check your inbox.');
+        });
       },
       error: (err) => {
-        this.loading = false;
+        this.loading.set(false);
         this.toast.error(err.error?.msg || 'Failed to send verification code.');
       },
     });
@@ -431,14 +434,14 @@ export class RegisterComponent {
       return;
     }
 
-    this.loading = true;
+    this.loading.set(true);
     this.authService.register(this.registerForm.value).subscribe({
       next: () => {
         this.toast.success('Registration successful! Welcome to the club.');
         this.router.navigate(['/home']);
       },
       error: (err) => {
-        this.loading = false;
+        this.loading.set(false);
         this.toast.error(err.error?.msg || 'Registration failed. Check your code.');
       },
     });
