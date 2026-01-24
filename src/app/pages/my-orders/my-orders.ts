@@ -27,7 +27,7 @@ import { interval, Subscription, startWith, switchMap } from 'rxjs';
       </div>
 
       <div *ngIf="!loading() && orders().length === 0" class="empty-state glass-card">
-        <div class="icon">🍽️</div>
+        <div class="icon">🛒</div>
         <h3>No legends found yet</h3>
         <p>Your order history is currently empty. Ready to change that?</p>
         <button (click)="router.navigate(['/menu'])" class="browse-btn">Explore Menu</button>
@@ -41,8 +41,9 @@ import { interval, Subscription, startWith, switchMap } from 'rxjs';
         >
           <div class="order-header">
             <div class="main-info">
-              <span class="order-id">#{{ order._id | slice : -6 }}</span>
-              <span class="order-date">{{ order.createdAt | date : 'medium' }}</span>
+              <!-- Displaying 6-digit sequential orderNumber (e.g. #000001) -->
+              <span class="order-id">#{{ order.orderNumber }}</span>
+              <span class="order-date">{{ order.createdAt | date: 'medium' }}</span>
             </div>
             <div class="status-badge" [ngClass]="order.orderStatus.toLowerCase()">
               {{ order.orderStatus }}
@@ -66,6 +67,7 @@ import { interval, Subscription, startWith, switchMap } from 'rxjs';
                 {{ order.paymentStatus }}
               </span>
             </div>
+
             <div class="total-section">
               <div class="total-box">
                 <span class="label">Amount Paid</span>
@@ -92,6 +94,7 @@ import { interval, Subscription, startWith, switchMap } from 'rxjs';
       .orders-container {
         padding: 80px 24px;
         max-width: 900px !important;
+        margin: 0 auto;
       }
       .header-section {
         display: flex;
@@ -112,7 +115,6 @@ import { interval, Subscription, startWith, switchMap } from 'rxjs';
         color: #888;
         margin-top: 5px;
       }
-
       .sync-status {
         display: flex;
         align-items: center;
@@ -296,10 +298,6 @@ import { interval, Subscription, startWith, switchMap } from 'rxjs';
         text-align: center;
         padding: 80px;
       }
-      .empty-state .icon {
-        font-size: 4rem;
-        margin-bottom: 20px;
-      }
       .browse-btn {
         background: #ff6600;
         color: white;
@@ -344,7 +342,7 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
         switchMap(() => {
           this.isRefreshing = true;
           return this.orderService.getMyOrders();
-        })
+        }),
       )
       .subscribe({
         next: (data) => {

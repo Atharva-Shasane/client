@@ -48,10 +48,10 @@ import { ToastService } from '../../services/toast';
               class="order-card"
               [ngClass]="'status-border-' + order.orderStatus"
             >
-              <!-- Card Header: ID, Creation Time, and Status -->
               <div class="card-top">
                 <div class="order-meta">
-                  <span class="order-id">#{{ order._id | slice: -6 }}</span>
+                  <!-- Sequential 6-digit Order ID -->
+                  <span class="order-id">#{{ order.orderNumber }}</span>
                   <span class="order-time">Placed: {{ order.createdAt | date: 'shortTime' }}</span>
                 </div>
                 <div class="status-chip" [ngClass]="order.orderStatus.toLowerCase()">
@@ -59,7 +59,6 @@ import { ToastService } from '../../services/toast';
                 </div>
               </div>
 
-              <!-- Customer Info & Contact -->
               <div class="customer-info">
                 <div class="user-main">
                   <h3>{{ order.userId?.name || 'Guest User' }}</h3>
@@ -67,7 +66,6 @@ import { ToastService } from '../../services/toast';
                     📞 {{ order.userId?.mobile || 'N/A' }}
                   </a>
                 </div>
-
                 <div class="tags">
                   <span class="tag-type" [class.dine-in]="order.orderType === 'DINE_IN'">
                     {{ order.orderType }}
@@ -78,7 +76,6 @@ import { ToastService } from '../../services/toast';
                 </div>
               </div>
 
-              <!-- Reservation Details (Only for Dine-In) -->
               <div class="reservation-box" *ngIf="order.orderType === 'DINE_IN'">
                 <div class="res-item">
                   <span class="res-label">Guests</span>
@@ -92,7 +89,6 @@ import { ToastService } from '../../services/toast';
                 </div>
               </div>
 
-              <!-- Items Ordered -->
               <div class="items-container">
                 <div class="items-label">Order Items:</div>
                 <div *ngFor="let item of order.items" class="item-row">
@@ -106,7 +102,6 @@ import { ToastService } from '../../services/toast';
                 </div>
               </div>
 
-              <!-- Workflow Actions -->
               <div class="card-actions">
                 <button
                   *ngIf="order.orderStatus === 'NEW'"
@@ -142,7 +137,7 @@ import { ToastService } from '../../services/toast';
           </ng-template>
         </section>
 
-        <!-- Activity History Section (Completed & Cancelled) -->
+        <!-- Activity History Section -->
         <section class="history-section">
           <div class="section-title">
             <h2>Activity <span class="highlight">History</span></h2>
@@ -165,7 +160,7 @@ import { ToastService } from '../../services/toast';
                   [class.row-cancelled]="order.orderStatus === 'CANCELLED'"
                 >
                   <td>
-                    <span class="mono-id">#{{ order._id | slice: -6 }}</span>
+                    <span class="mono-id">#{{ order.orderNumber }}</span>
                   </td>
                   <td>
                     <div class="cust-cell">
@@ -177,9 +172,9 @@ import { ToastService } from '../../services/toast';
                     <div class="details-cell">
                       <div class="status-row">
                         <span class="type-badge">{{ order.orderType }}</span>
-                        <span class="history-status" [ngClass]="order.orderStatus.toLowerCase()">
-                          {{ order.orderStatus }}
-                        </span>
+                        <span class="history-status" [ngClass]="order.orderStatus.toLowerCase()">{{
+                          order.orderStatus
+                        }}</span>
                       </div>
                       <span class="pay-info"
                         >{{ order.paymentMethod }} | {{ order.paymentStatus }}</span
@@ -190,9 +185,8 @@ import { ToastService } from '../../services/toast';
                     <span
                       class="price-text"
                       [class.text-strikethrough]="order.orderStatus === 'CANCELLED'"
+                      >₹{{ order.totalAmount }}</span
                     >
-                      ₹{{ order.totalAmount }}
-                    </span>
                   </td>
                   <td>
                     <span class="time-text">{{
@@ -213,7 +207,7 @@ import { ToastService } from '../../services/toast';
           <h3>Verify Cash Payment</h3>
           <p>
             Please confirm receipt of ₹{{ pendingOrder?.totalAmount }} for Order #{{
-              pendingOrder?._id | slice: -6
+              pendingOrder?.orderNumber
             }}.
           </p>
           <div class="modal-actions">
@@ -239,7 +233,6 @@ import { ToastService } from '../../services/toast';
         max-width: 1440px;
         margin: 0 auto;
       }
-
       .dash-header {
         margin-bottom: 50px;
         padding-bottom: 30px;
@@ -252,7 +245,6 @@ import { ToastService } from '../../services/toast';
         gap: 30px;
         flex-wrap: wrap;
       }
-
       .badge-accent {
         display: inline-block;
         font-size: 0.7rem;
@@ -264,7 +256,6 @@ import { ToastService } from '../../services/toast';
         border-radius: 50px;
         margin-bottom: 12px;
       }
-
       .title-group h1 {
         font-size: 3rem;
         font-weight: 900;
@@ -279,7 +270,6 @@ import { ToastService } from '../../services/toast';
         font-size: 1rem;
         margin-top: 5px;
       }
-
       .header-actions {
         display: flex;
         align-items: center;
@@ -301,7 +291,6 @@ import { ToastService } from '../../services/toast';
         color: #555;
         text-transform: uppercase;
       }
-
       .btn-refresh {
         background: #fff;
         color: #000;
@@ -324,7 +313,6 @@ import { ToastService } from '../../services/toast';
           transform: rotate(360deg);
         }
       }
-
       .section-title {
         display: flex;
         justify-content: space-between;
@@ -343,7 +331,6 @@ import { ToastService } from '../../services/toast';
         margin: 0;
         font-weight: 600;
       }
-
       .status-legend {
         display: flex;
         gap: 20px;
@@ -370,7 +357,6 @@ import { ToastService } from '../../services/toast';
       .dot.ready {
         background: #2ecc71;
       }
-
       .order-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
@@ -399,7 +385,6 @@ import { ToastService } from '../../services/toast';
       .status-border-READY {
         border-top: 6px solid #2ecc71;
       }
-
       .card-top {
         display: flex;
         justify-content: space-between;
@@ -438,7 +423,6 @@ import { ToastService } from '../../services/toast';
         background: rgba(46, 204, 113, 0.1);
         color: #2ecc71;
       }
-
       .customer-info {
         margin-bottom: 20px;
         padding-bottom: 15px;
@@ -462,7 +446,6 @@ import { ToastService } from '../../services/toast';
         font-weight: 700;
         font-size: 0.9rem;
       }
-
       .tags {
         display: flex;
         gap: 10px;
@@ -485,7 +468,6 @@ import { ToastService } from '../../services/toast';
         background: rgba(46, 204, 113, 0.1);
         color: #2ecc71;
       }
-
       .reservation-box {
         background: rgba(255, 102, 0, 0.05);
         border-radius: 12px;
@@ -515,7 +497,6 @@ import { ToastService } from '../../services/toast';
       .highlight-time {
         color: #ff6600;
       }
-
       .items-container {
         background: #0d0d0d;
         border-radius: 16px;
@@ -555,7 +536,6 @@ import { ToastService } from '../../services/toast';
         display: block;
         margin-top: 2px;
       }
-
       .btn-action {
         width: 100%;
         padding: 16px;
@@ -585,7 +565,6 @@ import { ToastService } from '../../services/toast';
         filter: brightness(1.1);
         transform: translateY(-3px);
       }
-
       .empty-kitchen {
         text-align: center;
         padding: 80px;
@@ -597,7 +576,6 @@ import { ToastService } from '../../services/toast';
         margin-bottom: 20px;
         opacity: 0.2;
       }
-
       .modal-backdrop {
         position: fixed;
         inset: 0;
@@ -645,7 +623,6 @@ import { ToastService } from '../../services/toast';
         font-weight: 900;
         cursor: pointer;
       }
-
       .history-section {
         margin-top: 100px;
       }
@@ -690,7 +667,6 @@ import { ToastService } from '../../services/toast';
         margin-top: 4px;
         font-weight: 600;
       }
-
       .details-cell {
         display: flex;
         flex-direction: column;
@@ -709,7 +685,6 @@ import { ToastService } from '../../services/toast';
         padding: 2px 8px;
         border-radius: 4px;
       }
-
       .history-status {
         font-size: 0.65rem;
         font-weight: 900;
@@ -725,7 +700,6 @@ import { ToastService } from '../../services/toast';
         background: rgba(231, 76, 60, 0.1);
         color: #e74c3c;
       }
-
       .row-cancelled {
         background: rgba(231, 76, 60, 0.02);
       }
@@ -733,7 +707,6 @@ import { ToastService } from '../../services/toast';
         text-decoration: line-through;
         opacity: 0.5;
       }
-
       .pay-info {
         font-size: 0.8rem;
         color: #888;
@@ -749,7 +722,6 @@ import { ToastService } from '../../services/toast';
         font-size: 0.85rem;
         font-weight: 600;
       }
-
       @media (max-width: 1000px) {
         .order-grid {
           grid-template-columns: 1fr;
@@ -793,7 +765,6 @@ export class OwnerDashboardComponent implements OnInit {
   refresh() {
     if (this.isRefreshing()) return;
     this.isRefreshing.set(true);
-
     this.orderService.getOwnerDashboardData().subscribe({
       next: (data) => {
         this.orders.set(data);
@@ -810,7 +781,7 @@ export class OwnerDashboardComponent implements OnInit {
   updateStatus(id: string, status: string, paymentStatus?: string) {
     this.orderService.updateOrderStatus(id, status, paymentStatus).subscribe({
       next: () => {
-        this.toast.success(`Order #...${id.slice(-4)} marked as ${status}`);
+        this.toast.success(`Order status updated`);
         this.refresh();
       },
       error: () => this.toast.error('Failed to update order status.'),
