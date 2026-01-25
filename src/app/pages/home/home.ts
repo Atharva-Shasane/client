@@ -1,64 +1,71 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { RouterModule } from '@angular/router';
 import { MenuService } from '../../services/menu';
 import { AuthService } from '../../services/auth';
-import { CartService } from '../../services/cart';
 import { MenuItem } from '../../models/menu-item.model';
+import { CartService } from '../../services/cart';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterModule],
   template: `
-    <div class="home-wrapper">
+    <div class="home-container fade-in">
       <!-- Hero Section -->
-      <section class="hero-section">
-        <div class="overlay"></div>
+      <section class="hero">
+        <div class="hero-overlay"></div>
         <div class="hero-content">
-          <span class="badge-top">Est. 2024</span>
-          <h1>Experience <br /><span class="highlight">Killa</span> Flavors</h1>
-          <p>Where every bite tells a legendary story. Crafted by masters, served for you.</p>
+          <span class="badge">EST. 2024</span>
+          <h1>Experience <span class="highlight">Killa</span> Flavors</h1>
+          <p>The intersection of tradition and modern culinary art.</p>
           <div class="cta-group">
-            <a routerLink="/menu" class="cta-button">View Menu</a>
-            <a *ngIf="!authService.isLoggedIn()" routerLink="/register" class="cta-link"
-              >Become a Member</a
+            <a routerLink="/menu" class="btn-primary">Explore Menu</a>
+            <a *ngIf="!auth.currentUser()" routerLink="/register" class="btn-outline"
+              >Join the Tribe</a
             >
           </div>
         </div>
-        <div class="scroll-indicator">
-          <div class="mouse"></div>
-        </div>
       </section>
 
-      <!-- AI Recommendations Section -->
-      <section
-        class="recommendations"
-        *ngIf="authService.isLoggedIn() && recommendedItems().length > 0"
-      >
+      <!-- Recommendation Model Section (FIXED DIV) -->
+      <section class="recommendation-zone">
         <div class="container">
-          <div class="section-header">
-            <span class="sub-title">Personalized</span>
-            <h2>Legendary <span class="highlight">Picks</span></h2>
-            <div class="line"></div>
-          </div>
+          <header class="section-header">
+            <div class="header-text">
+              <span class="label">{{
+                auth.currentUser() ? 'TAILORED FOR YOU' : 'HALL OF FAME'
+              }}</span>
+              <h2>{{ auth.currentUser() ? 'Our Top Picks for You' : 'Most Loved Dishes' }}</h2>
+            </div>
+            <p class="desc">
+              {{
+                auth.currentUser()
+                  ? 'Based on your culinary journey with us, we think you will love these.'
+                  : 'The 5 legendary dishes that define the Killa experience.'
+              }}
+            </p>
+          </header>
 
           <div class="recommendation-grid">
-            <div class="food-card" *ngFor="let item of recommendedItems()">
-              <div class="card-media">
-                <img [src]="item.imageUrl" alt="Food" />
-                <div class="tag">{{ item.category.includes('veg') ? 'Veg' : 'Non-Veg' }}</div>
+            <div *ngFor="let item of recommendations()" class="rec-card glass-card">
+              <div class="card-img">
+                <img [src]="item.imageUrl" [alt]="item.name" (error)="handleImageError($event)" />
+                <span class="price-tag">₹{{ item.pricing.price || item.pricing.priceFull }}</span>
               </div>
               <div class="card-info">
-                <h3>{{ item.name }}</h3>
-                <p class="desc">{{ item.subCategory }}</p>
-                <div class="card-footer">
-                  <span class="price">₹{{ item.pricing.price || item.pricing.priceFull }}</span>
-                  <button (click)="quickAdd(item)" class="quick-add-btn">
-                    <span class="icon">+</span>
-                  </button>
+                <div class="top">
+                  <span class="cat-pill" [ngClass]="item.category">{{ item.category }}</span>
+                  <span class="sub-pill">{{ item.subCategory }}</span>
                 </div>
+                <h3>{{ item.name }}</h3>
+                <button (click)="addToCart(item)" class="btn-mini-add">Add to Cart</button>
               </div>
+            </div>
+
+            <!-- Skeleton Loading State -->
+            <div *ngIf="isLoading()" class="skeleton-wrap">
+              <div *ngFor="let i of [1, 2, 3, 4, 5]" class="skeleton-card"></div>
             </div>
           </div>
         </div>
@@ -66,317 +73,292 @@ import { MenuItem } from '../../models/menu-item.model';
 
       <!-- Features Section -->
       <section class="features">
-        <div class="container">
-          <div class="features-grid">
-            <div class="feature-card">
-              <div class="icon-box">🔥</div>
-              <h3>Freshly Prepared</h3>
-              <p>We don't do pre-cooked. Every order is a fresh masterpiece made just for you.</p>
-            </div>
-            <div class="feature-card">
-              <div class="icon-box">🚀</div>
-              <h3>Lightning Fast</h3>
-              <p>Hot food shouldn't wait. Our kitchen is optimized for speed without compromise.</p>
-            </div>
-            <div class="feature-card">
-              <div class="icon-box">💎</div>
-              <h3>Elite Ingredients</h3>
-              <p>From organic spices to premium proteins, quality is our only baseline.</p>
-            </div>
-          </div>
+        <div class="feat-card">
+          <div class="icon">🔥</div>
+          <h4>Wood Fired</h4>
+          <p>Authentic flavors locked in by ancient techniques.</p>
+        </div>
+        <div class="feat-card">
+          <div class="icon">🌿</div>
+          <h4>Fresh Only</h4>
+          <p>Farm-to-table ingredients sourced daily.</p>
+        </div>
+        <div class="feat-card">
+          <div class="icon">⚡</div>
+          <h4>Swift Delivery</h4>
+          <p>Hot food at your doorstep in under 30 minutes.</p>
         </div>
       </section>
     </div>
   `,
   styles: [
     `
-      .home-wrapper {
-        background: #0a0a0a;
+      .home-container {
+        background: #000;
         color: white;
-        overflow-x: hidden;
-        font-family: 'Poppins', sans-serif;
+        min-height: 100vh;
       }
       .container {
-        max-width: 1400px;
+        max-width: 1200px;
         margin: 0 auto;
-        padding: 0 24px;
+        padding: 0 20px;
       }
 
-      /* Hero Section */
-      .hero-section {
+      /* Hero */
+      .hero {
+        height: 80vh;
         position: relative;
-        height: 100vh;
-        min-height: 700px;
-        background: url('https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?q=80&w=2070')
-          center/cover;
         display: flex;
         align-items: center;
         justify-content: center;
-        padding-top: 80px;
+        text-align: center;
+        background: url('https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&q=80&w=2070')
+          center/cover;
       }
-      .overlay {
+      .hero-overlay {
         position: absolute;
         inset: 0;
-        background: linear-gradient(to bottom, rgba(0, 0, 0, 0.4), rgba(10, 10, 10, 1));
+        background: linear-gradient(to bottom, rgba(0, 0, 0, 0.4), #000);
       }
       .hero-content {
         position: relative;
-        z-index: 2;
-        text-align: center;
-        max-width: 900px;
+        z-index: 10;
+        max-width: 800px;
+        padding: 0 20px;
       }
-      .badge-top {
-        display: inline-block;
-        padding: 6px 20px;
-        border: 1px solid #ff6600;
-        border-radius: 50px;
-        font-size: 0.8rem;
-        font-weight: 700;
+      .badge {
         color: #ff6600;
-        text-transform: uppercase;
+        font-weight: 800;
+        letter-spacing: 4px;
+        display: block;
         margin-bottom: 20px;
+        font-size: 0.9rem;
       }
-      h1 {
+      .hero-content h1 {
         font-size: clamp(3rem, 10vw, 6rem);
         font-weight: 900;
         line-height: 0.9;
-        margin-bottom: 24px;
-        text-transform: uppercase;
-        letter-spacing: -2px;
+        letter-spacing: -4px;
+        margin-bottom: 25px;
       }
       .highlight {
         color: #ff6600;
       }
       .hero-content p {
-        font-size: clamp(1rem, 4vw, 1.4rem);
+        font-size: 1.25rem;
         color: #ccc;
         margin-bottom: 40px;
-        max-width: 600px;
-        margin-left: auto;
-        margin-right: auto;
       }
-
       .cta-group {
         display: flex;
         gap: 20px;
         justify-content: center;
-        align-items: center;
+        flex-wrap: wrap;
       }
-      .cta-button {
-        padding: 18px 45px;
+
+      .btn-primary {
         background: #ff6600;
         color: white;
-        text-decoration: none;
+        padding: 18px 40px;
+        border-radius: 50px;
         font-weight: 800;
-        border-radius: 12px;
-        transition: 0.3s;
-        box-shadow: 0 10px 30px rgba(255, 107, 0, 0.3);
-      }
-      .cta-button:hover {
-        transform: translateY(-5px);
-        filter: brightness(1.1);
-        box-shadow: 0 15px 40px rgba(255, 107, 0, 0.5);
-      }
-      .cta-link {
-        color: white;
         text-decoration: none;
-        font-weight: 600;
-        border-bottom: 2px solid #ff6600;
-        padding-bottom: 2px;
+        transition: 0.3s;
+      }
+      .btn-outline {
+        border: 2px solid white;
+        color: white;
+        padding: 18px 40px;
+        border-radius: 50px;
+        font-weight: 800;
+        text-decoration: none;
+        transition: 0.3s;
+      }
+      .btn-primary:hover {
+        transform: scale(1.05);
+        filter: brightness(1.2);
+      }
+      .btn-outline:hover {
+        background: white;
+        color: black;
       }
 
-      .scroll-indicator {
-        position: absolute;
-        bottom: 40px;
-        left: 50%;
-        transform: translateX(-50%);
-      }
-      .mouse {
-        width: 30px;
-        height: 50px;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        border-radius: 20px;
-        position: relative;
-      }
-      .mouse::before {
-        content: '';
-        width: 6px;
-        height: 6px;
-        background: #ff6600;
-        border-radius: 50%;
-        position: absolute;
-        left: 50%;
-        top: 10px;
-        transform: translateX(-50%);
-        animation: scroll 2s infinite;
-      }
-      @keyframes scroll {
-        0% {
-          opacity: 1;
-          top: 10px;
-        }
-        100% {
-          opacity: 0;
-          top: 30px;
-        }
-      }
-
-      /* Recommendations */
-      .recommendations {
-        padding: 120px 0;
+      /* Recommendation Zone */
+      .recommendation-zone {
+        padding: 100px 0;
+        background: #050505;
       }
       .section-header {
-        text-align: center;
         margin-bottom: 60px;
+        text-align: left;
       }
-      .sub-title {
+      .label {
         color: #ff6600;
-        text-transform: uppercase;
         font-weight: 800;
+        font-size: 0.75rem;
         letter-spacing: 2px;
-        font-size: 0.8rem;
       }
       .section-header h2 {
-        font-size: 3rem;
-        font-weight: 800;
+        font-size: 2.5rem;
+        font-weight: 900;
         margin: 10px 0;
       }
-      .line {
-        width: 60px;
-        height: 4px;
-        background: #ff6600;
-        margin: 0 auto;
-        border-radius: 2px;
+      .desc {
+        color: #666;
+        max-width: 600px;
+        font-size: 1.1rem;
       }
 
       .recommendation-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 32px;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 25px;
       }
-      .food-card {
-        background: #1a1a1a;
+
+      .rec-card {
+        background: #111;
+        border: 1px solid #222;
         border-radius: 24px;
         overflow: hidden;
-        transition: 0.4s;
-        border: 1px solid #2a2a2a;
+        transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       }
-      .food-card:hover {
-        transform: translateY(-12px);
-        border-color: #444;
+      .rec-card:hover {
+        transform: translateY(-10px);
+        border-color: #ff6600;
       }
-      .card-media {
-        height: 240px;
+
+      .card-img {
+        height: 180px;
         position: relative;
+        overflow: hidden;
       }
-      .card-media img {
+      .card-img img {
         width: 100%;
         height: 100%;
         object-fit: cover;
+        transition: 0.5s;
       }
-      .tag {
+      .rec-card:hover img {
+        transform: scale(1.1);
+      }
+      .price-tag {
         position: absolute;
-        top: 20px;
-        right: 20px;
-        background: rgba(0, 0, 0, 0.6);
-        backdrop-filter: blur(5px);
+        bottom: 15px;
+        right: 15px;
+        background: #ff6600;
         color: white;
-        padding: 5px 15px;
-        border-radius: 8px;
-        font-size: 0.7rem;
-        font-weight: 700;
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 5px 12px;
+        border-radius: 10px;
+        font-weight: 900;
+        font-size: 0.9rem;
       }
 
       .card-info {
-        padding: 24px;
+        padding: 20px;
       }
-      .card-info h3 {
-        margin: 0;
-        font-size: 1.4rem;
-        font-weight: 700;
-      }
-      .desc {
-        color: #888;
-        font-size: 0.9rem;
-        margin: 8px 0 20px;
-      }
-      .card-footer {
+      .top {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
       }
-      .price {
-        font-size: 1.6rem;
+      .cat-pill {
+        font-size: 0.6rem;
         font-weight: 900;
-        color: #ff6600;
+        text-transform: uppercase;
+        padding: 3px 8px;
+        border-radius: 5px;
       }
-      .quick-add-btn {
-        width: 45px;
-        height: 45px;
-        border-radius: 12px;
-        background: #333;
+      .cat-pill.veg {
+        background: rgba(46, 204, 113, 0.1);
+        color: #2ecc71;
+      }
+      .cat-pill.non-veg {
+        background: rgba(231, 76, 60, 0.1);
+        color: #e74c3c;
+      }
+      .sub-pill {
+        font-size: 0.6rem;
+        font-weight: 800;
+        color: #555;
+        background: #222;
+        padding: 3px 8px;
+        border-radius: 5px;
+      }
+
+      .card-info h3 {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin-bottom: 20px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .btn-mini-add {
+        width: 100%;
+        background: #222;
+        color: #fff;
         border: none;
-        color: white;
-        font-size: 1.5rem;
+        padding: 10px;
+        border-radius: 12px;
+        font-weight: 700;
         cursor: pointer;
         transition: 0.2s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
       }
-      .quick-add-btn:hover {
+      .btn-mini-add:hover {
         background: #ff6600;
-        transform: rotate(90deg);
+      }
+
+      /* Skeleton */
+      .skeleton-wrap {
+        display: contents;
+      }
+      .skeleton-card {
+        height: 300px;
+        background: #111;
+        border-radius: 24px;
+        animation: pulse 1.5s infinite;
+      }
+      @keyframes pulse {
+        0% {
+          opacity: 0.5;
+        }
+        50% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0.5;
+        }
       }
 
       /* Features */
       .features {
-        padding: 100px 0;
-        background: #111;
-      }
-      .features-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
         gap: 40px;
+        padding: 100px 20px;
+        max-width: 1200px;
+        margin: 0 auto;
       }
-      .feature-card {
-        padding: 40px;
-        border-radius: 30px;
-        background: #1a1a1a;
-        transition: 0.3s;
+      .feat-card {
+        text-align: center;
       }
-      .feature-card:hover {
-        background: #222;
-      }
-      .icon-box {
+      .feat-card .icon {
         font-size: 3rem;
-        margin-bottom: 24px;
+        margin-bottom: 20px;
       }
-      .feature-card h3 {
-        font-size: 1.5rem;
-        font-weight: 700;
-        margin-bottom: 16px;
+      .feat-card h4 {
+        font-size: 1.4rem;
+        font-weight: 800;
+        margin-bottom: 10px;
       }
-      .feature-card p {
-        color: #888;
-        line-height: 1.6;
+      .feat-card p {
+        color: #666;
       }
 
       @media (max-width: 768px) {
-        .hero-section {
-          padding-top: 100px;
-        }
-        .cta-group {
-          flex-direction: column;
-          width: 100%;
-          padding: 0 40px;
-        }
-        .cta-button {
-          width: 100%;
-        }
-        .section-header h2 {
-          font-size: 2.2rem;
+        .recommendation-grid {
+          grid-template-columns: 1fr 1fr;
+          gap: 15px;
         }
       }
     `,
@@ -384,26 +366,40 @@ import { MenuItem } from '../../models/menu-item.model';
 })
 export class HomeComponent implements OnInit {
   menuService = inject(MenuService);
-  authService = inject(AuthService);
+  auth = inject(AuthService);
   cartService = inject(CartService);
 
-  recommendedItems = signal<MenuItem[]>([]);
+  recommendations = signal<MenuItem[]>([]);
+  isLoading = signal(true);
 
-  ngOnInit() {
-    if (this.authService.isLoggedIn()) {
-      this.loadRecommendations();
-    }
-  }
-
-  loadRecommendations() {
-    this.menuService.getAiRecommendations().subscribe({
-      next: (items) => this.recommendedItems.set(items),
-      error: () => console.warn('Could not load AI recommendations.'),
+  constructor() {
+    effect(() => {
+      // Corrected: using currentUser() which is the signal name in your AuthService
+      const user = this.auth.currentUser();
+      this.fetchRecommendations(user?._id || null);
     });
   }
 
-  quickAdd(item: MenuItem) {
-    const variant = item.pricing.type === 'SINGLE' ? 'SINGLE' : 'FULL';
-    this.cartService.addToCart(item, variant);
+  ngOnInit() {}
+
+  fetchRecommendations(userId: string | null) {
+    this.isLoading.set(true);
+    this.menuService.getRecommendations(userId).subscribe({
+      next: (data: MenuItem[]) => {
+        this.recommendations.set(data);
+        this.isLoading.set(false);
+      },
+      error: () => {
+        this.isLoading.set(false);
+      },
+    });
+  }
+
+  addToCart(item: MenuItem) {
+    this.cartService.addToCart(item);
+  }
+
+  handleImageError(event: any) {
+    event.target.src = 'https://placehold.co/600x400/1a1a1a/ffffff?text=Killa+Kitchen';
   }
 }
