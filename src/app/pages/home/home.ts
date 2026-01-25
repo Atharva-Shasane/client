@@ -1,6 +1,6 @@
-import { Component, inject, OnInit, signal, effect } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { MenuService } from '../../services/menu';
 import { AuthService } from '../../services/auth';
 import { MenuItem } from '../../models/menu-item.model';
@@ -9,63 +9,78 @@ import { CartService } from '../../services/cart';
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterLink],
   template: `
-    <div class="home-container fade-in">
+    <div class="home-container">
       <!-- Hero Section -->
-      <section class="hero">
-        <div class="hero-overlay"></div>
+      <header class="hero">
         <div class="hero-content">
-          <span class="badge">EST. 2024</span>
-          <h1>Experience <span class="highlight">Killa</span> Flavors</h1>
-          <p>The intersection of tradition and modern culinary art.</p>
+          <span class="badge">New in Town</span>
+          <h1>
+            Experience the <br />
+            <span class="highlight">Taste of Legend</span>
+          </h1>
+          <p>
+            From our kitchen to your table. Authentic flavors, crafted with passion. Order now and
+            get 20% off your first meal.
+          </p>
           <div class="cta-group">
-            <a routerLink="/menu" class="btn-primary">Explore Menu</a>
-            <a *ngIf="!auth.currentUser()" routerLink="/register" class="btn-outline"
-              >Join the Tribe</a
-            >
+            <a routerLink="/menu" class="btn-primary">Order Now</a>
+            <a routerLink="/menu" class="btn-secondary">View Menu</a>
           </div>
+        </div>
+        <div class="hero-image">
+          <div class="image-wrapper">
+            <img
+              src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=2070"
+              alt="Delicious Food"
+            />
+            <div class="floating-card c1">
+              <span>🔥 Hot & Spicy</span>
+            </div>
+            <div class="floating-card c2">
+              <span>⭐ Top Rated</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Stats Section -->
+      <section class="stats">
+        <div class="stat-item">
+          <h2>15k+</h2>
+          <p>Happy Customers</p>
+        </div>
+        <div class="stat-item">
+          <h2>50+</h2>
+          <p>Menu Items</p>
+        </div>
+        <div class="stat-item">
+          <h2>4.8</h2>
+          <p>Average Rating</p>
         </div>
       </section>
 
-      <!-- Recommendation Model Section (FIXED DIV) -->
-      <section class="recommendation-zone">
-        <div class="container">
-          <header class="section-header">
-            <div class="header-text">
-              <span class="label">{{
-                auth.currentUser() ? 'TAILORED FOR YOU' : 'HALL OF FAME'
-              }}</span>
-              <h2>{{ auth.currentUser() ? 'Our Top Picks for You' : 'Most Loved Dishes' }}</h2>
-            </div>
-            <p class="desc">
-              {{
-                auth.currentUser()
-                  ? 'Based on your culinary journey with us, we think you will love these.'
-                  : 'The 5 legendary dishes that define the Killa experience.'
-              }}
-            </p>
-          </header>
+      <!-- Recommendations Section -->
+      <section class="recommendations" *ngIf="recommendedItems().length > 0">
+        <div class="section-header">
+          <h2>Curated For <span class="highlight">You</span></h2>
+          <p>Based on your taste preferences</p>
+        </div>
 
-          <div class="recommendation-grid">
-            <div *ngFor="let item of recommendations()" class="rec-card glass-card">
-              <div class="card-img">
-                <img [src]="item.imageUrl" [alt]="item.name" (error)="handleImageError($event)" />
-                <span class="price-tag">₹{{ item.pricing.price || item.pricing.priceFull }}</span>
-              </div>
-              <div class="card-info">
-                <div class="top">
-                  <span class="cat-pill" [ngClass]="item.category">{{ item.category }}</span>
-                  <span class="sub-pill">{{ item.subCategory }}</span>
-                </div>
-                <h3>{{ item.name }}</h3>
-                <button (click)="addToCart(item)" class="btn-mini-add">Add to Cart</button>
-              </div>
+        <div class="rec-grid">
+          <div class="rec-card" *ngFor="let item of recommendedItems()">
+            <div class="card-img">
+              <img [src]="item.imageUrl" [alt]="item.name" (error)="handleImageError($event)" />
+              <span class="tag">Recommended</span>
             </div>
-
-            <!-- Skeleton Loading State -->
-            <div *ngIf="isLoading()" class="skeleton-wrap">
-              <div *ngFor="let i of [1, 2, 3, 4, 5]" class="skeleton-card"></div>
+            <div class="card-info">
+              <h3>{{ item.name }}</h3>
+              <p>{{ item.subCategory }}</p>
+              <div class="bottom">
+                <span class="price">₹{{ item.pricing.price }}</span>
+                <button (click)="addToCart(item)" class="add-btn">+</button>
+              </div>
             </div>
           </div>
         </div>
@@ -73,20 +88,20 @@ import { CartService } from '../../services/cart';
 
       <!-- Features Section -->
       <section class="features">
-        <div class="feat-card">
-          <div class="icon">🔥</div>
-          <h4>Wood Fired</h4>
-          <p>Authentic flavors locked in by ancient techniques.</p>
+        <div class="feature-card">
+          <div class="icon">🚀</div>
+          <h3>Fast Delivery</h3>
+          <p>Hot and fresh food delivered to your doorstep in under 30 minutes.</p>
         </div>
-        <div class="feat-card">
-          <div class="icon">🌿</div>
-          <h4>Fresh Only</h4>
-          <p>Farm-to-table ingredients sourced daily.</p>
+        <div class="feature-card">
+          <div class="icon">🥗</div>
+          <h3>Fresh Ingredients</h3>
+          <p>We use only the finest and freshest ingredients for our dishes.</p>
         </div>
-        <div class="feat-card">
-          <div class="icon">⚡</div>
-          <h4>Swift Delivery</h4>
-          <p>Hot food at your doorstep in under 30 minutes.</p>
+        <div class="feature-card">
+          <div class="icon">👨‍🍳</div>
+          <h3>Expert Chefs</h3>
+          <p>Our culinary team brings years of experience to every plate.</p>
         </div>
       </section>
     </div>
@@ -94,240 +109,279 @@ import { CartService } from '../../services/cart';
   styles: [
     `
       .home-container {
-        background: #000;
         color: white;
-        min-height: 100vh;
+        overflow-x: hidden;
       }
-      .container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 0 20px;
+
+      .highlight {
+        color: #ff6600;
       }
 
       /* Hero */
       .hero {
-        height: 80vh;
-        position: relative;
+        min-height: 90vh;
         display: flex;
         align-items: center;
-        justify-content: center;
-        text-align: center;
-        background: url('https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&q=80&w=2070')
-          center/cover;
-      }
-      .hero-overlay {
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(to bottom, rgba(0, 0, 0, 0.4), #000);
-      }
-      .hero-content {
+        justify-content: space-between;
+        padding: 0 5%;
+        background: radial-gradient(circle at top right, #1a1a1a, #0a0a0a);
         position: relative;
-        z-index: 10;
-        max-width: 800px;
-        padding: 0 20px;
       }
+
+      .hero-content {
+        max-width: 600px;
+        z-index: 2;
+      }
+
       .badge {
+        background: rgba(255, 102, 0, 0.1);
         color: #ff6600;
-        font-weight: 800;
-        letter-spacing: 4px;
-        display: block;
-        margin-bottom: 20px;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 600;
         font-size: 0.9rem;
+        display: inline-block;
+        margin-bottom: 20px;
+        border: 1px solid rgba(255, 102, 0, 0.2);
       }
-      .hero-content h1 {
-        font-size: clamp(3rem, 10vw, 6rem);
-        font-weight: 900;
-        line-height: 0.9;
-        letter-spacing: -4px;
-        margin-bottom: 25px;
+
+      h1 {
+        font-size: 4.5rem;
+        line-height: 1.1;
+        font-weight: 800;
+        margin-bottom: 20px;
+        letter-spacing: -2px;
       }
-      .highlight {
-        color: #ff6600;
-      }
-      .hero-content p {
-        font-size: 1.25rem;
-        color: #ccc;
+
+      p {
+        color: #888;
+        font-size: 1.2rem;
         margin-bottom: 40px;
+        line-height: 1.6;
+        max-width: 90%;
       }
+
       .cta-group {
         display: flex;
         gap: 20px;
-        justify-content: center;
-        flex-wrap: wrap;
       }
 
       .btn-primary {
         background: #ff6600;
         color: white;
-        padding: 18px 40px;
-        border-radius: 50px;
-        font-weight: 800;
+        padding: 16px 32px;
+        border-radius: 12px;
         text-decoration: none;
+        font-weight: 600;
         transition: 0.3s;
-      }
-      .btn-outline {
-        border: 2px solid white;
-        color: white;
-        padding: 18px 40px;
-        border-radius: 50px;
-        font-weight: 800;
-        text-decoration: none;
-        transition: 0.3s;
-      }
-      .btn-primary:hover {
-        transform: scale(1.05);
-        filter: brightness(1.2);
-      }
-      .btn-outline:hover {
-        background: white;
-        color: black;
+        box-shadow: 0 10px 20px rgba(255, 102, 0, 0.2);
       }
 
-      /* Recommendation Zone */
-      .recommendation-zone {
-        padding: 100px 0;
-        background: #050505;
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 15px 30px rgba(255, 102, 0, 0.3);
       }
-      .section-header {
-        margin-bottom: 60px;
-        text-align: left;
+
+      .btn-secondary {
+        background: rgba(255, 255, 255, 0.05);
+        color: white;
+        padding: 16px 32px;
+        border-radius: 12px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: 0.3s;
+        border: 1px solid rgba(255, 255, 255, 0.1);
       }
-      .label {
+
+      .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      /* Hero Image */
+      .hero-image {
+        position: relative;
+        width: 500px;
+        height: 600px;
+      }
+
+      .image-wrapper {
+        position: relative;
+        width: 100%;
+        height: 100%;
+      }
+
+      .image-wrapper img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 30px;
+        transform: rotate(3deg);
+        box-shadow: 20px 20px 60px rgba(0, 0, 0, 0.5);
+      }
+
+      .floating-card {
+        position: absolute;
+        background: rgba(20, 20, 20, 0.8);
+        backdrop-filter: blur(10px);
+        padding: 12px 20px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        font-weight: 600;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        animation: float 3s ease-in-out infinite;
+      }
+
+      .c1 {
+        top: 10%;
+        left: -40px;
+        animation-delay: 0s;
+      }
+      .c2 {
+        bottom: 10%;
+        right: -20px;
+        animation-delay: 1.5s;
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+      }
+
+      /* Stats */
+      .stats {
+        display: flex;
+        justify-content: space-around;
+        padding: 40px 10%;
+        background: #0f0f0f;
+        border-bottom: 1px solid #222;
+      }
+
+      .stat-item {
+        text-align: center;
+      }
+
+      .stat-item h2 {
+        font-size: 2.5rem;
         color: #ff6600;
+        margin: 0;
         font-weight: 800;
-        font-size: 0.75rem;
-        letter-spacing: 2px;
       }
+
+      .stat-item p {
+        margin: 5px 0 0;
+        font-size: 0.9rem;
+        color: #666;
+      }
+
+      /* Recommendations */
+      .recommendations {
+        padding: 80px 5%;
+        background: #0a0a0a;
+      }
+
+      .section-header {
+        text-align: center;
+        margin-bottom: 50px;
+      }
+
       .section-header h2 {
         font-size: 2.5rem;
-        font-weight: 900;
-        margin: 10px 0;
-      }
-      .desc {
-        color: #666;
-        max-width: 600px;
-        font-size: 1.1rem;
+        margin-bottom: 10px;
       }
 
-      .recommendation-grid {
+      .rec-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-        gap: 25px;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 30px;
+        max-width: 1200px;
+        margin: 0 auto;
       }
 
       .rec-card {
         background: #111;
-        border: 1px solid #222;
-        border-radius: 24px;
+        border-radius: 20px;
         overflow: hidden;
-        transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        border: 1px solid #222;
+        transition: 0.3s;
       }
+
       .rec-card:hover {
-        transform: translateY(-10px);
-        border-color: #ff6600;
+        transform: translateY(-5px);
+        border-color: #333;
       }
 
       .card-img {
-        height: 180px;
+        height: 200px;
         position: relative;
-        overflow: hidden;
       }
+
       .card-img img {
         width: 100%;
         height: 100%;
         object-fit: cover;
-        transition: 0.5s;
       }
-      .rec-card:hover img {
-        transform: scale(1.1);
-      }
-      .price-tag {
+
+      .tag {
         position: absolute;
-        bottom: 15px;
+        top: 15px;
         right: 15px;
         background: #ff6600;
         color: white;
-        padding: 5px 12px;
-        border-radius: 10px;
-        font-weight: 900;
-        font-size: 0.9rem;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.7rem;
+        font-weight: 700;
       }
 
       .card-info {
         padding: 20px;
       }
-      .top {
-        display: flex;
-        gap: 8px;
-        margin-bottom: 12px;
-      }
-      .cat-pill {
-        font-size: 0.6rem;
-        font-weight: 900;
-        text-transform: uppercase;
-        padding: 3px 8px;
-        border-radius: 5px;
-      }
-      .cat-pill.veg {
-        background: rgba(46, 204, 113, 0.1);
-        color: #2ecc71;
-      }
-      .cat-pill.non-veg {
-        background: rgba(231, 76, 60, 0.1);
-        color: #e74c3c;
-      }
-      .sub-pill {
-        font-size: 0.6rem;
-        font-weight: 800;
-        color: #555;
-        background: #222;
-        padding: 3px 8px;
-        border-radius: 5px;
-      }
 
       .card-info h3 {
-        font-size: 1.1rem;
-        font-weight: 700;
-        margin-bottom: 20px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .btn-mini-add {
-        width: 100%;
-        background: #222;
-        color: #fff;
-        border: none;
-        padding: 10px;
-        border-radius: 12px;
-        font-weight: 700;
-        cursor: pointer;
-        transition: 0.2s;
-      }
-      .btn-mini-add:hover {
-        background: #ff6600;
+        margin: 0;
+        font-size: 1.2rem;
       }
 
-      /* Skeleton */
-      .skeleton-wrap {
-        display: contents;
+      .card-info p {
+        font-size: 0.9rem;
+        margin: 5px 0 20px;
       }
-      .skeleton-card {
-        height: 300px;
-        background: #111;
-        border-radius: 24px;
-        animation: pulse 1.5s infinite;
+
+      .bottom {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
       }
-      @keyframes pulse {
-        0% {
-          opacity: 0.5;
-        }
-        50% {
-          opacity: 1;
-        }
-        100% {
-          opacity: 0.5;
-        }
+
+      .price {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #ff6600;
+      }
+
+      .add-btn {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        background: white;
+        color: black;
+        border: none;
+        font-size: 1.2rem;
+        cursor: pointer;
+        transition: 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .add-btn:hover {
+        background: #ff6600;
+        color: white;
       }
 
       /* Features */
@@ -335,68 +389,80 @@ import { CartService } from '../../services/cart';
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
         gap: 40px;
-        padding: 100px 20px;
-        max-width: 1200px;
-        margin: 0 auto;
+        padding: 100px 5%;
+        background: #0f0f0f;
       }
-      .feat-card {
+
+      .feature-card {
         text-align: center;
+        padding: 30px;
+        background: #161616;
+        border-radius: 20px;
+        border: 1px solid #222;
       }
-      .feat-card .icon {
+
+      .feature-card .icon {
         font-size: 3rem;
         margin-bottom: 20px;
       }
-      .feat-card h4 {
-        font-size: 1.4rem;
-        font-weight: 800;
+
+      .feature-card h3 {
         margin-bottom: 10px;
-      }
-      .feat-card p {
-        color: #666;
+        font-size: 1.3rem;
       }
 
       @media (max-width: 768px) {
-        .recommendation-grid {
-          grid-template-columns: 1fr 1fr;
-          gap: 15px;
+        .hero {
+          flex-direction: column;
+          padding-top: 120px;
+          text-align: center;
+        }
+
+        .hero-image {
+          width: 100%;
+          height: 350px;
+          margin-top: 50px;
+        }
+
+        .cta-group {
+          justify-content: center;
+        }
+
+        h1 {
+          font-size: 3rem;
+        }
+
+        .stats {
+          flex-direction: column;
+          gap: 30px;
         }
       }
     `,
   ],
 })
 export class HomeComponent implements OnInit {
+  authService = inject(AuthService);
   menuService = inject(MenuService);
-  auth = inject(AuthService);
   cartService = inject(CartService);
 
-  recommendations = signal<MenuItem[]>([]);
-  isLoading = signal(true);
+  recommendedItems = signal<MenuItem[]>([]);
 
-  constructor() {
-    effect(() => {
-      // Corrected: using currentUser() which is the signal name in your AuthService
-      const user = this.auth.currentUser();
-      this.fetchRecommendations(user?._id || null);
-    });
+  ngOnInit() {
+    if (this.authService.isLoggedIn()) {
+      this.loadRecommendations();
+    }
   }
 
-  ngOnInit() {}
-
-  fetchRecommendations(userId: string | null) {
-    this.isLoading.set(true);
-    this.menuService.getRecommendations(userId).subscribe({
-      next: (data: MenuItem[]) => {
-        this.recommendations.set(data);
-        this.isLoading.set(false);
-      },
-      error: () => {
-        this.isLoading.set(false);
-      },
+  loadRecommendations() {
+    // FIX: Using correct method name 'getAiRecommendations' instead of 'getRecommendations'
+    this.menuService.getAiRecommendations().subscribe({
+      next: (items) => this.recommendedItems.set(items),
+      error: () => console.warn('Could not load AI recommendations.'),
     });
   }
 
   addToCart(item: MenuItem) {
-    this.cartService.addToCart(item);
+    this.cartService.addToCart(item, 'SINGLE');
   }
 
   handleImageError(event: any) {

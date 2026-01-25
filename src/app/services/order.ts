@@ -6,6 +6,7 @@ import { MenuService } from './menu';
 import { ToastService } from './toast';
 import { Router } from '@angular/router';
 import { Observable, firstValueFrom } from 'rxjs';
+import { MenuItem } from '../models/menu-item.model';
 
 @Injectable({ providedIn: 'root' })
 export class OrderService {
@@ -38,19 +39,27 @@ export class OrderService {
     return this.http.put(
       `${this.apiUrl}/owner/${orderId}/status`,
       { status, paymentStatus },
-      { withCredentials: true }
+      { withCredentials: true },
     );
   }
 
   async reorderToCart(oldOrder: any) {
     try {
       this.toast.info('Syncing with menu...');
-      const latestMenu = await firstValueFrom(this.menuService.getMenu());
+
+      // Fix: Explicitly type the response to avoid 'unknown' error
+      const latestMenu: MenuItem[] = await firstValueFrom(this.menuService.getMenu());
+
       this.cartService.clearCart();
+
       let itemsAdded = 0;
 
       for (const oldItem of oldOrder.items) {
-        const currentItem = latestMenu.find((m) => m._id === (oldItem.menuItemId || oldItem._id));
+        // Fix: Explicitly type 'm' to avoid implicit any error
+        const currentItem = latestMenu.find(
+          (m: MenuItem) => m._id === (oldItem.menuItemId || oldItem._id),
+        );
+
         if (currentItem && currentItem.isAvailable) {
           const variant = oldItem.selectedVariant || oldItem.variant || 'SINGLE';
           for (let i = 0; i < oldItem.quantity; i++) {

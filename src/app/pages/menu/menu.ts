@@ -70,18 +70,16 @@ import { MenuItem } from '../../models/menu-item.model';
                   item.category === 'non-veg'
                     ? 'Non-Veg'
                     : item.category === 'veg'
-                    ? 'Veg'
-                    : 'Drink'
+                      ? 'Veg'
+                      : 'Drink'
                 }}
               </div>
             </div>
-
             <div class="info">
               <div class="meta">
                 <h3>{{ item.name }}</h3>
                 <p class="subtitle">{{ item.subCategory }}</p>
               </div>
-
               <div class="pricing-actions">
                 <div *ngIf="item.pricing.type === 'SINGLE'" class="single-price">
                   <span class="price">₹{{ item.pricing.price }}</span>
@@ -100,7 +98,6 @@ import { MenuItem } from '../../models/menu-item.model';
                 </div>
               </div>
             </div>
-
             <div class="ai-recommendation-badge" *ngIf="selectedCategory() === 'Recommended'">
               AI Match
             </div>
@@ -125,18 +122,23 @@ import { MenuItem } from '../../models/menu-item.model';
         padding-bottom: 100px;
         font-family: 'Poppins', sans-serif;
       }
+
       .container {
         max-width: 1400px;
         margin: 0 auto;
         padding: 0 24px;
       }
+
       .highlight {
         color: #ff6600;
       }
+
+      /* Header */
       .menu-header {
         padding: 120px 0 60px;
         background: linear-gradient(to bottom, #111, #0a0a0a);
       }
+
       .header-inner {
         display: flex;
         justify-content: space-between;
@@ -144,22 +146,26 @@ import { MenuItem } from '../../models/menu-item.model';
         gap: 40px;
         flex-wrap: wrap;
       }
+
       .title-group h1 {
         font-size: 3.5rem;
         font-weight: 800;
         margin: 0;
         letter-spacing: -1px;
       }
+
       .title-group p {
         color: #888;
         margin-top: 10px;
         font-size: 1.1rem;
       }
+
       .search-bar {
         position: relative;
         flex-grow: 1;
         max-width: 450px;
       }
+
       .search-bar .icon {
         position: absolute;
         left: 20px;
@@ -167,6 +173,7 @@ import { MenuItem } from '../../models/menu-item.model';
         transform: translateY(-50%);
         color: #666;
       }
+
       .search-bar input {
         width: 100%;
         background: #1a1a1a;
@@ -177,11 +184,14 @@ import { MenuItem } from '../../models/menu-item.model';
         font-size: 1rem;
         transition: 0.3s;
       }
+
       .search-bar input:focus {
         outline: none;
         border-color: #ff6600;
         background: #222;
       }
+
+      /* Categories */
       .category-sticky {
         position: sticky;
         top: 80px;
@@ -191,15 +201,18 @@ import { MenuItem } from '../../models/menu-item.model';
         padding: 15px 0;
         border-bottom: 1px solid #222;
       }
+
       .chips-container {
         display: flex;
         gap: 12px;
         overflow-x: auto;
         padding-bottom: 5px;
       }
+
       .chips-container::-webkit-scrollbar {
         display: none;
       }
+
       .chips-container button {
         padding: 10px 24px;
         border-radius: 50px;
@@ -214,36 +227,45 @@ import { MenuItem } from '../../models/menu-item.model';
         align-items: center;
         gap: 8px;
       }
+
       .chips-container button.active {
         background: #ff6600;
         color: white;
         border-color: #ff6600;
       }
+
       .chips-container button.special {
         border-color: #ff6600;
         color: #ff6600;
       }
+
       .chips-container button.special.active {
         background: #ff6600;
         color: white;
       }
+
       .dot {
         width: 8px;
         height: 8px;
         background: #ff6600;
         border-radius: 50%;
       }
+
       .active .dot {
         background: white;
       }
+
+      /* Grid */
       .menu-content {
         margin-top: 50px;
       }
+
       .grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
         gap: 32px;
       }
+
       .food-item {
         background: #161616;
         border-radius: 28px;
@@ -252,28 +274,34 @@ import { MenuItem } from '../../models/menu-item.model';
         transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         position: relative;
       }
+
       .food-item:hover {
         transform: translateY(-10px);
         border-color: #444;
         box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
       }
+
       .recommended-border {
         border: 2px solid #ff6600;
       }
+
       .media {
         height: 230px;
         position: relative;
         overflow: hidden;
       }
+
       .media img {
         width: 100%;
         height: 100%;
         object-fit: cover;
         transition: 0.6s;
       }
+
       .food-item:hover .media img {
         transform: scale(1.1);
       }
+
       .category-pill {
         position: absolute;
         top: 20px;
@@ -287,32 +315,42 @@ import { MenuItem } from '../../models/menu-item.model';
         font-weight: 800;
         text-transform: uppercase;
       }
+
       .info {
         padding: 25px;
+        height: 240px; /* Fixed height for consistency */
+        display: flex;
+        flex-direction: column;
       }
+
       .meta h3 {
         font-size: 1.5rem;
         margin: 0;
         font-weight: 800;
       }
+
       .subtitle {
         color: #666;
         font-size: 0.9rem;
         margin: 6px 0 25px;
       }
+
       .pricing-actions {
         margin-top: auto;
       }
+
       .single-price {
         display: flex;
         justify-content: space-between;
         align-items: center;
       }
+
       .price {
         font-size: 1.8rem;
         font-weight: 900;
         color: #ff6600;
       }
+
       .add-main {
         background: #ff6600;
         color: white;
@@ -323,15 +361,18 @@ import { MenuItem } from '../../models/menu-item.model';
         cursor: pointer;
         transition: 0.2s;
       }
+
       .add-main:hover {
         transform: scale(1.05);
         filter: brightness(1.1);
       }
+
       .multi-price {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 12px;
       }
+
       .variant-btn {
         background: #222;
         border: 1px solid #333;
@@ -341,6 +382,7 @@ import { MenuItem } from '../../models/menu-item.model';
         text-align: left;
         transition: 0.2s;
       }
+
       .variant-btn .v-name {
         display: block;
         font-size: 0.75rem;
@@ -348,6 +390,7 @@ import { MenuItem } from '../../models/menu-item.model';
         font-weight: 600;
         text-transform: uppercase;
       }
+
       .variant-btn .v-price {
         display: block;
         font-size: 1.2rem;
@@ -355,10 +398,12 @@ import { MenuItem } from '../../models/menu-item.model';
         color: #ff6600;
         margin-top: 4px;
       }
+
       .variant-btn:hover {
         border-color: #ff6600;
         background: #2a2a2a;
       }
+
       .ai-recommendation-badge {
         position: absolute;
         bottom: 15px;
@@ -370,14 +415,18 @@ import { MenuItem } from '../../models/menu-item.model';
         border-radius: 6px;
         font-weight: 800;
       }
+
+      /* Empty State */
       .empty-results {
         text-align: center;
         padding: 80px 0;
       }
+
       .empty-icon {
         font-size: 4rem;
         margin-bottom: 20px;
       }
+
       .reset-btn {
         background: #333;
         color: white;
@@ -388,41 +437,50 @@ import { MenuItem } from '../../models/menu-item.model';
         cursor: pointer;
         margin-top: 20px;
       }
+
+      /* Skeleton */
       .skeleton-card {
         background: #161616;
         height: 400px;
         border-radius: 28px;
         padding: 20px;
       }
+
       .s-img {
         height: 200px;
         background: #222;
         border-radius: 20px;
         margin-bottom: 20px;
       }
+
       .s-line {
         height: 20px;
         background: #222;
         border-radius: 4px;
         margin-bottom: 10px;
       }
+
       .s-line.long {
         width: 80%;
       }
       .s-line.short {
         width: 40%;
       }
+
       @media (max-width: 768px) {
         .menu-header {
           padding-top: 100px;
           text-align: center;
         }
+
         .header-inner {
           justify-content: center;
         }
+
         .title-group h1 {
           font-size: 2.8rem;
         }
+
         .grid {
           grid-template-columns: 1fr;
         }
@@ -464,8 +522,9 @@ export class MenuComponent implements OnInit {
 
   loadData() {
     this.loading.set(true);
+
     this.menuService.getMenu().subscribe({
-      next: (items) => {
+      next: (items: MenuItem[]) => {
         this.fullMenuList.set(items);
         this.applyFilters();
         this.loading.set(false);
@@ -475,7 +534,7 @@ export class MenuComponent implements OnInit {
 
     if (this.authService.isLoggedIn()) {
       this.menuService.getAiRecommendations().subscribe({
-        next: (items) => {
+        next: (items: MenuItem[]) => {
           this.recommendedItems.set(items);
           if (items.length > 0) {
             this.selectedCategory.set('Recommended');
@@ -494,6 +553,7 @@ export class MenuComponent implements OnInit {
 
   applyFilters() {
     let items: MenuItem[] = [];
+
     if (this.selectedCategory() === 'Recommended') {
       items = this.recommendedItems();
     } else if (this.selectedCategory() === 'All') {
@@ -505,9 +565,10 @@ export class MenuComponent implements OnInit {
     if (this.searchQuery.trim()) {
       const q = this.searchQuery.toLowerCase();
       items = items.filter(
-        (i) => i.name.toLowerCase().includes(q) || i.subCategory.toLowerCase().includes(q)
+        (i) => i.name.toLowerCase().includes(q) || i.subCategory.toLowerCase().includes(q),
       );
     }
+
     this.filteredItems.set(items);
   }
 
