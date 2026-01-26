@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MenuService } from '../../services/menu';
@@ -965,12 +965,39 @@ import { MenuItem } from '../../models/menu-item.model';
           max-width: 100%;
         }
       }
+      .fade-in {
+        animation: fadeIn 0.3s ease-out forwards;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .animate-pop {
+        animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+      @keyframes popIn {
+        from {
+          opacity: 0;
+          transform: scale(0.9);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
     `,
   ],
 })
 export class MenuManagementComponent implements OnInit {
   menuService = inject(MenuService);
   toast = inject(ToastService);
+  cdr = inject(ChangeDetectorRef);
 
   menuItems = signal<MenuItem[]>([]);
   isModalOpen = false;
@@ -1053,8 +1080,12 @@ export class MenuManagementComponent implements OnInit {
     if (!confirm('This action will permanently erase the dish from the database. Proceed?')) return;
     this.menuService.deleteMenuItem(id).subscribe({
       next: () => {
-        this.toast.success('Dish removed successfully.');
-        this.loadMenu();
+        // Fix for NG0100: Defer state update to next turn
+        setTimeout(() => {
+          this.toast.success('Dish removed successfully.');
+          this.loadMenu();
+          this.cdr.detectChanges();
+        });
       },
       error: () => this.toast.error('Failed to remove dish.'),
     });
@@ -1067,11 +1098,20 @@ export class MenuManagementComponent implements OnInit {
 
     action.subscribe({
       next: () => {
-        this.toast.success(`Dish ${this.isEditing ? 'updated' : 'published'} successfully.`);
-        this.loadMenu();
-        this.closeModal();
+        // Fix for NG0100: Defer state changes and toast notifications
+        // to the next JavaScript VM turn to ensure CD cycle completes.
+        setTimeout(() => {
+          this.toast.success(`Dish ${this.isEditing ? 'updated' : 'published'} successfully.`);
+          this.loadMenu();
+          this.closeModal();
+          this.cdr.detectChanges();
+        });
       },
-      error: (e) => this.toast.error(e.error?.msg || 'Failed to sync dish.'),
+      error: (e) => {
+        setTimeout(() => {
+          this.toast.error(e.error?.msg || 'Failed to sync dish.');
+        });
+      },
     });
   }
 
