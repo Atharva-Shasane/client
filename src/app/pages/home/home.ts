@@ -4,7 +4,10 @@ import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth';
 import { RatingService, PendingFeedback } from '../../services/rating';
+import { MenuService } from '../../services/menu';
+import { CartService } from '../../services/cart';
 import { ToastService } from '../../services/toast';
+import { MenuItem } from '../../models/menu-item.model';
 
 @Component({
   selector: 'app-home',
@@ -28,6 +31,38 @@ import { ToastService } from '../../services/toast';
         </div>
         <div class="hero-image">
           <div class="image-overlay"></div>
+        </div>
+      </section>
+
+      <!-- NEW: AI Recommendations Section (Visible to Everyone) -->
+      <section class="recommendations" *ngIf="recommendations().length > 0">
+        <div class="container">
+          <div class="section-header">
+            <span class="badge">AI Driven</span>
+            <h2>Legendary <span class="highlight">Picks</span></h2>
+            <p>Based on thousands of orders and top ratings.</p>
+          </div>
+
+          <div class="recommendation-grid">
+            <div class="recommendation-card glass-card" *ngFor="let item of recommendations()">
+              <div class="card-media">
+                <img [src]="item.imageUrl" [alt]="item.name" (error)="handleImageError($event)" />
+                <div class="ai-tag">TOP RATED</div>
+              </div>
+              <div class="card-info">
+                <h3>{{ item.name }}</h3>
+                <p>{{ item.subCategory }}</p>
+                <div class="card-footer">
+                  <span class="price"
+                    >₹{{
+                      item.pricing.type === 'SINGLE' ? item.pricing.price : item.pricing.priceHalf
+                    }}</span
+                  >
+                  <button (click)="addToCart(item)" class="btn-add">Add</button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -166,6 +201,22 @@ import { ToastService } from '../../services/toast';
         margin: 0 auto;
         padding: 0 24px;
       }
+
+      /* Section Header */
+      .section-header {
+        text-align: center;
+        margin-bottom: 60px;
+      }
+      .section-header h2 {
+        font-size: 3rem;
+        font-weight: 800;
+        margin: 10px 0;
+      }
+      .section-header p {
+        color: #666;
+        font-size: 1.1rem;
+      }
+
       .hero {
         display: flex;
         align-items: center;
@@ -225,6 +276,85 @@ import { ToastService } from '../../services/toast';
         border: 1px solid #333;
         transition: 0.3s;
       }
+
+      /* Recommendation Section */
+      .recommendations {
+        padding: 100px 0;
+        background: #080808;
+      }
+      .recommendation-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 30px;
+      }
+      .recommendation-card {
+        border-radius: 24px;
+        overflow: hidden;
+        border: 1px solid #222;
+        transition: 0.4s;
+      }
+      .recommendation-card:hover {
+        transform: translateY(-10px);
+        border-color: #ff6600;
+      }
+      .card-media {
+        height: 200px;
+        position: relative;
+      }
+      .card-media img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .ai-tag {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        background: #ff6600;
+        color: white;
+        font-size: 0.6rem;
+        font-weight: 900;
+        padding: 4px 10px;
+        border-radius: 8px;
+      }
+      .card-info {
+        padding: 20px;
+      }
+      .card-info h3 {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 700;
+      }
+      .card-info p {
+        color: #555;
+        font-size: 0.8rem;
+        margin: 5px 0 20px;
+      }
+      .card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .card-footer .price {
+        font-size: 1.4rem;
+        font-weight: 900;
+        color: #ff6600;
+      }
+      .btn-add {
+        background: white;
+        color: black;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 10px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+      .btn-add:hover {
+        background: #ff6600;
+        color: white;
+      }
+
       .features {
         padding: 100px 0;
       }
@@ -256,6 +386,7 @@ import { ToastService } from '../../services/toast';
       .feature-card p {
         color: #666;
       }
+
       .stats {
         padding: 80px 0;
         background: #050505;
@@ -322,7 +453,6 @@ import { ToastService } from '../../services/toast';
         line-height: 1.5;
       }
 
-      /* Invite Step Specifics */
       .invite-msg {
         margin-top: 20px !important;
         color: #aaa !important;
@@ -365,7 +495,6 @@ import { ToastService } from '../../services/toast';
         filter: brightness(1.1);
       }
 
-      /* Form Step Specifics */
       .order-summary-box {
         margin: 20px 0;
         padding: 15px;
@@ -517,9 +646,14 @@ import { ToastService } from '../../services/toast';
 export class HomeComponent implements OnInit {
   auth = inject(AuthService);
   ratingService = inject(RatingService);
+  menuService = inject(MenuService);
+  cartService = inject(CartService);
   toast = inject(ToastService);
 
-  // Values: 'NONE' | 'INVITE' | 'FORM'
+  // Recommendation State
+  recommendations = signal<MenuItem[]>([]);
+
+  // Feedback Values: 'NONE' | 'INVITE' | 'FORM'
   feedbackStep = signal<string>('NONE');
   pendingOrder = signal<any>(null);
   selectedRating = signal(0);
@@ -528,9 +662,32 @@ export class HomeComponent implements OnInit {
   private feedbackCheckedThisVisit = false;
 
   ngOnInit() {
+    // 1. Load recommendations for EVERYONE (login status handled by service automatically)
+    this.loadRecommendations();
+
+    // 2. Check for feedback only if logged in
     if (this.auth.currentUser() && !this.feedbackCheckedThisVisit) {
       this.checkFeedback();
     }
+  }
+
+  loadRecommendations() {
+    // Calling AI Recommendations - Backend handles the logic for both Guest and User
+    this.menuService.getAiRecommendations().subscribe({
+      next: (items: MenuItem[]) => {
+        // Limit to 4 items for the Home Page layout
+        this.recommendations.set(items.slice(0, 4));
+      },
+      error: () => {
+        console.warn('Recommendation engine busy. Displaying default features.');
+      },
+    });
+  }
+
+  addToCart(item: MenuItem) {
+    const variant = item.pricing.type === 'SINGLE' ? 'SINGLE' : 'HALF';
+    this.cartService.addToCart(item, variant);
+    this.toast.success(`${item.name} added to cart!`);
   }
 
   checkFeedback() {
@@ -538,7 +695,7 @@ export class HomeComponent implements OnInit {
       next: (res: PendingFeedback) => {
         if (res.pending && res.order) {
           this.pendingOrder.set(res.order);
-          this.feedbackStep.set('INVITE'); // Start with the invitation
+          this.feedbackStep.set('INVITE');
         }
         this.feedbackCheckedThisVisit = true;
       },
@@ -554,12 +711,10 @@ export class HomeComponent implements OnInit {
 
   declineFeedback() {
     if (!this.pendingOrder()) return;
-
-    // Call server to mark as dismissed forever
     this.ratingService.dismissFeedback(this.pendingOrder()._id).subscribe({
       next: () => {
         this.feedbackStep.set('NONE');
-        this.toast.success("No problem! We won't ask about this order again.");
+        this.toast.success('No problem!');
       },
       error: () => {
         this.feedbackStep.set('NONE');
@@ -598,5 +753,9 @@ export class HomeComponent implements OnInit {
           this.toast.error(err.error?.msg || 'Failed to submit feedback.');
         },
       });
+  }
+
+  handleImageError(event: any) {
+    event.target.src = 'https://placehold.co/600x400/1a1a1a/ffffff?text=Killa+Kitchen';
   }
 }

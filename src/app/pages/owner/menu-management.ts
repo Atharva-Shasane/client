@@ -36,9 +36,6 @@ import { MenuItem } from '../../models/menu-item.model';
         <div class="collection-vault glass-card">
           <div class="vault-header">
             <h3>Dishes Collection</h3>
-            <div class="search-wrap">
-              <!-- Placeholder for future search/filter logic -->
-            </div>
           </div>
           <div class="scroll-wrapper">
             <table class="menu-table">
@@ -97,14 +94,8 @@ import { MenuItem } from '../../models/menu-item.model';
                     </div>
                   </td>
                   <td class="actions-cell">
-                    <button (click)="editItem(item)" class="action-btn edit" title="Edit">
-                      Edit
-                    </button>
-                    <button
-                      (click)="deleteItem(item._id!)"
-                      class="action-btn delete"
-                      title="Delete"
-                    >
+                    <button (click)="editItem(item)" class="action-btn edit">Edit</button>
+                    <button (click)="deleteItem(item._id!)" class="action-btn delete">
                       Delete
                     </button>
                   </td>
@@ -194,7 +185,7 @@ import { MenuItem } from '../../models/menu-item.model';
                 </div>
               </div>
 
-              <!-- Refined Pricing Section -->
+              <!-- Pricing Section - REDESIGNED FOR PERFECT CONTAINMENT -->
               <div class="pricing-vault">
                 <div class="vault-header-row">
                   <span class="vault-label">Pricing Architecture</span>
@@ -204,7 +195,7 @@ import { MenuItem } from '../../models/menu-item.model';
                       [class.selected]="currentItem.pricing?.type === 'SINGLE'"
                       (click)="setPricingType('SINGLE')"
                     >
-                      Flat Price
+                      Flat
                     </button>
                     <button
                       type="button"
@@ -216,10 +207,10 @@ import { MenuItem } from '../../models/menu-item.model';
                   </div>
                 </div>
 
-                <div class="vault-content fade-in">
-                  <!-- Single Input Configuration -->
-                  <div *ngIf="currentItem.pricing?.type === 'SINGLE'" class="single-config-row">
-                    <div class="field compact-field">
+                <div class="vault-content">
+                  <!-- Single Configuration -->
+                  <div *ngIf="currentItem.pricing?.type === 'SINGLE'" class="config-single fade-in">
+                    <div class="field">
                       <label>Standard Price (₹)</label>
                       <div class="input-with-symbol">
                         <span class="symbol">₹</span>
@@ -235,11 +226,14 @@ import { MenuItem } from '../../models/menu-item.model';
                     </div>
                   </div>
 
-                  <!-- Multi Input Configuration (Portions) - FIXED WIDTH UI -->
-                  <div *ngIf="currentItem.pricing?.type === 'HALF_FULL'" class="multi-config-row">
-                    <div class="portion-input-card">
+                  <!-- Portions Configuration - NESTED GRID -->
+                  <div
+                    *ngIf="currentItem.pricing?.type === 'HALF_FULL'"
+                    class="config-portions fade-in"
+                  >
+                    <div class="portion-card">
                       <div class="field">
-                        <label>Half Portion (₹)</label>
+                        <label>Half Price</label>
                         <div class="input-with-symbol">
                           <span class="symbol">₹</span>
                           <input
@@ -253,9 +247,9 @@ import { MenuItem } from '../../models/menu-item.model';
                         </div>
                       </div>
                     </div>
-                    <div class="portion-input-card">
+                    <div class="portion-card">
                       <div class="field">
-                        <label>Full Portion (₹)</label>
+                        <label>Full Price</label>
                         <div class="input-with-symbol">
                           <span class="symbol">₹</span>
                           <input
@@ -311,7 +305,7 @@ import { MenuItem } from '../../models/menu-item.model';
         color: #ff6600;
       }
 
-      /* Dashboard Header */
+      /* Header */
       .dash-header {
         margin-bottom: 60px;
       }
@@ -331,7 +325,6 @@ import { MenuItem } from '../../models/menu-item.model';
         font-size: 0.7rem;
         font-weight: 800;
         text-transform: uppercase;
-        letter-spacing: 1px;
         margin-bottom: 12px;
       }
       .brand-zone h1 {
@@ -346,7 +339,6 @@ import { MenuItem } from '../../models/menu-item.model';
         margin-top: 10px;
         font-size: 1.1rem;
       }
-
       .stats-zone {
         display: flex;
         align-items: center;
@@ -369,9 +361,7 @@ import { MenuItem } from '../../models/menu-item.model';
         color: #444;
         text-transform: uppercase;
         font-weight: 700;
-        letter-spacing: 1px;
       }
-
       .btn-add {
         background: #fff;
         color: #000;
@@ -380,41 +370,34 @@ import { MenuItem } from '../../models/menu-item.model';
         border-radius: 20px;
         font-weight: 900;
         cursor: pointer;
-        transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        transition: 0.3s;
         display: flex;
         align-items: center;
         gap: 12px;
-        box-shadow: 0 10px 40px rgba(255, 255, 255, 0.05);
       }
       .btn-add:hover {
-        transform: translateY(-5px) scale(1.02);
+        transform: translateY(-5px);
         background: #ff6600;
         color: #fff;
-        box-shadow: 0 15px 35px rgba(255, 102, 0, 0.3);
       }
 
-      /* Collection Table Container */
+      /* Table UI */
       .collection-vault {
         border-radius: 40px;
         border: 1px solid #1a1a1a;
         background: rgba(15, 15, 15, 0.6);
         backdrop-filter: blur(20px);
         overflow: hidden;
-        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
       }
       .vault-header {
         padding: 35px 40px;
         border-bottom: 1px solid #1a1a1a;
-        display: flex;
-        justify-content: space-between;
       }
       .vault-header h3 {
         margin: 0;
         font-size: 1.4rem;
         font-weight: 900;
-        letter-spacing: -0.5px;
       }
-
       .scroll-wrapper {
         overflow-x: auto;
       }
@@ -438,15 +421,10 @@ import { MenuItem } from '../../models/menu-item.model';
         border-bottom: 1px solid #141414;
         vertical-align: middle;
       }
-      .menu-table tbody tr:hover {
-        background: rgba(255, 255, 255, 0.01);
-      }
       .draft {
         opacity: 0.45;
         filter: grayscale(0.5);
       }
-
-      /* Table Cells */
       .dish-cell {
         display: flex;
         align-items: center;
@@ -457,65 +435,39 @@ import { MenuItem } from '../../models/menu-item.model';
         height: 64px;
         border-radius: 18px;
         overflow: hidden;
-        background: #222;
         border: 1px solid #222;
-        flex-shrink: 0;
       }
       .img-preview img {
         width: 100%;
         height: 100%;
         object-fit: cover;
       }
-      .meta {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-      }
-      .dish-name {
-        font-size: 1.15rem;
-        color: #fff;
-        font-weight: 700;
-      }
-      .dish-id {
-        font-size: 0.75rem;
-        color: #444;
-        font-family: monospace;
-      }
-
       .cat-pill {
         font-size: 0.65rem;
         font-weight: 900;
         padding: 6px 16px;
         border-radius: 50px;
         text-transform: uppercase;
-        border: 1px solid transparent;
       }
       .cat-pill.veg {
         color: #2ecc71;
         background: rgba(46, 204, 113, 0.08);
-        border-color: rgba(46, 204, 113, 0.15);
       }
       .cat-pill.non-veg {
         color: #e74c3c;
         background: rgba(231, 76, 60, 0.08);
-        border-color: rgba(231, 76, 60, 0.15);
       }
       .cat-pill.drinks {
         color: #3498db;
         background: rgba(52, 152, 219, 0.08);
-        border-color: rgba(52, 152, 219, 0.15);
       }
-
       .tag-pill {
         font-size: 0.7rem;
         color: #888;
         background: #1a1a1a;
         padding: 6px 14px;
         border-radius: 10px;
-        font-weight: 800;
       }
-
-      /* Pricing Display in Table */
       .pricing-pills {
         display: flex;
         gap: 10px;
@@ -525,26 +477,19 @@ import { MenuItem } from '../../models/menu-item.model';
         border-radius: 12px;
         font-size: 0.85rem;
         font-weight: 800;
-        display: inline-flex;
-        align-items: center;
-        border: 1px solid transparent;
       }
       .price-pill.half {
         background: rgba(255, 102, 0, 0.05);
         color: #ff6600;
-        border-color: rgba(255, 102, 0, 0.1);
       }
       .price-pill.full {
         background: #ff6600;
         color: #fff;
-        box-shadow: 0 4px 12px rgba(255, 102, 0, 0.2);
       }
       .price-pill.flat {
         background: #1a1a1a;
         color: #fff;
-        border-color: #333;
       }
-
       .status-indicator {
         display: flex;
         align-items: center;
@@ -561,11 +506,6 @@ import { MenuItem } from '../../models/menu-item.model';
         height: 8px;
         border-radius: 50%;
         background: currentColor;
-        box-shadow: 0 0 10px currentColor;
-      }
-
-      .text-right {
-        text-align: right;
       }
       .actions-cell {
         display: flex;
@@ -584,110 +524,74 @@ import { MenuItem } from '../../models/menu-item.model';
       .action-btn.edit {
         background: #1a1a1a;
         color: #666;
-        border-color: #222;
       }
       .action-btn.edit:hover {
         background: #fff;
         color: #000;
-        border-color: #fff;
-        transform: translateY(-2px);
       }
       .action-btn.delete {
         background: rgba(231, 76, 60, 0.04);
         color: #e74c3c;
-        border-color: rgba(231, 76, 60, 0.1);
       }
       .action-btn.delete:hover {
         background: #e74c3c;
         color: #fff;
-        transform: translateY(-2px);
       }
 
-      /* Modal Architecture - STRICTLY CONSTRAINED TO SCREEN HEIGHT */
+      /* MODAL REPAIR - FIXED VIEWPORT */
       .modal-overlay {
         position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.92);
-        backdrop-filter: blur(20px);
-        z-index: 5000;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.95);
+        backdrop-filter: blur(25px);
+        z-index: 9999;
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 15px;
+        padding: 20px;
       }
+
       .modal {
+        position: relative;
         width: 100%;
         max-width: 680px;
-        max-height: 90vh; /* Strictly limited height for laptop screens */
-        background: #0c0c0c;
+        max-height: 90vh;
+        background: #0d0d0d;
         border: 1px solid #1a1a1a;
-        border-radius: 44px;
+        border-radius: 40px;
         display: flex;
         flex-direction: column;
+        box-shadow: 0 50px 150px rgba(0, 0, 0, 0.9);
         overflow: hidden;
-        box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8);
       }
+
       .modal-header {
-        padding: 30px 45px 20px;
+        padding: 35px 45px 20px;
+        border-bottom: 1px solid #141414;
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        flex-shrink: 0; /* Pinned header */
-        border-bottom: 1px solid #141414;
-      }
-      .modal-badge {
-        color: #ff6600;
-        font-size: 0.75rem;
-        font-weight: 900;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        margin-bottom: 4px;
-        display: block;
-      }
-      .modal-header h3 {
-        margin: 0;
-        font-size: 1.8rem;
-        font-weight: 900;
-        letter-spacing: -1px;
-      }
-      .modal-header p {
-        color: #555;
-        margin-top: 5px;
-        font-size: 0.85rem;
-      }
-      .close-modal {
-        background: #1a1a1a;
-        border: none;
-        color: #444;
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
-        font-size: 1.6rem;
-        cursor: pointer;
-        transition: 0.3s;
-      }
-      .close-modal:hover {
-        background: #ff4444;
-        color: #fff;
-        transform: rotate(90deg);
+        flex-shrink: 0;
       }
 
-      /* Scrollable body architecture */
       .modal-form {
         display: flex;
         flex-direction: column;
         flex: 1;
-        min-height: 0;
         overflow: hidden;
       }
+
       .form-body {
-        padding: 25px 45px 35px;
+        padding: 30px 45px;
         overflow-y: auto;
         flex: 1;
-        min-height: 0;
         scrollbar-width: thin;
-        scrollbar-color: #333 transparent;
+        scrollbar-color: #222 transparent;
       }
+
       .form-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -697,7 +601,7 @@ import { MenuItem } from '../../models/menu-item.model';
       .field {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 8px;
       }
       .field.full-width {
         grid-column: 1 / span 2;
@@ -709,7 +613,6 @@ import { MenuItem } from '../../models/menu-item.model';
         text-transform: uppercase;
         letter-spacing: 1px;
       }
-
       .field input,
       .field select {
         background: #000;
@@ -718,42 +621,31 @@ import { MenuItem } from '../../models/menu-item.model';
         border-radius: 16px;
         color: #fff;
         font-family: inherit;
-        font-size: 0.95rem;
-        transition: 0.3s;
+        font-size: 1rem;
         width: 100%;
+        box-sizing: border-box;
       }
-      .field input:focus,
-      .field select:focus {
+      .field input:focus {
         border-color: #ff6600;
         outline: none;
-        background: #050505;
-        box-shadow: 0 0 30px rgba(255, 102, 0, 0.1);
       }
 
-      /* Pricing Vault */
+      /* PRICING VAULT - THE "INSIDE" FIX */
       .pricing-vault {
         background: rgba(255, 255, 255, 0.02);
         border: 1px solid #1a1a1a;
-        border-radius: 24px;
-        padding: 25px;
-        margin-bottom: 25px;
+        border-radius: 28px;
+        padding: 24px;
+        margin: 25px 0;
+        width: 100%;
+        box-sizing: border-box;
       }
       .vault-header-row {
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 20px;
-        flex-wrap: wrap;
-        gap: 15px;
       }
-      .vault-label {
-        font-size: 0.75rem;
-        font-weight: 900;
-        color: #333;
-        text-transform: uppercase;
-        letter-spacing: 1.2px;
-      }
-
       .toggle-group {
         display: flex;
         background: #000;
@@ -765,16 +657,29 @@ import { MenuItem } from '../../models/menu-item.model';
         background: transparent;
         border: none;
         color: #444;
-        padding: 10px 18px;
+        padding: 8px 18px;
         border-radius: 10px;
         font-weight: 800;
-        font-size: 0.75rem;
         cursor: pointer;
-        transition: 0.3s;
+        font-size: 0.75rem;
       }
       .toggle-group button.selected {
         background: #ff6600;
         color: #fff;
+      }
+
+      /* PORTIONS GRID SYSTEM */
+      .config-portions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        width: 100%;
+      }
+      .portion-card {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 15px;
+        border-radius: 20px;
+        border: 1px solid #1a1a1a;
       }
 
       .input-with-symbol {
@@ -786,60 +691,28 @@ import { MenuItem } from '../../models/menu-item.model';
         left: 16px;
         top: 50%;
         transform: translateY(-50%);
-        color: #555;
+        color: #444;
         font-weight: 900;
-        font-size: 1rem;
+        pointer-events: none;
       }
       .input-with-symbol input {
-        padding-left: 40px !important;
+        padding-left: 42px !important;
       }
 
-      .single-config-row {
-        display: flex;
-      }
-      .compact-field {
-        width: 100%;
-        max-width: 280px;
-      }
-
-      /* Fixed Portion Width UI */
-      .multi-config-row {
-        display: flex;
-        gap: 20px;
-        flex-wrap: wrap;
-      }
-      .portion-input-card {
-        flex: 1;
-        min-width: 200px;
-        max-width: 250px;
-        background: rgba(0, 0, 0, 0.4);
-        border: 1px solid #1a1a1a;
-        border-radius: 20px;
-        padding: 18px;
-        transition: 0.3s ease;
-      }
-      .portion-input-card:focus-within {
-        border-color: #ff6600;
-        background: #000;
-        transform: translateY(-3px);
-      }
-
-      /* Custom Toggle Switch */
-      .form-footer-actions {
-        padding: 5px 0;
-      }
+      /* VISIBILITY SWITCH */
       .switch-container {
         display: flex;
         align-items: center;
         gap: 15px;
         cursor: pointer;
+        margin-top: 10px;
       }
       .switch-container input {
         display: none;
       }
       .slider {
-        width: 52px;
-        height: 28px;
+        width: 50px;
+        height: 26px;
         background: #111;
         border-radius: 50px;
         position: relative;
@@ -862,38 +735,32 @@ import { MenuItem } from '../../models/menu-item.model';
         border-color: #2ecc71;
       }
       input:checked + .slider::after {
-        transform: translateX(26px);
+        transform: translateX(24px);
         background: #fff;
       }
       .lbl-text {
-        font-size: 0.9rem;
-        font-weight: 700;
         color: #666;
+        font-size: 0.85rem;
+        font-weight: 700;
       }
 
-      /* Modal Footer - PERMANENTLY PINNED AT THE BOTTOM */
       .modal-footer {
-        padding: 20px 45px;
+        padding: 25px 45px;
         display: flex;
         justify-content: flex-end;
         gap: 15px;
-        background: #0a0a0a;
+        background: #080808;
         border-top: 1px solid #141414;
-        flex-shrink: 0; /* Ensures footer is never pushed out of the modal view */
+        flex-shrink: 0;
       }
       .btn-cancel {
-        background: #111;
+        background: #1a1a1a;
         color: #555;
         border: none;
-        padding: 14px 24px;
+        padding: 14px 25px;
         border-radius: 16px;
         font-weight: 800;
         cursor: pointer;
-        transition: 0.3s;
-      }
-      .btn-cancel:hover {
-        background: #222;
-        color: #fff;
       }
       .btn-confirm {
         background: #ff6600;
@@ -903,70 +770,38 @@ import { MenuItem } from '../../models/menu-item.model';
         border-radius: 16px;
         font-weight: 900;
         cursor: pointer;
-        transition: 0.3s;
-        box-shadow: 0 10px 30px rgba(255, 102, 0, 0.2);
-      }
-      .btn-confirm:hover:not(:disabled) {
-        transform: scale(1.05);
       }
       .btn-confirm:disabled {
         opacity: 0.2;
         cursor: not-allowed;
-        filter: grayscale(1);
       }
 
-      .error-text {
-        color: #ff4444;
-        font-size: 0.75rem;
-        font-weight: 700;
-        margin-top: 8px;
-      }
-      .empty-state {
-        text-align: center;
-        padding: 120px 0 !important;
+      .close-modal {
+        background: #1a1a1a;
+        border: none;
+        color: #444;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        font-size: 1.5rem;
+        cursor: pointer;
       }
 
-      /* Responsive Polish */
       @media (max-width: 768px) {
-        .admin-wrapper {
-          padding: 80px 16px 40px;
-        }
-        .brand-zone h1 {
-          font-size: 2.2rem;
-        }
-        .form-grid {
-          grid-template-columns: 1fr;
-        }
-        .multi-config-row {
-          flex-direction: column;
-        }
-        .portion-input-card {
-          max-width: 100%;
-          width: 100%;
-        }
         .modal {
-          max-width: 100%;
           height: 100vh;
           max-height: 100vh;
           border-radius: 0;
         }
-        .modal-header,
-        .form-body,
-        .modal-footer {
-          padding: 20px;
+        .form-grid {
+          grid-template-columns: 1fr;
         }
-        .modal-footer {
-          flex-direction: column-reverse;
-        }
-        .modal-footer button {
-          width: 100%;
-        }
-        .compact-field {
-          max-width: 100%;
+        .config-portions {
+          grid-template-columns: 1fr;
         }
       }
       .fade-in {
-        animation: fadeIn 0.3s ease-out forwards;
+        animation: fadeIn 0.4s ease-out;
       }
       @keyframes fadeIn {
         from {
@@ -979,7 +814,7 @@ import { MenuItem } from '../../models/menu-item.model';
         }
       }
       .animate-pop {
-        animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       }
       @keyframes popIn {
         from {
@@ -990,6 +825,11 @@ import { MenuItem } from '../../models/menu-item.model';
           opacity: 1;
           transform: scale(1);
         }
+      }
+      .error-text {
+        color: #ff4444;
+        font-size: 0.7rem;
+        font-weight: 700;
       }
     `,
   ],
@@ -1004,7 +844,6 @@ export class MenuManagementComponent implements OnInit {
   isEditing = false;
   currentItem: Partial<MenuItem> = this.getEmptyItem();
 
-  // Categories & Subcategories
   foodSubCats = ['INDIAN', 'CHINESE', 'STARTERS', 'SIDES'];
   drinksSubCats = ['DRINKS'];
   availableSubCategories: string[] = [];
@@ -1080,7 +919,6 @@ export class MenuManagementComponent implements OnInit {
     if (!confirm('This action will permanently erase the dish from the database. Proceed?')) return;
     this.menuService.deleteMenuItem(id).subscribe({
       next: () => {
-        // Fix for NG0100: Defer state update to next turn
         setTimeout(() => {
           this.toast.success('Dish removed successfully.');
           this.loadMenu();
@@ -1098,8 +936,6 @@ export class MenuManagementComponent implements OnInit {
 
     action.subscribe({
       next: () => {
-        // Fix for NG0100: Defer state changes and toast notifications
-        // to the next JavaScript VM turn to ensure CD cycle completes.
         setTimeout(() => {
           this.toast.success(`Dish ${this.isEditing ? 'updated' : 'published'} successfully.`);
           this.loadMenu();
