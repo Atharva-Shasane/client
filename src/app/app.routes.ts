@@ -12,6 +12,7 @@ import { CheckoutComponent } from './pages/checkout/checkout';
 import { NotFoundComponent } from './pages/not-found/not-found';
 import { adminGuard } from './guards/admin';
 import { authGuard } from './guards/auth';
+import { AnalyticsComponent } from './pages/owner/analytics';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -27,5 +28,10 @@ export const routes: Routes = [
 
   { path: 'owner', component: OwnerDashboardComponent, canActivate: [adminGuard] },
   { path: 'owner/menu', component: MenuManagementComponent, canActivate: [adminGuard] },
+  {
+    path: 'owner/analytics',
+    component: AnalyticsComponent,
+    canActivate: [adminGuard],
+  },
   { path: '**', component: NotFoundComponent },
 ];

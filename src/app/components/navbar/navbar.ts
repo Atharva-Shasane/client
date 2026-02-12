@@ -43,6 +43,7 @@ import { CartService } from '../../services/cart';
               <a
                 routerLink="/owner"
                 routerLinkActive="active"
+                [routerLinkActiveOptions]="{ exact: true }"
                 (click)="closeMenu()"
                 class="owner-link"
                 >Dashboard</a
@@ -53,6 +54,13 @@ import { CartService } from '../../services/cart';
                 (click)="closeMenu()"
                 class="owner-link"
                 >Manage Menu</a
+              >
+              <a
+                routerLink="/owner/analytics"
+                routerLinkActive="active"
+                (click)="closeMenu()"
+                class="owner-link"
+                >Analytics</a
               >
             </ng-container>
           </div>
