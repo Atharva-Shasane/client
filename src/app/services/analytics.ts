@@ -23,6 +23,14 @@ export interface AnalyticsData {
   topSellingItems: TopSellingItem[];
 }
 
+// Added for Profit & Loss logic
+export interface MonthlyProfitData {
+  month: string;
+  revenue: number;
+  expenses: number;
+  profit: number;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -30,17 +38,16 @@ export class AnalyticsService {
   private http = inject(HttpClient);
   private apiUrl = '/api/analytics';
 
-  /**
-   * Get analytics for the current day
-   */
   getTodayAnalytics(): Observable<AnalyticsData> {
     return this.http.get<AnalyticsData>(`${this.apiUrl}/today`);
   }
 
-  /**
-   * Get historical analytics
-   */
   getHistoryAnalytics(): Observable<AnalyticsData[]> {
     return this.http.get<AnalyticsData[]>(`${this.apiUrl}`);
+  }
+
+  // New method to fetch P&L data
+  getAnnualProfitLoss(): Observable<MonthlyProfitData[]> {
+    return this.http.get<MonthlyProfitData[]>(`${this.apiUrl}/profit-loss-annual`);
   }
 }
