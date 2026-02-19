@@ -69,4 +69,18 @@ export class AnalyticsService {
   addExpense(expense: any): Observable<any> {
     return this.http.post(`${this.apiUrl}/expenses`, expense);
   }
+
+  getExpenseList(): Observable<any[]> {
+  return this.http.get<any[]>(`${this.apiUrl}/expenses/list`);
 }
+
+updateExpense(id: string, data: any): Observable<any> {
+  return this.http.put(`${this.apiUrl}/expenses/${id}`, data);
+}
+
+getPaymentComparison(month: number, year: number): Observable<any> {
+  return this.http.get(`${this.apiUrl}/payment-comparison?month=${month}&year=${year}`);
+}
+
+}
+
