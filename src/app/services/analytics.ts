@@ -23,7 +23,10 @@ export interface AnalyticsData {
   topSellingItems: TopSellingItem[];
 }
 
-// Added for Profit & Loss logic
+/**
+ * Interface representing Monthly financial health
+ * Used for the dual-bar P&L chart
+ */
 export interface MonthlyProfitData {
   month: string;
   revenue: number;
@@ -38,16 +41,32 @@ export class AnalyticsService {
   private http = inject(HttpClient);
   private apiUrl = '/api/analytics';
 
+  /**
+   * Fetches the current day's performance metrics
+   */
   getTodayAnalytics(): Observable<AnalyticsData> {
     return this.http.get<AnalyticsData>(`${this.apiUrl}/today`);
   }
 
+  /**
+   * Fetches historical data (last 7 days) for the revenue chart
+   */
   getHistoryAnalytics(): Observable<AnalyticsData[]> {
     return this.http.get<AnalyticsData[]>(`${this.apiUrl}`);
   }
 
-  // New method to fetch P&L data
+  /**
+   * Fetches aggregated Profit & Loss data broken down by month
+   */
   getAnnualProfitLoss(): Observable<MonthlyProfitData[]> {
     return this.http.get<MonthlyProfitData[]>(`${this.apiUrl}/profit-loss-annual`);
+  }
+
+  /**
+   * Sends a manual expense record to the database
+   * @param expense - { description: string, amount: number, category: string }
+   */
+  addExpense(expense: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/expenses`, expense);
   }
 }
