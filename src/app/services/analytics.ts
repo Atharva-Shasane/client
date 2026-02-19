@@ -56,10 +56,11 @@ export class AnalyticsService {
   }
 
   /**
-   * Fetches aggregated Profit & Loss data broken down by month
+   * Fetches aggregated Profit & Loss data broken down by month for a specific year
+   * Updated to accept year parameter
    */
-  getAnnualProfitLoss(): Observable<MonthlyProfitData[]> {
-    return this.http.get<MonthlyProfitData[]>(`${this.apiUrl}/profit-loss-annual`);
+  getAnnualProfitLoss(year: number): Observable<MonthlyProfitData[]> {
+    return this.http.get<MonthlyProfitData[]>(`${this.apiUrl}/profit-loss-annual?year=${year}`);
   }
 
   /**
@@ -70,17 +71,24 @@ export class AnalyticsService {
     return this.http.post(`${this.apiUrl}/expenses`, expense);
   }
 
+  /**
+   * Fetches all recorded expenses for the management table
+   */
   getExpenseList(): Observable<any[]> {
-  return this.http.get<any[]>(`${this.apiUrl}/expenses/list`);
-}
+    return this.http.get<any[]>(`${this.apiUrl}/expenses/list`);
+  }
 
-updateExpense(id: string, data: any): Observable<any> {
-  return this.http.put(`${this.apiUrl}/expenses/${id}`, data);
-}
+  /**
+   * Updates an existing expense record
+   */
+  updateExpense(id: string, data: any): Observable<any> {
+    return this.http.put(`${this.apiUrl}/expenses/${id}`, data);
+  }
 
-getPaymentComparison(month: number, year: number): Observable<any> {
-  return this.http.get(`${this.apiUrl}/payment-comparison?month=${month}&year=${year}`);
+  /**
+   * Fetches daily online vs offline totals for a specific month and year
+   */
+  getPaymentComparison(month: number, year: number): Observable<any> {
+    return this.http.get(`${this.apiUrl}/payment-comparison?month=${month}&year=${year}`);
+  }
 }
-
-}
-

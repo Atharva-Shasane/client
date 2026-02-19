@@ -134,9 +134,19 @@ import { catchError, of } from 'rxjs';
           <div class="data-panel full-width chart-card">
             <div class="panel-header">
               <h3>Monthly Revenue vs. Expenses</h3>
-              <div class="legend">
-                <span class="legend-item"><span class="dot profit"></span> Revenue</span>
-                <span class="legend-item"><span class="dot expense"></span> Expenses</span>
+              
+              <div class="filter-controls">
+                <input 
+                  type="number" 
+                  class="year-input" 
+                  [value]="chartYear()" 
+                  (change)="onChartYearChange($event)"
+                  placeholder="Year"
+                >
+                <div class="legend">
+                  <span class="legend-item"><span class="dot profit"></span> Revenue</span>
+                  <span class="legend-item"><span class="dot expense"></span> Expenses</span>
+                </div>
               </div>
             </div>
 
@@ -264,11 +274,14 @@ import { catchError, of } from 'rxjs';
     .profit-bar { background: linear-gradient(to top, #00ff00, #3dfc3d); }
     .bar-label { margin-top: 12px; font-size: 0.75rem; font-weight: 700; color: #aaa; text-transform: uppercase; }
 
-    /* Filters & Payment KPI Styles */
+    /* Filters & Search Control Styles */
     .section-header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; margin-top: 40px; }
     .filter-controls { display: flex; gap: 12px; align-items: center; }
-    .year-input { background: #222; color: #fff; border: 1px solid #444; padding: 8px 12px; border-radius: 8px; width: 100px; font-weight: 700; outline: none; }
+    .year-input { background: #222; color: #fff; border: 1px solid #444; padding: 8px 12px; border-radius: 8px; width: 100px; font-weight: 700; outline: none; transition: border-color 0.2s; }
+    .year-input:focus { border-color: var(--killa-orange); }
     .month-select { background: #222; color: #fff; border: 1px solid #444; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 700; }
+
+    /* Payment KPIs */
     .payment-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
     .mini-kpi { background: var(--killa-gray); padding: 24px; border-radius: 15px; border-left: 5px solid #ffcc00; border-right: 1px solid rgba(255,255,255,0.05); }
     .mini-kpi.offline { border-left-color: #ff4444; }
@@ -284,13 +297,14 @@ import { catchError, of } from 'rxjs';
     .expense-table td { padding: 15px 20px; border-bottom: 1px solid #222; }
     .edit-btn { background: transparent; border: 1px solid var(--killa-orange); color: var(--killa-orange); padding: 6px 15px; border-radius: 8px; cursor: pointer; font-weight: 700; }
     
-    /* Common KPI Grid */
+    /* Global Helpers */
     .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 24px; margin-bottom: 48px; }
     .kpi-card { background: var(--killa-gray); border: 1px solid rgba(255,255,255,0.05); border-radius: 20px; padding: 30px; display: flex; gap: 24px; }
     .data-panel { background: var(--killa-gray); border: 1px solid rgba(255,255,255,0.05); border-radius: 24px; padding: 32px; }
     .loader { width: 50px; height: 50px; border: 3px solid transparent; border-top-color: var(--killa-orange); border-radius: 50%; animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .fade-in { animation: fadeIn 0.8s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
   `]
 })
 export class AnalyticsComponent implements OnInit {
@@ -301,8 +315,11 @@ export class AnalyticsComponent implements OnInit {
   annualData = signal<MonthlyProfitData[]>([]);
   expenses = signal<any[]>([]);
   paymentStats = signal<any>(null);
+  
   selectedMonth = signal<number>(new Date().getMonth() + 1);
-  selectedYear = signal<number>(new Date().getFullYear()); //
+  selectedYear = signal<number>(new Date().getFullYear());
+  chartYear = signal<number>(new Date().getFullYear()); //
+
   editingId = signal<string | null>(null);
   isLoading = signal<boolean>(true);
   currentDayLabel = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -310,7 +327,7 @@ export class AnalyticsComponent implements OnInit {
   monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June', 
     'July', 'August', 'September', 'October', 'November', 'December'
-  ]; //
+  ];
 
   ngOnInit() {
     this.refreshAnalytics();
@@ -318,15 +335,20 @@ export class AnalyticsComponent implements OnInit {
 
   refreshAnalytics() {
     this.isLoading.set(true);
+    
+    // Performance Summary
     this.analyticsService.getTodayAnalytics().pipe(catchError(() => of(null))).subscribe((data) => this.todayData.set(data));
+    
+    // Recent Expenses
     this.analyticsService.getExpenseList().subscribe(list => this.expenses.set(list));
     
-    // API with Year and Month
+    // Payment Comparison (using payment filter year)
     this.analyticsService.getPaymentComparison(this.selectedMonth(), this.selectedYear()).subscribe(data => {
       this.paymentStats.set(data);
     });
 
-    this.analyticsService.getAnnualProfitLoss().subscribe({
+    // Updated Annual P&L call with independent chart year
+    this.analyticsService.getAnnualProfitLoss(this.chartYear()).subscribe({
       next: (data) => {
         this.annualData.set(data || []);
         this.isLoading.set(false);
@@ -357,7 +379,16 @@ export class AnalyticsComponent implements OnInit {
       this.selectedYear.set(year);
       this.refreshAnalytics();
     }
-  } //
+  }
+
+  // Handle year search for the Annual Health chart
+  onChartYearChange(event: any) {
+    const year = Number(event.target.value);
+    if (year >= 2020 && year <= 2030) {
+      this.chartYear.set(year);
+      this.refreshAnalytics();
+    }
+  }
 
   startEdit(expense: any) {
     this.editingId.set(expense._id);
@@ -434,5 +465,5 @@ export class AnalyticsComponent implements OnInit {
     const allValues = data.flatMap(d => [d.revenue, d.expenses]);
     const max = Math.max(...allValues, 1000); 
     return (Math.abs(val) / max) * 100;
-  } //
+  }
 }
