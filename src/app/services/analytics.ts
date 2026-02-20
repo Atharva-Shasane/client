@@ -23,10 +23,6 @@ export interface AnalyticsData {
   topSellingItems: TopSellingItem[];
 }
 
-/**
- * Interface representing Monthly financial health
- * Used for the dual-bar P&L chart
- */
 export interface MonthlyProfitData {
   month: string;
   revenue: number;
@@ -57,7 +53,6 @@ export class AnalyticsService {
 
   /**
    * Fetches aggregated Profit & Loss data broken down by month for a specific year
-   * Updated to accept year parameter
    */
   getAnnualProfitLoss(year: number): Observable<MonthlyProfitData[]> {
     return this.http.get<MonthlyProfitData[]>(`${this.apiUrl}/profit-loss-annual?year=${year}`);
@@ -65,7 +60,7 @@ export class AnalyticsService {
 
   /**
    * Sends a manual expense record to the database
-   * @param expense - { description: string, amount: number, category: string }
+   * Updated to handle Month and Year data
    */
   addExpense(expense: any): Observable<any> {
     return this.http.post(`${this.apiUrl}/expenses`, expense);
@@ -79,7 +74,7 @@ export class AnalyticsService {
   }
 
   /**
-   * Updates an existing expense record
+   * Updates an existing expense record (Description, Amount, Month, Year)
    */
   updateExpense(id: string, data: any): Observable<any> {
     return this.http.put(`${this.apiUrl}/expenses/${id}`, data);
@@ -90,5 +85,9 @@ export class AnalyticsService {
    */
   getPaymentComparison(month: number, year: number): Observable<any> {
     return this.http.get(`${this.apiUrl}/payment-comparison?month=${month}&year=${year}`);
+  }
+
+  deleteExpense(id: string): Observable<any> {
+  return this.http.delete(`${this.apiUrl}/expenses/${id}`);
   }
 }
