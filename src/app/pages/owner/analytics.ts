@@ -29,6 +29,7 @@ import { catchError, of } from 'rxjs';
 
       <div *ngIf="!isLoading()" class="analytics-content fade-in">
         
+        <!-- Expense Form Section -->
         <section class="metrics-section">
           <h2 class="section-title">Record Business Expense</h2>
           <div class="data-panel form-panel" [class.editing-mode]="editingId()">
@@ -61,6 +62,7 @@ import { catchError, of } from 'rxjs';
           </div>
         </section>
 
+        <!-- KPI Summary Cards -->
         <section class="metrics-section">
           <h2 class="section-title">Performance Summary</h2>
           <div class="metrics-grid">
@@ -98,6 +100,7 @@ import { catchError, of } from 'rxjs';
           </div>
         </section>
 
+        <!-- Expense Table Section -->
         <section class="metrics-section">
           <h2 class="section-title">Manage Recent Expenses</h2>
           <div class="data-panel table-panel scroll-container">
@@ -127,6 +130,7 @@ import { catchError, of } from 'rxjs';
           </div>
         </section>
 
+        <!-- Annual Financial Health (Unified Bar Graph) -->
         <section class="metrics-section">
           <h2 class="section-title">Annual Financial Health</h2>
           <div class="data-panel full-width chart-card">
@@ -143,24 +147,25 @@ import { catchError, of } from 'rxjs';
             
             <div class="chart-wrapper">
               <div class="y-axis">
-                <span>{{ getMaxVal() | number:'1.0-0' }}</span>
-                <span>{{ (getMaxVal() / 2) | number:'1.0-0' }}</span>
+                <span>MAX</span>
+                <span>50%</span>
                 <span>0</span>
               </div>
 
               <div class="chart-canvas">
                 <div class="bars-container">
-                  <div class="bar-group" *ngFor="let m of annualData()">
-                    <div class="dual-bar-track">
-                      <div class="bar-fill expense-bar" 
-                           [style.height]="getReportHeight(m.expenses) + '%'"
-                           [style.min-height]="m.expenses > 0 ? '4px' : '0px'">
-                        <span class="bar-value-tooltip">Exp: ₹{{ m.expenses | number }}</span>
-                      </div>
-                      <div class="bar-fill profit-bar" 
-                           [style.height]="getReportHeight(m.revenue) + '%'"
+                  <!-- Unified Side-by-Side Bar Logic -->
+                  <div class="month-group" *ngFor="let m of annualData()">
+                    <div class="bar-pair">
+                      <div class="bar revenue" 
+                           [style.height.%]="getReportHeight(m.revenue)"
                            [style.min-height]="m.revenue > 0 ? '4px' : '0px'">
                         <span class="bar-value-tooltip">Rev: ₹{{ m.revenue | number }}</span>
+                      </div>
+                      <div class="bar expense" 
+                           [style.height.%]="getReportHeight(m.expenses)"
+                           [style.min-height]="m.expenses > 0 ? '4px' : '0px'">
+                        <span class="bar-value-tooltip">Exp: ₹{{ m.expenses | number }}</span>
                       </div>
                     </div>
                     <span class="bar-label">{{ m.month }}</span>
@@ -170,6 +175,8 @@ import { catchError, of } from 'rxjs';
             </div>
           </div>
         </section>
+
+        <!-- Payment Distribution Stats -->
         <section class="metrics-section">
           <h2 class="section-title">Payment Distribution</h2>
           <div class="metrics-grid">
@@ -193,6 +200,7 @@ import { catchError, of } from 'rxjs';
           </div>
         </section>
 
+        <!-- Payment Trend Line Chart -->
         <section class="metrics-section">
           <div class="section-header-flex">
             <h2 class="section-title">Payment Trend Analysis</h2>
@@ -263,19 +271,49 @@ import { catchError, of } from 'rxjs';
     .delete-btn:hover { background: #ff4444; color: #fff; }
     .edit-btn { background: transparent; border: 1px solid var(--killa-orange); color: var(--killa-orange); padding: 6px 15px; border-radius: 8px; cursor: pointer; font-weight: 700; }
 
-    /* Graph Poles */
+    /* UNIFIED GRAPH STYLES */
     .chart-wrapper { display: flex; gap: 20px; height: 350px; margin-top: 20px; }
     .y-axis { display: flex; flex-direction: column; justify-content: space-between; color: #555; font-size: 0.7rem; font-weight: 900; padding-bottom: 25px; text-align: right; min-width: 40px; }
     .chart-canvas { flex-grow: 1; border-left: 1px solid #333; border-bottom: 1px solid #333; position: relative; }
-    .bars-container { width: 100%; height: 100%; display: flex; justify-content: space-around; align-items: flex-end; }
-    .dual-bar-track { display: flex; align-items: flex-end; gap: 6px; height: 100%; }
-    .bar-fill { width: 22px; border-radius: 4px 4px 0 0; position: relative; cursor: pointer; transition: height 0.3s ease-in-out; }
-    .bar-fill:hover .bar-value-tooltip { opacity: 1; transform: translateX(-50%) translateY(-5px); }
-    .bar-value-tooltip { position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: #fff; color: #000; padding: 5px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 800; opacity: 0; pointer-events: none; white-space: nowrap; z-index: 10; transition: 0.2s; }
+    .bars-container { width: 100%; height: 100%; display: flex; justify-content: space-around; align-items: flex-end; padding: 0 10px; }
     
-    .expense-bar { background: linear-gradient(to top, #ff4444, #ff8888); }
-    .profit-bar { background: linear-gradient(to top, #00ff00, #88ff88); }
-    .bar-label { margin-top: 15px; font-size: 0.65rem; color: #555; font-weight: 900; text-transform: uppercase; }
+    .month-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+      width: 60px; /* Unified width for the month slot */
+      height: 100%;
+      justify-content: flex-end;
+    }
+
+    .bar-pair {
+      display: flex;
+      align-items: flex-end;
+      gap: 4px; /* Space between side-by-side bars */
+      height: 100%;
+    }
+
+    .bar {
+      width: 18px;
+      border-radius: 4px 4px 0 0;
+      position: relative;
+      cursor: pointer;
+      transition: height 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .bar.revenue { background: linear-gradient(to top, #00ff00, #88ff88); }
+    .bar.expense { background: linear-gradient(to top, #ff4444, #ff8888); }
+
+    .bar:hover .bar-value-tooltip { opacity: 1; transform: translateX(-50%) translateY(-5px); }
+    .bar-value-tooltip { 
+      position: absolute; top: -35px; left: 50%; transform: translateX(-50%); 
+      background: #fff; color: #000; padding: 5px 10px; border-radius: 6px; 
+      font-size: 0.7rem; font-weight: 800; opacity: 0; pointer-events: none; 
+      white-space: nowrap; z-index: 10; transition: 0.2s; 
+    }
+
+    .bar-label { font-size: 0.65rem; color: #555; font-weight: 900; text-transform: uppercase; margin-bottom: -20px; }
 
     .line-chart-container { height: 350px; position: relative; }
     .svg-chart { width: 100%; height: 280px; }
@@ -337,7 +375,10 @@ export class AnalyticsComponent implements OnInit {
     
     this.analyticsService.getAnnualProfitLoss(this.chartYear()).subscribe({
       next: (data) => {
-        this.annualData.set(data || []);
+        // Assume data comes in as { chartData: [], maxValue: number } if you updated backend
+        // If not, our local getMaxVal() will handle it safely
+        const reportData = (data as any).chartData || data;
+        this.annualData.set(reportData || []);
         this.isLoading.set(false);
       },
       error: () => this.isLoading.set(false)
@@ -420,15 +461,22 @@ export class AnalyticsComponent implements OnInit {
     return data && data.totalOrders ? data.totalRevenue / data.totalOrders : 0;
   }
 
-  // UPDATED HELPER: For relative graph scaling
+  // RE-IMPLEMENTED LOGIC: Unified globalMax
   getMaxVal() {
     const data = this.annualData();
-    if (!data.length) return 1000;
-    return Math.max(...data.flatMap(d => [d.revenue, d.expenses]), 1000);
+    if (!data.length) return 1;
+    
+    // Find highest value across ALL revenues and ALL expenses
+    const allValues = data.flatMap(m => [m.revenue, m.expenses]);
+    const max = Math.max(...allValues, 1); 
+    
+    return max;
   }
 
   getReportHeight(val: number) {
-    return (val / this.getMaxVal()) * 100;
+    // Both red and green bars now divide by the SAME max
+    const globalMax = this.getMaxVal();
+    return (val / globalMax) * 100;
   }
 
   getLinePoints(type: 'online' | 'offline'): string {
