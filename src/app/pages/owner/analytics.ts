@@ -22,7 +22,6 @@ import { catchError, of } from 'rxjs';
         </div>
       </header>
 
-      <!-- Loading State -->
       <div *ngIf="isLoading()" class="loading-overlay">
         <div class="loader"></div>
         <p>Syncing Data...</p>
@@ -30,7 +29,6 @@ import { catchError, of } from 'rxjs';
 
       <div *ngIf="!isLoading()" class="analytics-content fade-in">
         
-        <!-- 1. RECORD FORM -->
         <section class="metrics-section">
           <h2 class="section-title">Record Business Expense</h2>
           <div class="data-panel form-panel" [class.editing-mode]="editingId()">
@@ -63,7 +61,6 @@ import { catchError, of } from 'rxjs';
           </div>
         </section>
 
-        <!-- 2. PERFORMANCE SUMMARY (KPI BOXES) -->
         <section class="metrics-section">
           <h2 class="section-title">Performance Summary</h2>
           <div class="metrics-grid">
@@ -101,7 +98,6 @@ import { catchError, of } from 'rxjs';
           </div>
         </section>
 
-        <!-- 3. MANAGE RECENT EXPENSES (SCROLLABLE BOX) -->
         <section class="metrics-section">
           <h2 class="section-title">Manage Recent Expenses</h2>
           <div class="data-panel table-panel scroll-container">
@@ -131,7 +127,6 @@ import { catchError, of } from 'rxjs';
           </div>
         </section>
 
-        <!-- 4. ANNUAL HEALTH (BAR GRAPH) -->
         <section class="metrics-section">
           <h2 class="section-title">Annual Financial Health</h2>
           <div class="data-panel full-width chart-card">
@@ -145,17 +140,27 @@ import { catchError, of } from 'rxjs';
                 </div>
               </div>
             </div>
+            
             <div class="chart-wrapper">
-              <div class="y-axis"><span>MAX</span><span>50%</span><span>0%</span></div>
+              <div class="y-axis">
+                <span>{{ getMaxVal() | number:'1.0-0' }}</span>
+                <span>{{ (getMaxVal() / 2) | number:'1.0-0' }}</span>
+                <span>0</span>
+              </div>
+
               <div class="chart-canvas">
                 <div class="bars-container">
                   <div class="bar-group" *ngFor="let m of annualData()">
                     <div class="dual-bar-track">
-                      <div class="bar-fill expense-bar" [style.height]="getReportHeight(m.expenses) + '%'">
-                        <span class="bar-value-tooltip">Exp: ₹{{ m.expenses | number:'1.0-0' }}</span>
+                      <div class="bar-fill expense-bar" 
+                           [style.height]="getReportHeight(m.expenses) + '%'"
+                           [style.min-height]="m.expenses > 0 ? '4px' : '0px'">
+                        <span class="bar-value-tooltip">Exp: ₹{{ m.expenses | number }}</span>
                       </div>
-                      <div class="bar-fill profit-bar" [style.height]="getReportHeight(m.revenue) + '%'">
-                        <span class="bar-value-tooltip">Rev: ₹{{ m.revenue | number:'1.0-0' }}</span>
+                      <div class="bar-fill profit-bar" 
+                           [style.height]="getReportHeight(m.revenue) + '%'"
+                           [style.min-height]="m.revenue > 0 ? '4px' : '0px'">
+                        <span class="bar-value-tooltip">Rev: ₹{{ m.revenue | number }}</span>
                       </div>
                     </div>
                     <span class="bar-label">{{ m.month }}</span>
@@ -165,8 +170,6 @@ import { catchError, of } from 'rxjs';
             </div>
           </div>
         </section>
-
-        <!-- 5. PAYMENT DISTRIBUTION (BOXES) -->
         <section class="metrics-section">
           <h2 class="section-title">Payment Distribution</h2>
           <div class="metrics-grid">
@@ -190,7 +193,6 @@ import { catchError, of } from 'rxjs';
           </div>
         </section>
 
-        <!-- 6. PAYMENT TREND (LINE GRAPH) -->
         <section class="metrics-section">
           <div class="section-header-flex">
             <h2 class="section-title">Payment Trend Analysis</h2>
@@ -230,7 +232,6 @@ import { catchError, of } from 'rxjs';
     .pulse { width: 10px; height: 10px; background: #00ff00; border-radius: 50%; animation: pulse-ring 1.5s infinite; }
     @keyframes pulse-ring { 0% { opacity: 0.8; } 50% { opacity: 0.4; } 100% { opacity: 0.8; } }
 
-    /* KPI Grid & Cards */
     .metrics-section { margin-bottom: 48px; max-width: 1400px; margin-left: auto; margin-right: auto; }
     .section-title { font-size: 1.1rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 24px; color: var(--killa-orange); border-left: 4px solid var(--killa-orange); padding-left: 15px; }
     .data-panel { background: var(--killa-gray); border: 1px solid rgba(255,255,255,0.05); border-radius: 24px; padding: 32px; }
@@ -248,7 +249,6 @@ import { catchError, of } from 'rxjs';
     .revenue-pill { background: rgba(0,255,0,0.1); color: #00ff00; }
     .expense-pill { background: rgba(255,0,0,0.1); color: #ff4444; }
 
-    /* Scrollable Box */
     .scroll-container { max-height: 350px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--killa-orange) #222; }
     .scroll-container::-webkit-scrollbar { width: 6px; }
     .scroll-container::-webkit-scrollbar-thumb { background: var(--killa-orange); border-radius: 10px; }
@@ -263,21 +263,20 @@ import { catchError, of } from 'rxjs';
     .delete-btn:hover { background: #ff4444; color: #fff; }
     .edit-btn { background: transparent; border: 1px solid var(--killa-orange); color: var(--killa-orange); padding: 6px 15px; border-radius: 8px; cursor: pointer; font-weight: 700; }
 
-    /* Fixed Bar Graph Poles */
+    /* Graph Poles */
     .chart-wrapper { display: flex; gap: 20px; height: 350px; margin-top: 20px; }
-    .y-axis { display: flex; flex-direction: column; justify-content: space-between; color: #555; font-size: 0.7rem; font-weight: 800; padding-bottom: 20px; }
+    .y-axis { display: flex; flex-direction: column; justify-content: space-between; color: #555; font-size: 0.7rem; font-weight: 900; padding-bottom: 25px; text-align: right; min-width: 40px; }
     .chart-canvas { flex-grow: 1; border-left: 1px solid #333; border-bottom: 1px solid #333; position: relative; }
     .bars-container { width: 100%; height: 100%; display: flex; justify-content: space-around; align-items: flex-end; }
     .dual-bar-track { display: flex; align-items: flex-end; gap: 6px; height: 100%; }
-    .bar-fill { width: 22px; border-radius: 4px 4px 0 0; position: relative; cursor: pointer; transition: 0.3s ease; min-height: 2px; }
+    .bar-fill { width: 22px; border-radius: 4px 4px 0 0; position: relative; cursor: pointer; transition: height 0.3s ease-in-out; }
     .bar-fill:hover .bar-value-tooltip { opacity: 1; transform: translateX(-50%) translateY(-5px); }
     .bar-value-tooltip { position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: #fff; color: #000; padding: 5px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 800; opacity: 0; pointer-events: none; white-space: nowrap; z-index: 10; transition: 0.2s; }
     
-    .expense-bar { background: linear-gradient(to top, #ff4444, #ff6b6b); }
-    .profit-bar { background: linear-gradient(to top, #00ff00, #3dfc3d); }
-    .bar-label { margin-top: 15px; font-size: 0.7rem; color: #666; font-weight: 800; }
+    .expense-bar { background: linear-gradient(to top, #ff4444, #ff8888); }
+    .profit-bar { background: linear-gradient(to top, #00ff00, #88ff88); }
+    .bar-label { margin-top: 15px; font-size: 0.65rem; color: #555; font-weight: 900; text-transform: uppercase; }
 
-    /* Other Charts & Controls */
     .line-chart-container { height: 350px; position: relative; }
     .svg-chart { width: 100%; height: 280px; }
     .chart-labels { display: flex; justify-content: space-between; color: var(--killa-muted); font-size: 0.8rem; margin-top: 10px; font-weight: 800; }
@@ -295,6 +294,13 @@ import { catchError, of } from 'rxjs';
     .loader { width: 60px; height: 60px; border: 5px solid rgba(255,102,0,0.1); border-top-color: var(--killa-orange); border-radius: 50%; animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .fade-in { animation: fadeIn 0.8s ease-out; }
+    
+    .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .legend { display: flex; gap: 15px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 700; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot.profit { background: #00ff00; }
+    .dot.expense { background: #ff4444; }
   `]
 })
 export class AnalyticsComponent implements OnInit {
@@ -325,17 +331,10 @@ export class AnalyticsComponent implements OnInit {
 
   refreshAnalytics() {
     this.isLoading.set(true);
-    // KPIs
-    this.analyticsService.getTodayAnalytics().pipe(catchError(() => of(null))).subscribe(data => {
-      this.todayData.set(data);
-    });
-    // Table
+    this.analyticsService.getTodayAnalytics().pipe(catchError(() => of(null))).subscribe(data => this.todayData.set(data));
     this.analyticsService.getExpenseList().subscribe(list => this.expenses.set(list));
-    // Payment Breakdown
-    this.analyticsService.getPaymentComparison(this.selectedMonth(), this.selectedYear()).subscribe(data => {
-      this.paymentStats.set(data);
-    });
-    // Annual Graph
+    this.analyticsService.getPaymentComparison(this.selectedMonth(), this.selectedYear()).subscribe(data => this.paymentStats.set(data));
+    
     this.analyticsService.getAnnualProfitLoss(this.chartYear()).subscribe({
       next: (data) => {
         this.annualData.set(data || []);
@@ -392,34 +391,44 @@ export class AnalyticsComponent implements OnInit {
   onYearChange(event: any) { const yr = Number(event.target.value); if (yr >= 2000) { this.selectedYear.set(yr); this.refreshAnalytics(); }}
   onChartYearChange(event: any) { const yr = Number(event.target.value); if (yr >= 2000) { this.chartYear.set(yr); this.refreshAnalytics(); }}
 
-  // Signal processing for KPI cards
+  private getMonthData() {
+    const currentMonthIndex = new Date().getMonth();
+    const currentMonthFullName = this.monthNames[currentMonthIndex].toUpperCase();
+    const currentMonthShortName = currentMonthFullName.substring(0, 3);
+    
+    return this.annualData().find(m => 
+      m.month.toUpperCase() === currentMonthFullName || 
+      m.month.toUpperCase() === currentMonthShortName
+    );
+  }
+
   getCurrentMonthProfit() {
-    const label = new Date().toLocaleString('default', { month: 'short' }).toUpperCase();
-    const data = this.annualData().find(m => m.month === label);
+    const data = this.getMonthData();
     return data ? data.revenue - data.expenses : 0;
   }
   getCurrentMonthRevenue() {
-    const label = new Date().toLocaleString('default', { month: 'short' }).toUpperCase();
-    const data = this.annualData().find(m => m.month === label);
+    const data = this.getMonthData();
     return data ? data.revenue : 0;
   }
   getCurrentMonthExpenses() {
-    const label = new Date().toLocaleString('default', { month: 'short' }).toUpperCase();
-    const data = this.annualData().find(m => m.month === label);
+    const data = this.getMonthData();
     return data ? data.expenses : 0;
   }
+
   calculateAOV() {
     const data = this.todayData();
     return data && data.totalOrders ? data.totalRevenue / data.totalOrders : 0;
   }
 
-  // Visual Graph Mapping
-  getReportHeight(val: number) {
+  // UPDATED HELPER: For relative graph scaling
+  getMaxVal() {
     const data = this.annualData();
-    if (data.length === 0) return 0;
-    const allValues = data.flatMap(d => [d.revenue, d.expenses]);
-    const max = Math.max(...allValues, 1); 
-    return (Math.abs(val) / max) * 100;
+    if (!data.length) return 1000;
+    return Math.max(...data.flatMap(d => [d.revenue, d.expenses]), 1000);
+  }
+
+  getReportHeight(val: number) {
+    return (val / this.getMaxVal()) * 100;
   }
 
   getLinePoints(type: 'online' | 'offline'): string {
