@@ -30,6 +30,7 @@ import { CartService } from '../../services/cart';
           <div class="links">
             <a routerLink="/home" routerLinkActive="active" (click)="closeMenu()">Home</a>
             <a routerLink="/menu" routerLinkActive="active" (click)="closeMenu()">Menu</a>
+
             <a
               *ngIf="authService.isLoggedIn()"
               routerLink="/my-orders"
@@ -38,6 +39,7 @@ import { CartService } from '../../services/cart';
               >My Orders</a
             >
 
+            <!-- Owner Specific Links -->
             <ng-container *ngIf="isOwner()">
               <div class="divider"></div>
               <a
@@ -48,6 +50,7 @@ import { CartService } from '../../services/cart';
                 class="owner-link"
                 >Dashboard</a
               >
+
               <a
                 routerLink="/owner/menu"
                 routerLinkActive="active"
@@ -55,6 +58,7 @@ import { CartService } from '../../services/cart';
                 class="owner-link"
                 >Manage Menu</a
               >
+
               <a
                 routerLink="/owner/analytics"
                 routerLinkActive="active"
@@ -62,15 +66,24 @@ import { CartService } from '../../services/cart';
                 class="owner-link"
                 >Analytics</a
               >
+
+              <!-- New Feedback Admin Link -->
+              <a
+                routerLink="/owner/feedback"
+                routerLinkActive="active"
+                (click)="closeMenu()"
+                class="owner-link"
+                >User Feedback</a
+              >
             </ng-container>
           </div>
 
           <div class="actions">
             <a routerLink="/cart" routerLinkActive="active" class="cart-btn" (click)="closeMenu()">
               <span class="icon">🛒</span>
-              <span class="badge" *ngIf="cartService.totalItems() > 0">{{
-                cartService.totalItems()
-              }}</span>
+              <span class="badge" *ngIf="cartService.totalItems() > 0">
+                {{ cartService.totalItems() }}
+              </span>
             </a>
 
             <ng-container *ngIf="!authService.isLoggedIn()">
@@ -127,7 +140,6 @@ import { CartService } from '../../services/cart';
       .highlight {
         color: #ff6600;
       }
-
       .nav-content {
         display: flex;
         align-items: center;
@@ -151,7 +163,6 @@ import { CartService } from '../../services/cart';
       .links a.active {
         color: #ff6600;
       }
-
       .owner-link {
         color: #f39c12 !important;
         font-weight: 800 !important;
@@ -162,7 +173,6 @@ import { CartService } from '../../services/cart';
         background: #333;
         margin: 0 10px;
       }
-
       .actions {
         display: flex;
         align-items: center;
@@ -179,10 +189,6 @@ import { CartService } from '../../services/cart';
         align-items: center;
         justify-content: center;
         border-radius: 12px;
-        transition: 0.2s;
-      }
-      .cart-btn:hover {
-        background: rgba(255, 255, 255, 0.1);
       }
       .badge {
         position: absolute;
@@ -196,24 +202,15 @@ import { CartService } from '../../services/cart';
         font-weight: 800;
         border: 2px solid #111;
       }
-
-      .btn-login {
-        color: white;
-        text-decoration: none;
-        font-weight: 600;
-        font-size: 0.9rem;
-      }
       .join-btn {
         background: #ff6600;
         color: white;
-        text-decoration: none;
         padding: 10px 24px;
         border-radius: 10px;
         font-weight: 800;
+        text-decoration: none;
         font-size: 0.9rem;
-        box-shadow: 0 4px 15px rgba(255, 107, 0, 0.2);
       }
-
       .user-pill {
         background: #222;
         padding: 6px 16px;
@@ -239,7 +236,6 @@ import { CartService } from '../../services/cart';
         text-transform: uppercase;
       }
 
-      /* Mobile Toggle */
       .menu-toggle {
         display: none;
         background: none;
@@ -255,15 +251,6 @@ import { CartService } from '../../services/cart';
         background: white;
         transition: 0.3s;
       }
-      .bar.open:nth-child(1) {
-        transform: translateY(8px) rotate(45deg);
-      }
-      .bar.open:nth-child(2) {
-        opacity: 0;
-      }
-      .bar.open:nth-child(3) {
-        transform: translateY(-8px) rotate(-45deg);
-      }
 
       @media (max-width: 1100px) {
         .menu-toggle {
@@ -272,43 +259,24 @@ import { CartService } from '../../services/cart';
         .nav-content {
           position: fixed;
           top: 0;
-          right: -100%;
+          right: 100%;
           height: 100vh;
           width: 300px;
           background: #0a0a0a;
           flex-direction: column;
           padding: 100px 30px;
-          transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: 0.4s;
           align-items: flex-start;
           gap: 40px;
-          box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
         }
         .nav-content.mobile-open {
           right: 0;
         }
-        .links {
-          flex-direction: column;
-          width: 100%;
-          align-items: flex-start;
-        }
-        .links a {
-          font-size: 1.2rem;
-          width: 100%;
-          padding-bottom: 15px;
-          border-bottom: 1px solid #222;
-        }
+        .links,
         .actions {
           flex-direction: column;
           width: 100%;
           align-items: flex-start;
-          gap: 25px;
-        }
-        .nav-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0, 0, 0, 0.8);
-          backdrop-filter: blur(5px);
-          z-index: 1500;
         }
         .divider {
           display: none;
@@ -320,15 +288,18 @@ import { CartService } from '../../services/cart';
 export class NavbarComponent {
   authService = inject(AuthService);
   cartService = inject(CartService);
+
   isMenuOpen = signal(false);
   isScrolled = signal(false);
 
   toggleMenu() {
     this.isMenuOpen.set(!this.isMenuOpen());
   }
+
   closeMenu() {
     this.isMenuOpen.set(false);
   }
+
   isOwner() {
     return this.authService.currentUser()?.role === 'OWNER';
   }

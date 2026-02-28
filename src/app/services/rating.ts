@@ -26,11 +26,11 @@ export class RatingService {
     });
   }
 
-  dismissFeedback(orderId: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/dismiss`, { orderId }, { withCredentials: true });
-  }
-
   submitFeedback(data: { orderId: string; rating: number; comment?: string }): Observable<any> {
     return this.http.post(this.apiUrl, data, { withCredentials: true });
+  }
+
+  getAdminFeedback(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/admin/all`, { withCredentials: true });
   }
 }

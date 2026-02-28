@@ -14,73 +14,67 @@ import { ToastService } from '../../services/toast';
     <div class="checkout-wrapper fade-in">
       <div class="container">
         <header class="header">
-          <button class="back-link" (click)="router.navigate(['/cart'])">← Back to Cart</button>
-          <h1>Finalize Your <span class="highlight">Feast</span></h1>
+          <button class="back-link" (click)="router.navigate(['cart'])">← Return to Cart</button>
+          <span class="badge">Final Step</span>
+          <h1>Complete Your <span class="highlight">Order</span></h1>
         </header>
 
         <div class="checkout-grid">
           <!-- Selection Side -->
           <div class="form-side">
-            <!-- Order Type -->
             <div class="config-card glass-card">
-              <div class="card-header-icon">📍</div>
-              <h3>Dining Experience</h3>
-              <div class="preference-grid">
-                <label class="pref-option" [class.active]="orderType === 'DINE_IN'">
+              <div class="card-head">
+                <span class="icon">🏠</span>
+                <h3>Dining Preference</h3>
+              </div>
+
+              <div class="option-grid">
+                <label class="select-card" [class.active]="orderType === 'DINE_IN'">
                   <input type="radio" name="orderType" [(ngModel)]="orderType" value="DINE_IN" />
-                  <div class="pref-content">
-                    <span class="pref-icon">🍽️</span>
-                    <div class="pref-text">
-                      <span class="title">Dine In</span>
-                      <span class="desc">Reserved Table</span>
-                    </div>
+                  <div class="card-content">
+                    <span class="card-title">Dine In</span>
+                    <span class="card-desc">Reserve a table at our venue</span>
                   </div>
                 </label>
-
-                <label class="pref-option" [class.active]="orderType === 'TAKEAWAY'">
+                <label class="select-card" [class.active]="orderType === 'TAKEAWAY'">
                   <input type="radio" name="orderType" [(ngModel)]="orderType" value="TAKEAWAY" />
-                  <div class="pref-content">
-                    <span class="pref-icon">🥡</span>
-                    <div class="pref-text">
-                      <span class="title">Takeaway</span>
-                      <span class="desc">Quick Pickup</span>
-                    </div>
+                  <div class="card-content">
+                    <span class="card-title">Takeaway</span>
+                    <span class="card-desc">Pick up your feast at the counter</span>
                   </div>
                 </label>
               </div>
 
-              <!-- Custom Time Picker Logic -->
-              <div *ngIf="orderType === 'DINE_IN'" class="schedule-box fade-in">
-                <div class="schedule-grid">
-                  <div class="schedule-item">
+              <!-- Extra info for Dine-in -->
+              <div *ngIf="orderType === 'DINE_IN'" class="extra-config fade-in">
+                <div class="row">
+                  <div class="field">
                     <label>Guest Count</label>
-                    <div class="number-stepper">
-                      <button type="button" (click)="updateGuests(-1)">-</button>
-                      <span class="count">{{ numberOfPeople }}</span>
-                      <button type="button" (click)="updateGuests(1)">+</button>
+                    <div class="stepper">
+                      <button (click)="updateGuests(-1)">-</button>
+                      <span class="val">{{ numberOfPeople }}</span>
+                      <button (click)="updateGuests(1)">+</button>
                     </div>
                   </div>
-                  <div class="schedule-item">
+                  <div class="field">
                     <label>Arrival Date</label>
                     <input
                       type="date"
-                      class="custom-input"
                       [(ngModel)]="selectedDate"
                       [min]="minDate"
+                      class="dark-input"
                       (change)="generateTimeSlots()"
                     />
                   </div>
                 </div>
-
-                <div class="slots-container">
-                  <label>Select Arrival Time</label>
+                <div class="slots-area">
+                  <label>Arrival Time Slot</label>
                   <div class="slots-grid">
                     <button
-                      type="button"
                       *ngFor="let slot of availableSlots"
-                      class="slot-btn"
                       [class.active]="selectedSlot === slot"
                       (click)="selectedSlot = slot"
+                      class="slot-btn"
                     >
                       {{ slot }}
                     </button>
@@ -89,26 +83,25 @@ import { ToastService } from '../../services/toast';
               </div>
             </div>
 
-            <!-- Payment Method -->
             <div class="config-card glass-card">
-              <div class="card-header-icon">💳</div>
-              <h3>Payment Selection</h3>
-              <div class="payment-stack">
-                <label class="pay-item" [class.active]="paymentMethod === 'CASH'">
+              <div class="card-head">
+                <span class="icon">💳</span>
+                <h3>Payment Method</h3>
+              </div>
+
+              <div class="payment-list">
+                <label class="payment-card" [class.active]="paymentMethod === 'CASH'">
                   <input type="radio" name="payMethod" [(ngModel)]="paymentMethod" value="CASH" />
-                  <span class="dot"></span>
-                  <div class="pay-info">
-                    <span class="label">Pay at Restaurant</span>
-                    <span class="desc">Pay via Cash/UPI at our legendary counter</span>
+                  <div class="p-info">
+                    <span class="p-title">Pay at Restaurant</span>
+                    <span class="p-desc">Cash or UPI at the counter</span>
                   </div>
                 </label>
-
-                <label class="pay-item" [class.active]="paymentMethod === 'ONLINE'">
+                <label class="payment-card" [class.active]="paymentMethod === 'ONLINE'">
                   <input type="radio" name="payMethod" [(ngModel)]="paymentMethod" value="ONLINE" />
-                  <span class="dot"></span>
-                  <div class="pay-info">
-                    <span class="label">Secure Online Payment</span>
-                    <span class="desc">Fast and encrypted checkout with KillaPay</span>
+                  <div class="p-info">
+                    <span class="p-title">KillaPay Secure Online</span>
+                    <span class="p-desc">Instant confirmation with card/UPI</span>
                   </div>
                 </label>
               </div>
@@ -116,18 +109,16 @@ import { ToastService } from '../../services/toast';
 
             <button
               (click)="handleCheckout()"
-              class="main-order-btn"
+              class="submit-order-btn"
               [disabled]="
                 loading ||
                 cartService.totalItems() === 0 ||
                 (orderType === 'DINE_IN' && !selectedSlot)
               "
             >
-              <span *ngIf="!loading">
-                {{
-                  paymentMethod === 'ONLINE' ? 'Verify & Secure Payment' : 'Confirm Legendary Order'
-                }}
-              </span>
+              <span *ngIf="!loading">{{
+                paymentMethod === 'ONLINE' ? 'Verify & Pay Now' : 'Confirm Order'
+              }}</span>
               <span *ngIf="loading">Processing Order...</span>
             </button>
           </div>
@@ -135,37 +126,23 @@ import { ToastService } from '../../services/toast';
           <!-- Sidebar Summary -->
           <div class="summary-side">
             <div class="summary-box glass-card sticky-top">
-              <h3>Order Summary</h3>
-              <div class="item-scroll">
-                <div *ngFor="let item of cartService.cartItems()" class="mini-item">
-                  <div class="info">
-                    <span class="qty">{{ item.quantity }}x</span>
-                    <span class="name">{{ item.name }}</span>
+              <h3>Receipt</h3>
+              <div class="items-list-mini">
+                <div *ngFor="let item of cartService.cartItems()" class="mini-row">
+                  <div class="m-info">
+                    <span class="m-qty">{{ item.quantity }}x</span>
+                    <span class="m-name">{{ item.name }}</span>
                   </div>
-                  <span class="price">₹{{ item.computedPrice * item.quantity }}</span>
+                  <span class="m-price">₹{{ item.computedPrice * item.quantity }}</span>
                 </div>
               </div>
 
-              <div class="bill-details">
-                <div class="bill-row">
-                  <span>Subtotal</span>
-                  <span>₹{{ cartService.totalPrice() }}</span>
+              <div class="totals-area">
+                <div class="t-row">
+                  <span>Total Payable</span>
+                  <span class="t-val">₹{{ cartService.totalPrice() }}</span>
                 </div>
-                <div class="bill-row">
-                  <span>Legendary Tax (5%)</span>
-                  <span>₹{{ (cartService.totalPrice() * 0.05).toFixed(0) }}</span>
-                </div>
-                <div class="bill-row grand">
-                  <span>Grand Total</span>
-                  <span class="val">₹{{ (cartService.totalPrice() * 1.05).toFixed(0) }}</span>
-                </div>
-
-                <div
-                  class="schedule-summary fade-in"
-                  *ngIf="orderType === 'DINE_IN' && selectedSlot"
-                >
-                  <span class="icon">📅</span> Reserved for {{ selectedSlot }} on {{ selectedDate }}
-                </div>
+                <p class="tax-note">Fixed pricing with no hidden charges</p>
               </div>
             </div>
           </div>
@@ -173,422 +150,376 @@ import { ToastService } from '../../services/toast';
       </div>
     </div>
 
-    <!-- Payment Simulation -->
+    <!-- Payment Overlay -->
     <div class="pay-overlay" *ngIf="showPaymentModal">
-      <div class="pay-dialog glass-card">
-        <div class="loader-circle"></div>
-        <h4>Securing Your Transaction</h4>
-        <p>Connecting to KillaPay secure nodes... Please stay legendary.</p>
-        <div class="status-success fade-in" *ngIf="paymentStep === 'SUCCESS'">
-          <span class="icon-check">✔</span> Payment Authorized!
-        </div>
+      <div class="pay-dialog glass-card animate-pop">
+        <div class="spinner"></div>
+        <h4>Securing Transaction</h4>
+        <p>Connecting to KillaPay servers...</p>
+        <div class="success-msg fade-in" *ngIf="paymentStep === 'SUCCESS'">Payment Authorized!</div>
       </div>
     </div>
   `,
   styles: [
     `
       .checkout-wrapper {
-        padding: 120px 0 80px;
+        padding: 100px 0 80px;
         min-height: 100vh;
-        background: #0a0a0a;
+        background: #050505;
         color: white;
-        font-family: 'Poppins', sans-serif;
+        font-family: 'Inter', sans-serif;
       }
       .container {
-        max-width: 1200px;
+        max-width: 1300px;
         margin: 0 auto;
         padding: 0 24px;
       }
-      .header {
-        margin-bottom: 40px;
+      .badge {
+        color: #ff6600;
+        font-weight: 800;
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+      }
+      .header h1 {
+        font-size: 2.5rem;
+        font-weight: 900;
+        margin: 10px 0;
+        letter-spacing: -1px;
+      }
+      .highlight {
+        color: #ff6600;
       }
       .back-link {
         background: none;
         border: none;
         color: #ff6600;
-        font-weight: 800;
         cursor: pointer;
-        margin-bottom: 15px;
-        font-size: 0.9rem;
+        font-weight: 800;
+        margin-bottom: 20px;
         transition: 0.2s;
       }
       .back-link:hover {
-        color: white;
-        transform: translateX(-5px);
-      }
-      .header h1 {
-        font-size: 3.2rem;
-        font-weight: 900;
-        margin: 0;
-        letter-spacing: -1.5px;
-      }
-      .highlight {
-        color: #ff6600;
+        color: #fff;
       }
 
       .checkout-grid {
         display: grid;
-        grid-template-columns: 1fr 420px;
-        gap: 40px;
+        grid-template-columns: 1fr 380px;
+        gap: 30px;
       }
 
-      /* Cards */
       .config-card {
-        padding: 40px;
-        margin-bottom: 30px;
+        padding: 30px;
         border-radius: 32px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        margin-bottom: 25px;
+      }
+      .card-head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 25px;
+      }
+      .card-head .icon {
+        font-size: 1.2rem;
+        background: #111;
+        padding: 8px;
+        border-radius: 10px;
         border: 1px solid #222;
-        position: relative;
       }
-      .card-header-icon {
-        font-size: 1.5rem;
-        margin-bottom: 10px;
-      }
-      .config-card h3 {
-        margin: 0 0 30px;
-        font-size: 1.1rem;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        color: #666;
+      .card-head h3 {
+        font-size: 1rem;
         font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #666;
       }
 
-      /* Preference Cards */
-      .preference-grid {
+      .option-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .select-card {
+        padding: 20px;
+        border: 2px solid #222;
+        border-radius: 20px;
+        cursor: pointer;
+        background: #111;
+        display: block;
+        transition: 0.3s;
+      }
+      .select-card.active {
+        border-color: #ff6600;
+        background: rgba(255, 102, 0, 0.05);
+      }
+      .select-card input {
+        display: none;
+      }
+      .card-title {
+        display: block;
+        font-weight: 900;
+        font-size: 1.1rem;
+        color: #fff;
+      }
+      .card-desc {
+        color: #555;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-top: 4px;
+        display: block;
+      }
+
+      .extra-config {
+        margin-top: 30px;
+        background: rgba(0, 0, 0, 0.2);
+        padding: 20px;
+        border-radius: 20px;
+        border: 1px dashed #333;
+      }
+      .row {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 15px;
+        margin-bottom: 20px;
       }
-      .pref-option {
-        border: 2px solid #222;
-        border-radius: 24px;
-        cursor: pointer;
-        transition: 0.3s;
-        padding: 25px;
-        background: #161616;
-      }
-      .pref-option input {
-        display: none;
-      }
-      .pref-option.active {
-        border-color: #ff6600;
-        background: rgba(255, 102, 0, 0.05);
-        transform: translateY(-3px);
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
-      }
-      .pref-content {
-        display: flex;
-        align-items: center;
-        gap: 20px;
-      }
-      .pref-icon {
-        font-size: 2.2rem;
-      }
-      .pref-text .title {
+      .field label {
         display: block;
-        font-weight: 900;
-        font-size: 1.2rem;
-        color: white;
-      }
-      .pref-text .desc {
-        font-size: 0.8rem;
-        color: #666;
-        font-weight: 600;
-      }
-
-      /* Schedule UI */
-      .schedule-box {
-        margin-top: 35px;
-        background: #0d0d0d;
-        padding: 30px;
-        border-radius: 24px;
-        border: 1px dashed #333;
-      }
-      .schedule-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-        margin-bottom: 25px;
-      }
-      .schedule-item label {
-        display: block;
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         font-weight: 800;
-        color: #666;
+        color: #444;
+        text-transform: uppercase;
         margin-bottom: 10px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
       }
-      .number-stepper {
+      .stepper {
         display: flex;
         align-items: center;
-        background: #1a1a1a;
-        border-radius: 14px;
+        gap: 15px;
+        background: #111;
         padding: 6px;
-        justify-content: space-between;
-        border: 1px solid #333;
-      }
-      .number-stepper button {
-        width: 40px;
-        height: 40px;
-        border: none;
-        background: #333;
-        color: white;
         border-radius: 10px;
-        font-weight: 900;
-        cursor: pointer;
-        transition: 0.2s;
+        width: fit-content;
+        border: 1px solid #222;
       }
-      .number-stepper button:hover {
-        background: #ff6600;
-      }
-      .number-stepper .count {
-        font-weight: 900;
-        font-size: 1.3rem;
-        color: #ff6600;
-      }
-      .custom-input {
-        width: 100%;
-        padding: 15px;
-        border: 1px solid #333;
-        background: #1a1a1a;
+      .stepper button {
+        width: 32px;
+        height: 32px;
+        border: none;
+        border-radius: 8px;
+        background: #222;
         color: white;
-        border-radius: 14px;
-        font-family: inherit;
-        font-weight: 600;
-        outline: none;
-        transition: 0.2s;
+        cursor: pointer;
+        font-weight: 900;
       }
-      .custom-input:focus {
-        border-color: #ff6600;
+      .stepper .val {
+        font-weight: 900;
+        font-size: 1.1rem;
+        color: #ff6600;
+        min-width: 35px;
+        text-align: center;
+      }
+      .dark-input {
+        background: #111;
+        border: 1px solid #222;
+        padding: 12px;
+        border-radius: 10px;
+        color: white;
+        width: 100%;
+        font-family: inherit;
+        font-weight: 700;
       }
 
-      .slots-container label {
-        display: block;
-        font-size: 0.75rem;
-        font-weight: 800;
-        color: #666;
-        margin-bottom: 15px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-      }
       .slots-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-        gap: 10px;
+        gap: 8px;
+        margin-top: 10px;
       }
       .slot-btn {
-        padding: 14px;
-        background: #1a1a1a;
-        border: 1px solid #333;
-        border-radius: 14px;
-        color: white;
-        font-weight: 800;
+        padding: 10px;
+        background: #111;
+        border: 1px solid #222;
+        border-radius: 10px;
+        color: #fff;
         cursor: pointer;
+        font-size: 0.75rem;
+        font-weight: 700;
         transition: 0.2s;
-        font-size: 0.8rem;
-      }
-      .slot-btn:hover {
-        border-color: #ff6600;
-        color: #ff6600;
       }
       .slot-btn.active {
         background: #ff6600;
-        color: white;
         border-color: #ff6600;
-        transform: scale(1.05);
-        box-shadow: 0 5px 15px rgba(255, 102, 0, 0.3);
       }
 
-      /* Payment */
-      .payment-stack {
+      .payment-list {
         display: flex;
         flex-direction: column;
-        gap: 15px;
+        gap: 10px;
       }
-      .pay-item {
-        display: flex;
-        align-items: center;
-        gap: 25px;
-        padding: 25px 30px;
-        border-radius: 24px;
-        background: #161616;
+      .payment-card {
+        padding: 20px;
+        border: 2px solid #222;
+        border-radius: 20px;
         cursor: pointer;
-        transition: 0.2s;
-        border: 1px solid #222;
+        background: #111;
+        display: block;
+        transition: 0.3s;
       }
-      .pay-item .dot {
-        width: 16px;
-        height: 16px;
-        border: 3px solid #333;
-        border-radius: 50%;
-      }
-      .pay-item.active {
+      .payment-card.active {
+        border-color: #ff6600;
         background: rgba(255, 102, 0, 0.05);
-        border-color: #ff6600;
       }
-      .pay-item.active .dot {
-        background: #ff6600;
-        border-color: #ff6600;
-        box-shadow: 0 0 12px rgba(255, 102, 0, 0.5);
-      }
-      .pay-item input {
+      .payment-card input {
         display: none;
       }
-      .pay-info .label {
+      .p-title {
         display: block;
         font-weight: 800;
-        font-size: 1.15rem;
-        margin-bottom: 4px;
+        font-size: 1.1rem;
+        color: #fff;
       }
-      .pay-info .desc {
-        font-size: 0.85rem;
-        color: #666;
+      .p-desc {
+        color: #555;
+        font-size: 0.8rem;
         font-weight: 600;
+        margin-top: 3px;
       }
 
-      /* Order Button */
-      .main-order-btn {
+      .submit-order-btn {
         width: 100%;
-        padding: 26px;
+        padding: 22px;
         background: #ff6600;
         color: white;
         border: none;
-        border-radius: 24px;
+        border-radius: 18px;
         font-weight: 900;
-        font-size: 1.35rem;
+        font-size: 1.2rem;
         cursor: pointer;
+        margin-top: 10px;
         transition: 0.3s;
-        margin-top: 15px;
-        box-shadow: 0 10px 30px rgba(255, 107, 0, 0.3);
-        letter-spacing: 0.5px;
       }
-      .main-order-btn:hover:not(:disabled) {
-        transform: translateY(-5px);
-        filter: brightness(1.1);
-        box-shadow: 0 15px 40px rgba(255, 107, 0, 0.5);
-      }
-      .main-order-btn:disabled {
-        background: #222;
-        color: #555;
+      .submit-order-btn:disabled {
+        opacity: 0.2;
         cursor: not-allowed;
-        box-shadow: none;
       }
 
-      /* Sidebar */
       .summary-box {
-        padding: 45px;
-        border-radius: 35px;
-        border: 1px solid #222;
+        padding: 35px;
+        border-radius: 32px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
       }
       .sticky-top {
         position: sticky;
-        top: 120px;
+        top: 100px;
       }
       .summary-box h3 {
-        margin: 0 0 30px;
+        font-size: 1.3rem;
         font-weight: 900;
-        border-bottom: 1px solid #222;
-        padding-bottom: 20px;
-        font-size: 1.6rem;
-        letter-spacing: -0.5px;
+        margin-bottom: 25px;
+        border-bottom: 1px solid #1a1a1a;
+        padding-bottom: 15px;
+        color: #fff;
       }
-      .item-scroll {
-        max-height: 320px;
+      .items-list-mini {
+        max-height: 250px;
         overflow-y: auto;
-        margin-bottom: 30px;
-        border-bottom: 1px solid #222;
-        padding-bottom: 25px;
+        margin-bottom: 25px;
       }
-      .item-scroll::-webkit-scrollbar {
-        width: 4px;
-      }
-      .item-scroll::-webkit-scrollbar-thumb {
-        background: #333;
-        border-radius: 10px;
-      }
-
-      .mini-item {
+      .mini-row {
         display: flex;
         justify-content: space-between;
-        margin-bottom: 15px;
-        font-size: 1rem;
+        margin-bottom: 12px;
+        align-items: baseline;
       }
-      .mini-item .qty {
-        font-weight: 900;
+      .m-qty {
         color: #ff6600;
-        margin-right: 15px;
+        font-weight: 900;
+        margin-right: 10px;
       }
-      .mini-item .name {
-        color: #ddd;
-      }
-      .bill-row {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 15px;
-        color: #777;
-        font-size: 1rem;
+      .m-name {
+        color: #fff;
         font-weight: 600;
+        font-size: 0.95rem;
       }
-      .bill-row.grand {
-        margin-top: 30px;
-        padding-top: 25px;
-        border-top: 1px solid #222;
-      }
-      .bill-row.grand .val {
-        font-size: 2.2rem;
-        font-weight: 900;
-        color: #ff6600;
-      }
-      .schedule-summary {
-        margin-top: 30px;
-        padding: 20px;
-        background: rgba(255, 102, 0, 0.1);
-        border-radius: 18px;
-        border: 1px solid rgba(255, 102, 0, 0.2);
-        font-size: 0.9rem;
-        color: #ff6600;
+      .m-price {
+        color: #666;
         font-weight: 700;
-        text-align: center;
+        font-size: 0.85rem;
       }
 
-      /* Overlay */
+      .totals-area {
+        border-top: 1px solid #1a1a1a;
+        padding-top: 25px;
+      }
+      .t-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+      .t-row span {
+        font-size: 1rem;
+        font-weight: 800;
+        color: #fff;
+      }
+      .t-val {
+        font-size: 2.8rem !important;
+        font-weight: 900 !important;
+        color: #ff6600 !important;
+        letter-spacing: -2px;
+      }
+      .tax-note {
+        font-size: 0.65rem;
+        color: #00ff88;
+        font-weight: 800;
+        text-transform: uppercase;
+        margin-top: 8px;
+        letter-spacing: 1px;
+      }
+
       .pay-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(0, 0, 0, 0.92);
-        backdrop-filter: blur(12px);
-        z-index: 9999;
+        background: rgba(0, 0, 0, 0.95);
+        backdrop-filter: blur(20px);
+        z-index: 10000;
         display: flex;
         align-items: center;
         justify-content: center;
+        padding: 20px;
       }
       .pay-dialog {
-        padding: 60px;
+        padding: 50px;
         text-align: center;
-        width: 420px;
-        border-radius: 45px;
-        border: 1px solid #333;
+        border-radius: 40px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        width: 100%;
+        max-width: 440px;
       }
-      .loader-circle {
-        width: 65px;
-        height: 65px;
-        border: 6px solid #222;
+      .spinner {
+        width: 50px;
+        height: 50px;
+        border: 5px solid #222;
         border-top-color: #ff6600;
         border-radius: 50%;
         animation: spin 1s linear infinite;
-        margin: 0 auto 35px;
+        margin: 0 auto 25px;
       }
       @keyframes spin {
         to {
           transform: rotate(360deg);
         }
       }
-      .status-success {
-        color: #2ecc71;
+      .success-msg {
+        color: #00ff88;
         font-weight: 900;
         font-size: 1.3rem;
-        margin-top: 25px;
+        margin-top: 20px;
+      }
+
+      .glass-card {
+        background: rgba(18, 18, 18, 0.7);
+        backdrop-filter: blur(30px);
       }
 
       @media (max-width: 1000px) {
@@ -597,12 +528,6 @@ import { ToastService } from '../../services/toast';
         }
         .summary-side {
           order: -1;
-        }
-        .summary-box {
-          position: static;
-        }
-        .header h1 {
-          font-size: 2.5rem;
         }
       }
     `,
@@ -635,8 +560,8 @@ export class CheckoutComponent implements OnInit {
   }
 
   updateGuests(change: number) {
-    const newVal = this.numberOfPeople + change;
-    if (newVal >= 1 && newVal <= 20) this.numberOfPeople = newVal;
+    const next = this.numberOfPeople + change;
+    if (next >= 1 && next <= 20) this.numberOfPeople = next;
   }
 
   generateTimeSlots() {
@@ -649,7 +574,7 @@ export class CheckoutComponent implements OnInit {
     this.availableSlots = slots;
   }
 
-  async handleCheckout() {
+  handleCheckout() {
     if (this.paymentMethod === 'ONLINE') {
       this.showPaymentModal = true;
       this.paymentStep = 'PROCESSING';
@@ -657,51 +582,50 @@ export class CheckoutComponent implements OnInit {
         this.paymentStep = 'SUCCESS';
         setTimeout(() => {
           this.showPaymentModal = false;
-          this.placeFinalOrder('PAID', 'TXN_' + Date.now());
+          this.placeFinalOrder('PAID', 'KILLA-' + Date.now());
         }, 1500);
-      }, 2500);
+      }, 2000);
     } else {
       this.placeFinalOrder();
     }
   }
 
   placeFinalOrder(paymentStatus: string = 'PENDING', txId: string = '') {
-    this.loading = true;
-    this.cdr.detectChanges();
+    setTimeout(() => {
+      this.loading = true;
+      this.cdr.detectChanges();
 
-    const orderData = {
-      orderType: this.orderType,
-      numberOfPeople: this.orderType === 'DINE_IN' ? this.numberOfPeople : 0,
-      scheduledTime:
-        this.orderType === 'DINE_IN' ? `${this.selectedDate} ${this.selectedSlot}` : null,
-      paymentMethod: this.paymentMethod,
-      paymentStatus: paymentStatus,
-      transactionId: txId,
-      totalAmount: (this.cartService.totalPrice() * 1.05).toFixed(0),
-      items: this.cartService.cartItems().map((i) => ({
-        menuItemId: i._id,
-        name: i.name,
-        quantity: i.quantity,
-        variant: i.selectedVariant,
-        unitPrice: i.computedPrice,
-      })),
-    };
+      const orderData = {
+        orderType: this.orderType,
+        numberOfPeople: this.orderType === 'DINE_IN' ? this.numberOfPeople : 0,
+        scheduledTime:
+          this.orderType === 'DINE_IN' ? `${this.selectedDate} ${this.selectedSlot}` : null,
+        paymentMethod: this.paymentMethod,
+        paymentStatus: paymentStatus,
+        transactionId: txId,
+        totalAmount: this.cartService.totalPrice(),
+        items: this.cartService.cartItems().map((i) => ({
+          menuItemId: i._id,
+          name: i.name,
+          quantity: i.quantity,
+          variant: i.selectedVariant,
+          unitPrice: i.computedPrice,
+        })),
+      };
 
-    this.orderService.createOrder(orderData).subscribe({
-      next: () => {
-        this.loading = false;
-        this.toast.success(
-          paymentStatus === 'PAID'
-            ? 'Legendary! Payment Received & Feast Confirmed.'
-            : 'Feast Received! Please pay at the counter.'
-        );
-        this.cartService.clearCart();
-        this.router.navigate(['/my-orders']);
-      },
-      error: (e) => {
-        this.loading = false;
-        this.toast.error(e.error?.msg || 'Failed to place legendary order.');
-      },
-    });
+      this.orderService.createOrder(orderData).subscribe({
+        next: () => {
+          this.loading = false;
+          this.toast.success('Legendary order received!');
+          this.cartService.clearCart();
+          this.router.navigate(['/my-orders']);
+        },
+        error: (err) => {
+          this.loading = false;
+          this.toast.error(err.error?.msg || 'Failed to place order.');
+          this.cdr.detectChanges();
+        },
+      });
+    }, 0);
   }
 }

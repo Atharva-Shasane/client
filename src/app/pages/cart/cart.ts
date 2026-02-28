@@ -12,27 +12,28 @@ import { Router } from '@angular/router';
     <div class="cart-wrapper fade-in">
       <div class="container">
         <header class="cart-header">
+          <span class="badge">Your Selection</span>
           <h1>Your <span class="highlight">Cravings</span></h1>
-          <p *ngIf="cartService.totalItems() > 0">
-            You have selected {{ cartService.totalItems() }} legendary items.
+          <p *ngIf="cartService.totalItems() > 0" class="sub-text">
+            You have curated {{ cartService.totalItems() }} legendary items.
           </p>
         </header>
 
+        <!-- Empty State -->
         <div *ngIf="cartService.cartItems().length === 0" class="empty-state glass-card">
           <div class="empty-icon">🛒</div>
           <h3>Your cart is empty</h3>
           <p>Hungry? Discover something delicious in our collection.</p>
-          <button class="browse-btn" (click)="router.navigate(['/menu'])">Browse Menu</button>
+          <button class="browse-btn" (click)="router.navigate(['/menu'])">Explore Menu</button>
         </div>
 
+        <!-- Cart Items -->
         <div *ngIf="cartService.cartItems().length > 0" class="cart-layout">
-          <!-- Items List -->
           <div class="items-section">
             <div *ngFor="let item of cartService.cartItems()" class="item-card glass-card">
               <div class="item-media">
-                <img [src]="item.imageUrl" alt="Food" />
+                <img [src]="item.imageUrl" [alt]="item.name" />
               </div>
-
               <div class="item-details">
                 <div class="item-main">
                   <h3>{{ item.name }}</h3>
@@ -43,9 +44,8 @@ import { Router } from '@angular/router';
                     </span>
                   </div>
                 </div>
-
                 <div class="item-price-info">
-                  <span class="unit-price">₹{{ item.computedPrice }}</span>
+                  <span class="unit-price">₹{{ item.computedPrice }} / unit</span>
                 </div>
               </div>
 
@@ -67,9 +67,8 @@ import { Router } from '@angular/router';
                 </div>
                 <div class="item-total">₹{{ item.computedPrice * item.quantity }}</div>
                 <button
-                  class="remove-icon"
+                  class="remove-btn"
                   (click)="cartService.removeFromCart(item._id, item.selectedVariant!)"
-                  title="Remove Item"
                 >
                   &times;
                 </button>
@@ -77,23 +76,16 @@ import { Router } from '@angular/router';
             </div>
           </div>
 
-          <!-- Summary Section -->
+          <!-- Summary Sidebar -->
           <div class="summary-section">
             <div class="summary-card glass-card sticky-top">
               <h3>Order Summary</h3>
-              <div class="calc-row">
-                <span>Subtotal</span>
-                <span>₹{{ cartService.totalPrice() }}</span>
-              </div>
-              <div class="calc-row">
-                <span>Taxes & Fees</span>
-                <span class="free">FREE</span>
-              </div>
-              <div class="divider"></div>
-              <div class="calc-row total">
+              <div class="calc-row total-row">
                 <span>Total Amount</span>
                 <span class="grand-total">₹{{ cartService.totalPrice() }}</span>
               </div>
+
+              <p class="inclusive-text">Prices are inclusive of all service charges.</p>
 
               <div class="action-zone">
                 <button
@@ -103,7 +95,6 @@ import { Router } from '@angular/router';
                 >
                   Proceed to Checkout
                 </button>
-
                 <button
                   *ngIf="!authService.isLoggedIn()"
                   (click)="router.navigate(['/login'])"
@@ -111,8 +102,7 @@ import { Router } from '@angular/router';
                 >
                   Login to Place Order
                 </button>
-
-                <p class="secure-note">🛡️ Secure checkout powered by KillaPay</p>
+                <p class="secure-note">Secure checkout powered by KillaPay</p>
               </div>
             </div>
           </div>
@@ -123,139 +113,123 @@ import { Router } from '@angular/router';
   styles: [
     `
       .cart-wrapper {
-        padding: 120px 0 80px;
+        padding: 100px 0 80px;
         min-height: 100vh;
-        background: #0a0a0a;
+        background: #050505;
         color: white;
-        font-family: 'Poppins', sans-serif;
+        font-family: 'Inter', sans-serif;
+      }
+      .container {
+        max-width: 1300px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+      .badge {
+        color: #ff6600;
+        font-weight: 800;
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
       }
       .cart-header {
         margin-bottom: 40px;
       }
       .cart-header h1 {
-        font-size: 3rem;
+        font-size: 2.5rem;
         font-weight: 900;
-        margin: 0;
-        letter-spacing: -1.5px;
+        margin: 8px 0;
+        letter-spacing: -1px;
       }
       .highlight {
         color: #ff6600;
       }
-      .cart-header p {
-        color: #666;
-        font-size: 1.1rem;
-        margin-top: 5px;
+      .sub-text {
+        color: #777;
+        font-size: 1rem;
       }
 
       .cart-layout {
         display: grid;
-        grid-template-columns: 1fr 400px;
-        gap: 40px;
+        grid-template-columns: 1fr 380px;
+        gap: 30px;
       }
-
-      /* Empty State */
-      .empty-state {
-        text-align: center;
-        padding: 100px 40px;
-        border-radius: 32px;
-      }
-      .empty-icon {
-        font-size: 5rem;
-        margin-bottom: 20px;
-        filter: grayscale(1);
-        opacity: 0.3;
-      }
-      .browse-btn {
-        background: #ff6600;
-        color: white;
-        border: none;
-        padding: 16px 45px;
-        border-radius: 50px;
-        font-weight: 800;
-        cursor: pointer;
-        margin-top: 30px;
-        transition: 0.3s;
-      }
-      .browse-btn:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 20px rgba(255, 107, 0, 0.3);
-      }
-
-      /* Item Cards */
       .items-section {
         display: flex;
         flex-direction: column;
-        gap: 20px;
+        gap: 16px;
       }
+
       .item-card {
         display: grid;
-        grid-template-columns: 120px 1fr auto;
-        padding: 25px;
+        grid-template-columns: 100px 1fr auto;
+        padding: 20px;
         align-items: center;
-        gap: 25px;
-        border-radius: 28px;
+        gap: 24px;
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
       }
       .item-media img {
-        width: 120px;
-        height: 120px;
+        width: 100px;
+        height: 100px;
         object-fit: cover;
-        border-radius: 20px;
+        border-radius: 16px;
       }
       .item-main h3 {
-        margin: 0 0 10px;
-        font-size: 1.4rem;
+        font-size: 1.3rem;
         font-weight: 800;
+        margin: 0 0 6px;
+        color: #fff;
       }
       .meta-tags {
         display: flex;
-        gap: 10px;
+        gap: 8px;
       }
       .category-tag {
-        font-size: 0.7rem;
+        font-size: 0.6rem;
         color: #ff6600;
         font-weight: 800;
         text-transform: uppercase;
         background: rgba(255, 102, 0, 0.1);
-        padding: 4px 10px;
+        padding: 3px 10px;
         border-radius: 6px;
       }
       .variant-tag {
-        font-size: 0.7rem;
-        color: #aaa;
+        font-size: 0.6rem;
+        color: #fff;
         font-weight: 800;
         text-transform: uppercase;
         background: #222;
-        padding: 4px 10px;
+        padding: 3px 10px;
         border-radius: 6px;
       }
-      .unit-price {
-        font-weight: 800;
-        color: #888;
-        font-size: 1.1rem;
+      .item-price-info {
+        margin-top: 8px;
+        color: #555;
+        font-weight: 600;
+        font-size: 0.85rem;
       }
 
-      /* Controls */
       .item-controls {
         display: flex;
         align-items: center;
-        gap: 30px;
+        gap: 25px;
       }
       .qty-selector {
         display: flex;
         align-items: center;
-        background: #222;
-        padding: 6px;
-        border-radius: 14px;
-        border: 1px solid #333;
+        background: #111;
+        padding: 4px;
+        border-radius: 12px;
+        border: 1px solid #222;
       }
       .qty-btn {
-        width: 36px;
-        height: 36px;
+        width: 32px;
+        height: 32px;
         border: none;
-        background: #333;
+        background: #222;
         color: white;
-        border-radius: 10px;
-        font-weight: 800;
+        border-radius: 8px;
+        font-weight: 900;
         cursor: pointer;
         transition: 0.2s;
       }
@@ -263,96 +237,81 @@ import { Router } from '@angular/router';
         background: #ff6600;
       }
       .qty-val {
-        padding: 0 18px;
+        padding: 0 15px;
         font-weight: 800;
+        font-size: 1rem;
+        color: #fff;
         min-width: 45px;
         text-align: center;
-        font-size: 1.1rem;
       }
       .item-total {
         font-weight: 900;
         font-size: 1.4rem;
-        color: #ff6600;
-        min-width: 100px;
+        color: #fff;
+        min-width: 90px;
         text-align: right;
       }
-      .remove-icon {
+      .remove-btn {
         background: none;
         border: none;
         color: #ff4444;
-        font-size: 2.2rem;
+        font-size: 2rem;
         cursor: pointer;
-        transition: 0.2s;
-        padding: 0 10px;
-        opacity: 0.5;
+        opacity: 0.3;
+        transition: 0.3s;
+        padding: 0 5px;
       }
-      .remove-icon:hover {
+      .remove-btn:hover {
         opacity: 1;
-        transform: scale(1.1);
       }
 
-      /* Summary */
       .summary-card {
-        padding: 40px;
+        padding: 35px;
         border-radius: 32px;
-        border: 1px solid #222;
+        border: 1px solid rgba(255, 255, 255, 0.05);
       }
       .sticky-top {
         position: sticky;
-        top: 120px;
+        top: 100px;
       }
       .summary-card h3 {
-        margin-top: 0;
-        margin-bottom: 30px;
-        border-bottom: 1px solid #222;
+        font-size: 1.3rem;
+        font-weight: 900;
+        margin-bottom: 25px;
+        color: #fff;
         padding-bottom: 15px;
-        font-weight: 800;
-        letter-spacing: -0.5px;
+        border-bottom: 1px solid #1a1a1a;
       }
-      .calc-row {
+      .total-row {
+        color: #fff;
         display: flex;
         justify-content: space-between;
-        margin-bottom: 15px;
-        color: #888;
-        font-weight: 600;
-      }
-      .calc-row .free {
-        color: #2ecc71;
-      }
-      .divider {
-        height: 1px;
-        background: #222;
-        margin: 25px 0;
-      }
-      .calc-row.total {
-        color: white;
+        align-items: baseline;
       }
       .grand-total {
         font-size: 2.2rem;
         font-weight: 900;
         color: #ff6600;
+        letter-spacing: -1.5px;
+      }
+      .inclusive-text {
+        font-size: 0.75rem;
+        color: #555;
+        margin: 15px 0 30px;
+        font-weight: 600;
       }
 
-      .action-zone {
-        margin-top: 40px;
-      }
       .btn-checkout {
         width: 100%;
         padding: 20px;
         background: #ff6600;
         color: white;
         border: none;
-        border-radius: 18px;
+        border-radius: 16px;
         font-weight: 900;
-        font-size: 1.2rem;
+        font-size: 1.1rem;
         cursor: pointer;
         transition: 0.3s;
-        box-shadow: 0 8px 25px rgba(255, 107, 0, 0.3);
-      }
-      .btn-checkout:hover {
-        transform: translateY(-5px);
-        filter: brightness(1.1);
-        box-shadow: 0 12px 35px rgba(255, 107, 0, 0.5);
       }
       .btn-login-prompt {
         width: 100%;
@@ -360,19 +319,45 @@ import { Router } from '@angular/router';
         background: #222;
         color: white;
         border: none;
-        border-radius: 18px;
+        border-radius: 16px;
         font-weight: 800;
+        font-size: 1rem;
         cursor: pointer;
-        transition: 0.3s;
       }
       .secure-note {
-        font-size: 0.75rem;
-        color: #555;
+        font-size: 0.65rem;
+        color: #444;
         text-align: center;
         margin-top: 20px;
-        font-weight: 600;
         text-transform: uppercase;
+        font-weight: 800;
         letter-spacing: 1px;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 80px 40px;
+        border-radius: 32px;
+      }
+      .empty-icon {
+        font-size: 4rem;
+        margin-bottom: 15px;
+        opacity: 0.1;
+      }
+      .browse-btn {
+        background: #ff6600;
+        color: white;
+        border: none;
+        padding: 14px 40px;
+        border-radius: 50px;
+        font-weight: 900;
+        cursor: pointer;
+        margin-top: 25px;
+      }
+
+      .glass-card {
+        background: rgba(15, 15, 15, 0.6);
+        backdrop-filter: blur(25px);
       }
 
       @media (max-width: 1100px) {
@@ -382,26 +367,8 @@ import { Router } from '@angular/router';
         .summary-section {
           order: -1;
         }
-        .summary-card {
-          position: static;
-          margin-bottom: 30px;
-        }
-      }
-      @media (max-width: 768px) {
-        .item-card {
-          grid-template-columns: 80px 1fr;
-          padding: 20px;
-        }
-        .item-media img {
-          width: 80px;
-          height: 80px;
-        }
-        .item-controls {
-          grid-column: 1 / span 2;
-          justify-content: space-between;
-          margin-top: 15px;
-          border-top: 1px solid #222;
-          padding-top: 15px;
+        .cart-wrapper {
+          padding: 100px 20px;
         }
       }
     `,

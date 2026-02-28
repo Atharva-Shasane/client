@@ -1,383 +1,351 @@
-import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { OrderService } from '../../services/order';
-import { Router } from '@angular/router';
 import { ToastService } from '../../services/toast';
-import { interval, Subscription, startWith, switchMap } from 'rxjs';
+import { FeedbackModalComponent } from '../../components/feedback-modal/feedback';
+import { Router, RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-my-orders',
   standalone: true,
-  imports: [CommonModule, DatePipe],
+  imports: [CommonModule, DatePipe, FeedbackModalComponent, RouterLink],
   template: `
     <div class="orders-container container">
-      <div class="header-section">
-        <div class="title-box">
-          <h1>Order <span class="highlight">History</span></h1>
-          <p>Track your recent legendary meals.</p>
-        </div>
-        <div class="sync-status" *ngIf="isRefreshing">
-          <div class="pulse-dot"></div>
-          Live Syncing...
-        </div>
-      </div>
+      <!-- Modular Feedback Component -->
+      <app-feedback-modal
+        [isVisible]="modalVisible"
+        [isViewOnly]="isViewOnly"
+        [orderId]="activeOrder?._id"
+        [orderNumber]="activeOrder?.orderNumber"
+        [items]="activeOrder?.items || []"
+        [initialRating]="activeOrder?.feedback?.rating"
+        [initialComment]="activeOrder?.feedback?.comment"
+        (close)="modalVisible = false"
+        (refresh)="loadOrders()"
+      ></app-feedback-modal>
 
-      <div *ngIf="loading() && orders().length === 0" class="loading-state">
-        <div class="skeleton-order" *ngFor="let i of [1, 2, 3]"></div>
-      </div>
-
-      <div *ngIf="!loading() && orders().length === 0" class="empty-state glass-card">
-        <div class="icon">🛒</div>
-        <h3>No legends found yet</h3>
-        <p>Your order history is currently empty. Ready to change that?</p>
-        <button (click)="router.navigate(['/menu'])" class="browse-btn">Explore Menu</button>
-      </div>
+      <header class="header">
+        <h1>Order <span class="highlight">History</span></h1>
+        <p>Manage and track your legendary feasts.</p>
+      </header>
 
       <div class="orders-grid">
-        <div
-          *ngFor="let order of orders()"
-          class="order-card glass-card"
-          [class.recent]="isRecent(order)"
-        >
-          <div class="order-header">
-            <div class="main-info">
-              <!-- Displaying 6-digit sequential orderNumber (e.g. #000001) -->
-              <span class="order-id">#{{ order.orderNumber }}</span>
-              <span class="order-date">{{ order.createdAt | date: 'medium' }}</span>
+        <div class="order-card glass-card" *ngFor="let order of orders()">
+          <div class="card-header">
+            <div class="meta">
+              <span class="id">#{{ order.orderNumber }}</span>
+              <span class="date">{{ order.createdAt | date: 'medium' }}</span>
             </div>
-            <div class="status-badge" [ngClass]="order.orderStatus.toLowerCase()">
+            <span class="status" [ngClass]="order.orderStatus.toLowerCase()">
               {{ order.orderStatus }}
+            </span>
+          </div>
+
+          <div class="card-body">
+            <div class="item-summary" *ngFor="let item of order.items">
+              <span class="qty">{{ item.quantity }}x</span> {{ item.name }}
+            </div>
+            <div class="total-bar">
+              <span class="lbl">Total Paid:</span>
+              <span class="val">₹{{ order.totalAmount }}</span>
             </div>
           </div>
 
-          <div class="order-body">
-            <div class="items-list">
-              <div *ngFor="let item of order.items" class="item-row">
-                <span class="item-qty">{{ item.quantity }}x</span>
-                <span class="item-name">{{ item.name }}</span>
-                <span class="item-price">₹{{ item.unitPrice * item.quantity }}</span>
+          <div class="card-footer">
+            <div class="feedback-zone" *ngIf="order.orderStatus === 'COMPLETED'">
+              <div
+                *ngIf="order.feedback && order.feedback.isSubmitted; else addFeedback"
+                class="feedback-pill"
+                [ngClass]="getRatingClass(order.feedback.rating)"
+                (click)="openFeedback(order, true)"
+              >
+                <div class="rating-info">
+                  <span class="rating-num">{{ order.feedback.rating }}.0</span>
+                  <span class="stars">{{ '★'.repeat(order.feedback.rating) }}</span>
+                </div>
+                <span class="view-lbl">View Review</span>
               </div>
-            </div>
-          </div>
 
-          <div class="order-footer">
-            <div class="pay-info">
-              <span class="method">{{ order.paymentMethod }}</span>
-              <span class="pay-status" [class.paid]="order.paymentStatus === 'PAID'">
-                {{ order.paymentStatus }}
-              </span>
+              <ng-template #addFeedback>
+                <button (click)="openFeedback(order, false)" class="btn-rate">Rate Order</button>
+              </ng-template>
             </div>
 
-            <div class="total-section">
-              <div class="total-box">
-                <span class="label">Amount Paid</span>
-                <span class="total-val">₹{{ order.totalAmount }}</span>
-              </div>
-              <div class="actions">
-                <button
-                  *ngIf="order.orderStatus === 'NEW'"
-                  (click)="cancelOrder(order._id)"
-                  class="btn-cancel"
-                >
-                  Cancel
-                </button>
-                <button (click)="onReorder(order)" class="btn-reorder">Order Again</button>
-              </div>
+            <div class="action-buttons">
+              <!-- CANCEL BUTTON: Visible only if status is NEW -->
+              <button
+                *ngIf="order.orderStatus === 'NEW'"
+                (click)="onCancel(order._id)"
+                class="btn-cancel"
+              >
+                Cancel Order
+              </button>
+
+              <button (click)="onReorder(order)" class="btn-reorder">Order Again</button>
             </div>
           </div>
         </div>
+      </div>
+
+      <div *ngIf="orders().length === 0" class="empty-state glass-card">
+        <h3>No feasts found!</h3>
+        <a routerLink="/menu" class="btn-primary">Explore Menu</a>
       </div>
     </div>
   `,
   styles: [
     `
       .orders-container {
-        padding: 80px 24px;
-        max-width: 900px !important;
+        padding: 100px 24px 80px;
+        max-width: 900px;
         margin: 0 auto;
       }
-      .header-section {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-end;
-        margin-bottom: 50px;
-      }
       h1 {
-        font-size: 3rem;
-        font-weight: 800;
+        font-size: 2.5rem;
+        font-weight: 900;
         margin: 0;
         letter-spacing: -1px;
       }
       .highlight {
         color: #ff6600;
       }
-      .header-section p {
-        color: #888;
+      .header p {
+        color: #666;
         margin-top: 5px;
-      }
-      .sync-status {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 0.8rem;
-        color: #ff6600;
-        font-weight: 700;
-      }
-      .pulse-dot {
-        width: 8px;
-        height: 8px;
-        background: #ff6600;
-        border-radius: 50%;
-        animation: pulse 1.5s infinite;
-      }
-      @keyframes pulse {
-        0% {
-          opacity: 1;
-        }
-        50% {
-          opacity: 0.3;
-        }
-        100% {
-          opacity: 1;
-        }
+        font-size: 1rem;
       }
 
       .orders-grid {
         display: flex;
         flex-direction: column;
-        gap: 25px;
+        gap: 20px;
+        margin-top: 35px;
       }
       .order-card {
-        padding: 0;
-        overflow: hidden;
-        border: 1px solid rgba(255, 255, 255, 0.05);
-      }
-      .order-card.recent {
-        border-color: #ff6600;
-        box-shadow: 0 10px 40px rgba(255, 107, 0, 0.15);
+        padding: 25px;
+        border: 1px solid #222;
+        border-radius: 24px;
+        transition: 0.3s;
       }
 
-      .order-header {
-        padding: 20px 25px;
-        background: rgba(255, 255, 255, 0.03);
+      .card-header {
         display: flex;
         justify-content: space-between;
-        align-items: center;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-      }
-      .order-id {
-        font-family: monospace;
-        font-size: 1.1rem;
-        font-weight: 800;
-        color: #ff6600;
-      }
-      .order-date {
-        display: block;
-        font-size: 0.8rem;
-        color: #666;
-        margin-top: 2px;
-      }
-
-      .status-badge {
-        padding: 6px 16px;
-        border-radius: 50px;
-        font-size: 0.7rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-      }
-      .new {
-        background: #3498db;
-        color: white;
-      }
-      .preparing {
-        background: #f39c12;
-        color: white;
-      }
-      .ready {
-        background: #9b59b6;
-        color: white;
-      }
-      .completed {
-        background: #2ecc71;
-        color: white;
-      }
-      .cancelled {
-        background: #e74c3c;
-        color: white;
-      }
-
-      .order-body {
-        padding: 25px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-      }
-      .item-row {
-        display: grid;
-        grid-template-columns: 40px 1fr auto;
-        gap: 15px;
-        margin-bottom: 12px;
-        font-size: 0.95rem;
-        color: #ddd;
-      }
-      .item-qty {
-        font-weight: 800;
-        color: #ff6600;
-      }
-      .item-price {
-        font-weight: 700;
-        color: white;
-      }
-
-      .order-footer {
-        padding: 25px;
-        background: rgba(0, 0, 0, 0.2);
-      }
-      .pay-info {
-        display: flex;
-        gap: 15px;
+        align-items: flex-start;
         margin-bottom: 20px;
-        font-size: 0.8rem;
-        font-weight: 700;
-        text-transform: uppercase;
       }
-      .pay-status.paid {
-        color: #2ecc71;
-      }
-
-      .total-section {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .total-box {
-        display: flex;
-        flex-direction: column;
-      }
-      .total-box .label {
-        font-size: 0.7rem;
-        color: #666;
-        text-transform: uppercase;
-        font-weight: 800;
-      }
-      .total-val {
-        font-size: 1.8rem;
+      .id {
+        display: block;
+        font-family: monospace;
         font-weight: 900;
         color: #ff6600;
+        font-size: 1.1rem;
+      }
+      .date {
+        font-size: 0.75rem;
+        color: #555;
       }
 
-      .actions {
+      .status {
+        padding: 5px 12px;
+        border-radius: 8px;
+        font-size: 0.65rem;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+      .completed {
+        background: rgba(46, 204, 113, 0.1);
+        color: #2ecc71;
+      }
+      .new {
+        background: rgba(52, 152, 219, 0.1);
+        color: #3498db;
+      }
+      .cancelled {
+        background: rgba(231, 76, 60, 0.1);
+        color: #e74c3c;
+      }
+
+      .card-body {
+        margin-bottom: 20px;
+      }
+      .item-summary {
+        font-size: 0.9rem;
+        color: #ddd;
+        margin-bottom: 6px;
+      }
+      .qty {
+        color: #ff6600;
+        font-weight: 900;
+        margin-right: 8px;
+      }
+      .total-bar {
+        margin-top: 12px;
+        font-weight: 800;
+        display: flex;
+        gap: 8px;
+      }
+      .total-bar .val {
+        color: #ff6600;
+      }
+
+      .card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-top: 1px solid #222;
+        padding-top: 20px;
+      }
+      .action-buttons {
         display: flex;
         gap: 12px;
       }
-      .btn-reorder {
-        background: white;
-        color: black;
+
+      .btn-rate {
+        background: #ff6600;
+        color: white;
         border: none;
-        padding: 12px 25px;
-        border-radius: 12px;
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+      .btn-reorder {
+        background: #1a1a1a;
+        color: white;
+        border: 1px solid #333;
+        padding: 10px 20px;
+        border-radius: 10px;
         font-weight: 800;
         cursor: pointer;
         transition: 0.2s;
       }
       .btn-reorder:hover {
-        transform: scale(1.05);
-        background: #ff6600;
-        color: white;
+        background: #222;
       }
+
       .btn-cancel {
         background: transparent;
-        border: 1px solid #ff4444;
-        color: #ff4444;
-        padding: 12px 25px;
-        border-radius: 12px;
+        border: 1px solid #e74c3c;
+        color: #e74c3c;
+        padding: 10px 20px;
+        border-radius: 10px;
         font-weight: 800;
         cursor: pointer;
+        transition: 0.3s;
+      }
+      .btn-cancel:hover {
+        background: #e74c3c;
+        color: white;
+      }
+
+      .feedback-pill {
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        padding: 8px 16px;
+        border-radius: 14px;
+        background: #000;
+        border: 1px solid #222;
+        min-width: 130px;
+      }
+      .rating-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .rating-num {
+        font-size: 1.2rem;
+        font-weight: 900;
+      }
+      .stars {
+        font-size: 1rem;
+        color: #ffcc00;
+      }
+      .view-lbl {
+        font-size: 0.6rem;
+        color: #444;
+        font-weight: 800;
+        text-transform: uppercase;
+        margin-top: 2px;
+      }
+
+      .rate-excellent .rating-num {
+        color: #2ecc71;
+      }
+      .rate-good .rating-num {
+        color: #f1c40f;
+      }
+      .rate-poor .rating-num {
+        color: #e74c3c;
       }
 
       .empty-state {
         text-align: center;
-        padding: 80px;
+        padding: 60px;
+        border-radius: 32px;
       }
-      .browse-btn {
+      .btn-primary {
         background: #ff6600;
         color: white;
-        border: none;
-        padding: 15px 40px;
-        border-radius: 50px;
+        padding: 12px 30px;
+        border-radius: 12px;
+        text-decoration: none;
         font-weight: 800;
-        cursor: pointer;
-        margin-top: 25px;
-      }
-
-      @media (max-width: 600px) {
-        .total-section {
-          flex-direction: column;
-          align-items: flex-start;
-          gap: 20px;
-        }
-        .actions {
-          width: 100%;
-        }
-        .btn-reorder {
-          flex-grow: 1;
-        }
+        display: inline-block;
+        margin-top: 20px;
       }
     `,
   ],
 })
-export class MyOrdersComponent implements OnInit, OnDestroy {
+export class MyOrdersComponent implements OnInit {
   orderService = inject(OrderService);
-  router = inject(Router);
   toast = inject(ToastService);
-
+  router = inject(Router);
   orders = signal<any[]>([]);
-  loading = signal<boolean>(true);
-  isRefreshing = false;
-  private pollSubscription?: Subscription;
+  modalVisible = false;
+  isViewOnly = false;
+  activeOrder: any = null;
 
   ngOnInit() {
-    this.pollSubscription = interval(15000)
-      .pipe(
-        startWith(0),
-        switchMap(() => {
-          this.isRefreshing = true;
-          return this.orderService.getMyOrders();
-        }),
-      )
-      .subscribe({
-        next: (data) => {
-          this.orders.set(data);
-          this.loading.set(false);
-          this.isRefreshing = false;
-        },
-        error: () => {
-          this.loading.set(false);
-          this.isRefreshing = false;
-        },
-      });
+    this.loadOrders();
   }
 
-  ngOnDestroy() {
-    this.pollSubscription?.unsubscribe();
-  }
-
-  cancelOrder(id: string) {
-    if (!confirm('Cancel this order?')) return;
-    this.orderService.cancelOrder(id).subscribe({
-      next: () => {
-        this.toast.success('Order cancelled');
-        this.orderService.getMyOrders().subscribe((data) => this.orders.set(data));
-      },
-      error: (err) => this.toast.error(err.error?.msg || 'Failed'),
+  loadOrders() {
+    this.orderService.getMyOrders().subscribe((data) => {
+      this.orders.set(data);
     });
+  }
+
+  getRatingClass(rating: number): string {
+    if (rating >= 4) return 'rate-excellent';
+    if (rating === 3) return 'rate-good';
+    return 'rate-poor';
+  }
+
+  openFeedback(order: any, viewOnly: boolean) {
+    this.activeOrder = order;
+    this.isViewOnly = viewOnly;
+    this.modalVisible = true;
   }
 
   onReorder(order: any) {
     this.orderService.reorderToCart(order);
   }
 
-  isRecent(order: any): boolean {
-    const created = new Date(order.createdAt).getTime();
-    return new Date().getTime() - created < 5 * 60 * 1000;
+  onCancel(orderId: string) {
+    if (confirm('Are you sure you want to cancel this legendary order? This cannot be undone.')) {
+      this.orderService.cancelOrder(orderId).subscribe({
+        next: () => {
+          this.toast.success('Order cancelled successfully.');
+          this.loadOrders();
+        },
+        error: (err) => {
+          this.toast.error(
+            err.error?.msg || 'Cancellation failed. The kitchen may have already started cooking.',
+          );
+        },
+      });
+    }
   }
 }

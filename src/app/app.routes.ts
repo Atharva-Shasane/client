@@ -13,6 +13,7 @@ import { NotFoundComponent } from './pages/not-found/not-found';
 import { adminGuard } from './guards/admin';
 import { authGuard } from './guards/auth';
 import { AnalyticsComponent } from './pages/owner/analytics';
+import { OwnerFeedbackComponent } from './pages/owner/feedback-admin';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -22,16 +23,44 @@ export const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
 
-  { path: 'my-orders', component: MyOrdersComponent, canActivate: [authGuard] },
-  { path: 'profile', component: ProfileComponent, canActivate: [authGuard] },
-  { path: 'checkout', component: CheckoutComponent, canActivate: [authGuard] },
+  {
+    path: 'my-orders',
+    component: MyOrdersComponent,
+    canActivate: [authGuard],
+  },
+  {
+    path: 'profile',
+    component: ProfileComponent,
+    canActivate: [authGuard],
+  },
+  {
+    path: 'checkout',
+    component: CheckoutComponent,
+    canActivate: [authGuard],
+  },
 
-  { path: 'owner', component: OwnerDashboardComponent, canActivate: [adminGuard] },
-  { path: 'owner/menu', component: MenuManagementComponent, canActivate: [adminGuard] },
+  // Owner Exclusive Routes
+  {
+    path: 'owner',
+    component: OwnerDashboardComponent,
+    canActivate: [adminGuard],
+  },
+  {
+    path: 'owner/menu',
+    component: MenuManagementComponent,
+    canActivate: [adminGuard],
+  },
   {
     path: 'owner/analytics',
     component: AnalyticsComponent,
     canActivate: [adminGuard],
   },
+  {
+    path: 'owner/feedback',
+    component: OwnerFeedbackComponent,
+    canActivate: [adminGuard],
+  },
+
+  // Fallback
   { path: '**', component: NotFoundComponent },
 ];
