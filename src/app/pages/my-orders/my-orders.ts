@@ -20,13 +20,15 @@ import { Router, RouterLink } from '@angular/router';
         [items]="activeOrder?.items || []"
         [initialRating]="activeOrder?.feedback?.rating"
         [initialComment]="activeOrder?.feedback?.comment"
+        [ownerReply]="activeOrder?.feedback?.ownerReply || ''"
+        [dishRatings]="activeOrder?.feedback?.dishRatings || []"
         (close)="modalVisible = false"
         (refresh)="loadOrders()"
       ></app-feedback-modal>
 
       <header class="header">
         <h1>Order <span class="highlight">History</span></h1>
-        <p>Manage and track your legendary feasts.</p>
+        <p>Review and track your recent culinary journeys.</p>
       </header>
 
       <div class="orders-grid">
@@ -36,9 +38,13 @@ import { Router, RouterLink } from '@angular/router';
               <span class="id">#{{ order.orderNumber }}</span>
               <span class="date">{{ order.createdAt | date: 'medium' }}</span>
             </div>
-            <span class="status" [ngClass]="order.orderStatus.toLowerCase()">
-              {{ order.orderStatus }}
-            </span>
+            <div class="status-group">
+              <!-- NEW: Message Badge Indicator -->
+              <span *ngIf="order.feedback?.ownerReply" class="reply-badge">New Reply</span>
+              <span class="status" [ngClass]="order.orderStatus.toLowerCase()">
+                {{ order.orderStatus }}
+              </span>
+            </div>
           </div>
 
           <div class="card-body">
@@ -63,7 +69,7 @@ import { Router, RouterLink } from '@angular/router';
                   <span class="rating-num">{{ order.feedback.rating }}.0</span>
                   <span class="stars">{{ '★'.repeat(order.feedback.rating) }}</span>
                 </div>
-                <span class="view-lbl">View Review</span>
+                <span class="view-lbl">View Response</span>
               </div>
 
               <ng-template #addFeedback>
@@ -72,23 +78,21 @@ import { Router, RouterLink } from '@angular/router';
             </div>
 
             <div class="action-buttons">
-              <!-- CANCEL BUTTON: Visible only if status is NEW -->
               <button
                 *ngIf="order.orderStatus === 'NEW'"
                 (click)="onCancel(order._id)"
                 class="btn-cancel"
               >
-                Cancel Order
+                Cancel
               </button>
-
-              <button (click)="onReorder(order)" class="btn-reorder">Order Again</button>
+              <button (click)="onReorder(order)" class="btn-reorder">Reorder</button>
             </div>
           </div>
         </div>
       </div>
 
       <div *ngIf="orders().length === 0" class="empty-state glass-card">
-        <h3>No feasts found!</h3>
+        <h3>No history found.</h3>
         <a routerLink="/menu" class="btn-primary">Explore Menu</a>
       </div>
     </div>
@@ -96,12 +100,12 @@ import { Router, RouterLink } from '@angular/router';
   styles: [
     `
       .orders-container {
-        padding: 100px 24px 80px;
-        max-width: 900px;
+        padding: 60px 24px 80px;
+        max-width: 850px;
         margin: 0 auto;
       }
       h1 {
-        font-size: 2.5rem;
+        font-size: 2rem;
         font-weight: 900;
         margin: 0;
         letter-spacing: -1px;
@@ -110,46 +114,73 @@ import { Router, RouterLink } from '@angular/router';
         color: #ff6600;
       }
       .header p {
-        color: #666;
+        color: #555;
         margin-top: 5px;
-        font-size: 1rem;
+        font-size: 0.9rem;
       }
 
       .orders-grid {
         display: flex;
         flex-direction: column;
-        gap: 20px;
-        margin-top: 35px;
+        gap: 15px;
+        margin-top: 30px;
       }
       .order-card {
-        padding: 25px;
-        border: 1px solid #222;
-        border-radius: 24px;
-        transition: 0.3s;
+        padding: 20px;
+        border: 1px solid #1a1a1a;
+        border-radius: 16px;
+        transition: 0.2s;
       }
 
       .card-header {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        margin-bottom: 20px;
+        margin-bottom: 15px;
       }
       .id {
         display: block;
         font-family: monospace;
         font-weight: 900;
         color: #ff6600;
-        font-size: 1.1rem;
+        font-size: 0.95rem;
       }
       .date {
-        font-size: 0.75rem;
-        color: #555;
+        font-size: 0.7rem;
+        color: #444;
+      }
+
+      .status-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .reply-badge {
+        background: #ff6600;
+        color: white;
+        font-size: 0.55rem;
+        font-weight: 900;
+        padding: 3px 8px;
+        border-radius: 4px;
+        text-transform: uppercase;
+        animation: pulse 2s infinite;
+      }
+      @keyframes pulse {
+        0% {
+          opacity: 0.6;
+        }
+        50% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0.6;
+        }
       }
 
       .status {
-        padding: 5px 12px;
-        border-radius: 8px;
-        font-size: 0.65rem;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.6rem;
         font-weight: 800;
         text-transform: uppercase;
       }
@@ -167,23 +198,24 @@ import { Router, RouterLink } from '@angular/router';
       }
 
       .card-body {
-        margin-bottom: 20px;
+        margin-bottom: 15px;
       }
       .item-summary {
-        font-size: 0.9rem;
-        color: #ddd;
-        margin-bottom: 6px;
+        font-size: 0.85rem;
+        color: #bbb;
+        margin-bottom: 4px;
       }
       .qty {
         color: #ff6600;
         font-weight: 900;
-        margin-right: 8px;
+        margin-right: 6px;
       }
       .total-bar {
-        margin-top: 12px;
+        margin-top: 10px;
         font-weight: 800;
         display: flex;
-        gap: 8px;
+        gap: 6px;
+        font-size: 0.9rem;
       }
       .total-bar .val {
         color: #ff6600;
@@ -193,78 +225,72 @@ import { Router, RouterLink } from '@angular/router';
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border-top: 1px solid #222;
-        padding-top: 20px;
+        border-top: 1px solid #111;
+        padding-top: 15px;
       }
       .action-buttons {
         display: flex;
-        gap: 12px;
+        gap: 8px;
       }
 
       .btn-rate {
         background: #ff6600;
         color: white;
         border: none;
-        padding: 10px 20px;
-        border-radius: 10px;
+        padding: 8px 16px;
+        border-radius: 8px;
         font-weight: 800;
         cursor: pointer;
+        font-size: 0.8rem;
       }
       .btn-reorder {
-        background: #1a1a1a;
+        background: #111;
         color: white;
-        border: 1px solid #333;
-        padding: 10px 20px;
-        border-radius: 10px;
+        border: 1px solid #222;
+        padding: 8px 16px;
+        border-radius: 8px;
         font-weight: 800;
         cursor: pointer;
-        transition: 0.2s;
+        font-size: 0.8rem;
       }
-      .btn-reorder:hover {
-        background: #222;
-      }
-
       .btn-cancel {
         background: transparent;
-        border: 1px solid #e74c3c;
-        color: #e74c3c;
-        padding: 10px 20px;
-        border-radius: 10px;
+        border: 1px solid #333;
+        color: #444;
+        padding: 8px 16px;
+        border-radius: 8px;
         font-weight: 800;
         cursor: pointer;
-        transition: 0.3s;
-      }
-      .btn-cancel:hover {
-        background: #e74c3c;
-        color: white;
+        font-size: 0.8rem;
       }
 
       .feedback-pill {
         cursor: pointer;
         display: flex;
         flex-direction: column;
-        padding: 8px 16px;
-        border-radius: 14px;
+        padding: 6px 14px;
+        border-radius: 10px;
         background: #000;
-        border: 1px solid #222;
-        min-width: 130px;
+        border: 1px solid #1a1a1a;
+        min-width: 110px;
       }
       .rating-info {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
       }
       .rating-num {
-        font-size: 1.2rem;
+        font-size: 1rem;
         font-weight: 900;
+        color: #fff;
       }
       .stars {
-        font-size: 1rem;
+        font-size: 0.85rem;
         color: #ffcc00;
       }
       .view-lbl {
-        font-size: 0.6rem;
-        color: #444;
+        font-size: 0.5rem;
+        color: #555;
         font-weight: 800;
         text-transform: uppercase;
         margin-top: 2px;
@@ -280,20 +306,19 @@ import { Router, RouterLink } from '@angular/router';
         color: #e74c3c;
       }
 
-      .empty-state {
-        text-align: center;
-        padding: 60px;
-        border-radius: 32px;
+      .glass-card {
+        background: rgba(10, 10, 10, 0.6);
+        backdrop-filter: blur(10px);
       }
       .btn-primary {
         background: #ff6600;
         color: white;
-        padding: 12px 30px;
-        border-radius: 12px;
+        padding: 10px 24px;
+        border-radius: 10px;
         text-decoration: none;
         font-weight: 800;
         display: inline-block;
-        margin-top: 20px;
+        margin-top: 15px;
       }
     `,
   ],
@@ -334,17 +359,13 @@ export class MyOrdersComponent implements OnInit {
   }
 
   onCancel(orderId: string) {
-    if (confirm('Are you sure you want to cancel this legendary order? This cannot be undone.')) {
+    if (confirm('Cancel this order?')) {
       this.orderService.cancelOrder(orderId).subscribe({
         next: () => {
-          this.toast.success('Order cancelled successfully.');
+          this.toast.success('Cancelled.');
           this.loadOrders();
         },
-        error: (err) => {
-          this.toast.error(
-            err.error?.msg || 'Cancellation failed. The kitchen may have already started cooking.',
-          );
-        },
+        error: (err) => this.toast.error(err.error?.msg || 'Failed.'),
       });
     }
   }

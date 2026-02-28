@@ -26,11 +26,15 @@ export class RatingService {
     });
   }
 
-  submitFeedback(data: { orderId: string; rating: number; comment?: string }): Observable<any> {
+  submitFeedback(data: any): Observable<any> {
     return this.http.post(this.apiUrl, data, { withCredentials: true });
   }
 
   getAdminFeedback(): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/admin/all`, { withCredentials: true });
+  }
+
+  replyToFeedback(id: string, reply: string): Observable<any> {
+    return this.http.put(`${this.apiUrl}/admin/reply/${id}`, { reply }, { withCredentials: true });
   }
 }

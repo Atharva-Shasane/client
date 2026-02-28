@@ -20,45 +20,70 @@ import { ToastService } from '../../services/toast';
     <div class="feedback-overlay" *ngIf="isVisible">
       <div class="feedback-card glass-card animate-slide-up">
         <header class="header">
-          <span class="badge">Order Feedback</span>
-          <h2>{{ isViewOnly ? 'Your Feedback' : 'Rate Your Experience' }}</h2>
-          <p class="order-info">Order #{{ orderNumber }}</p>
+          <span class="badge">Dining Experience</span>
+          <h2>{{ isViewOnly ? 'Review Summary' : 'Rate Your Feast' }}</h2>
+          <p class="order-info">Ref: #{{ orderNumber }}</p>
         </header>
 
         <div class="body">
-          <!-- Context: What they ordered -->
-          <div class="order-summary" *ngIf="items && items.length > 0">
-            <span class="label">You Ordered</span>
-            <div class="item-list">
-              <span class="item-tag" *ngFor="let item of items">
-                {{ item.quantity }}x {{ item.name }}
-              </span>
+          <!-- Dish Breakdown (Always visible if data exists) -->
+          <div class="granular-section" *ngIf="items && items.length > 0">
+            <span class="section-lbl">Dish Ratings</span>
+            <div class="dish-scroller">
+              <div class="dish-item" *ngFor="let item of items; let i = index">
+                <span class="d-name">{{ item.name }}</span>
+                <div class="d-stars">
+                  <button
+                    *ngFor="let s of [1, 2, 3, 4, 5]"
+                    (click)="!isViewOnly && setDishRating(i, s)"
+                    [class.active]="(dishScores[i] || 0) >= s"
+                    class="mini-star"
+                    [disabled]="isViewOnly"
+                  >
+                    ★
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- Star Selection -->
-          <div class="stars">
-            <button
-              *ngFor="let s of [1, 2, 3, 4, 5]"
-              (click)="!isViewOnly && setRating(s)"
-              [class.active]="selectedRating() >= s"
-              class="star-btn"
-              [disabled]="isViewOnly"
-            >
-              ★
-            </button>
+          <!-- Overall Service Rating -->
+          <div class="overall-section">
+            <span class="section-lbl">Overall Service</span>
+            <div class="stars">
+              <button
+                *ngFor="let s of [1, 2, 3, 4, 5]"
+                (click)="!isViewOnly && setRating(s)"
+                [class.active]="selectedRating() >= s"
+                class="star-btn"
+                [disabled]="isViewOnly"
+              >
+                ★
+              </button>
+            </div>
+            <p class="rating-label">{{ getRatingLabel() }}</p>
           </div>
-          <p class="rating-label">{{ getRatingLabel() }}</p>
 
-          <!-- Comment Input -->
+          <!-- User's Written Review -->
           <div class="comment-box">
-            <label>Comment / Suggestions</label>
+            <label>Your Comments</label>
+            <p *ngIf="isViewOnly" class="view-comment">
+              "{{ comment || 'No written review provided.' }}"
+            </p>
             <textarea
+              *ngIf="!isViewOnly"
               [(ngModel)]="comment"
-              [placeholder]="isViewOnly ? '' : 'Tell us how the taste and service was...'"
-              [readonly]="isViewOnly"
+              placeholder="How was the overall taste and service?"
               maxlength="500"
             ></textarea>
+          </div>
+
+          <!-- OWNER REPLY: Critical section for visibility -->
+          <div class="reply-container fade-in" *ngIf="ownerReply">
+            <div class="reply-card">
+              <span class="r-lbl">Kitchen Response</span>
+              <p class="r-text">{{ ownerReply }}</p>
+            </div>
           </div>
         </div>
 
@@ -70,7 +95,7 @@ import { ToastService } from '../../services/toast';
               class="btn-submit"
               [disabled]="selectedRating() === 0 || loading"
             >
-              {{ loading ? 'Processing...' : 'Submit Now' }}
+              {{ loading ? '...' : 'Submit Now' }}
             </button>
           </div>
           <ng-template #closeOnly>
@@ -85,8 +110,8 @@ import { ToastService } from '../../services/toast';
       .feedback-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(0, 0, 0, 0.9);
-        backdrop-filter: blur(12px);
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(8px);
         z-index: 10000;
         display: flex;
         align-items: center;
@@ -95,114 +120,171 @@ import { ToastService } from '../../services/toast';
       }
       .feedback-card {
         width: 100%;
-        max-width: 440px;
-        padding: 35px;
+        max-width: 400px;
+        padding: 25px;
         text-align: center;
-        background: #111;
-        border: 1px solid #222;
-        border-radius: 32px;
+        background: #080808;
+        border: 1px solid #1a1a1a;
+        border-radius: 20px;
+        max-height: 85vh;
+        overflow-y: auto;
       }
       .badge {
         color: #ff6600;
         font-weight: 800;
-        font-size: 0.65rem;
+        font-size: 0.55rem;
         text-transform: uppercase;
         letter-spacing: 2px;
       }
       h2 {
-        font-size: 1.6rem;
+        font-size: 1.2rem;
         font-weight: 900;
-        margin: 8px 0;
+        margin: 4px 0;
+        color: #fff;
       }
       .order-info {
-        color: #555;
-        font-size: 0.85rem;
+        color: #444;
+        font-size: 0.75rem;
         margin-bottom: 20px;
-        font-weight: 600;
+        font-family: monospace;
       }
 
-      .order-summary {
-        background: #000;
-        border-radius: 16px;
-        padding: 15px;
-        margin-bottom: 20px;
-        text-align: left;
-        border: 1px solid #1a1a1a;
-      }
-      .order-summary .label {
-        font-size: 0.65rem;
-        font-weight: 800;
-        color: #444;
-        text-transform: uppercase;
+      .section-lbl {
         display: block;
-        margin-bottom: 8px;
+        font-size: 0.6rem;
+        font-weight: 800;
+        color: #333;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+        text-align: left;
+        letter-spacing: 1px;
       }
-      .item-list {
+
+      .granular-section {
+        margin-bottom: 20px;
+        border-bottom: 1px solid #111;
+        padding-bottom: 15px;
+      }
+      .dish-scroller {
         display: flex;
-        flex-wrap: wrap;
+        flex-direction: column;
         gap: 6px;
       }
-      .item-tag {
-        font-size: 0.75rem;
-        background: #1a1a1a;
-        color: #aaa;
-        padding: 4px 10px;
-        border-radius: 6px;
-        border: 1px solid #222;
+      .dish-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #000;
+        padding: 8px 12px;
+        border-radius: 10px;
+        border: 1px solid #121212;
+      }
+      .d-name {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #ccc;
+      }
+      .mini-star {
+        background: none;
+        border: none;
+        color: #151515;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: 0.2s;
+      }
+      .mini-star.active {
+        color: #ffcc00;
       }
 
       .stars {
         display: flex;
         justify-content: center;
-        gap: 12px;
-        margin-bottom: 8px;
+        gap: 8px;
       }
       .star-btn {
         background: none;
         border: none;
-        font-size: 2.2rem;
-        color: #222;
+        font-size: 1.8rem;
+        color: #151515;
         cursor: pointer;
         transition: 0.2s;
       }
       .star-btn.active {
         color: #ffcc00;
-        filter: drop-shadow(0 0 10px rgba(255, 204, 0, 0.4));
       }
       .rating-label {
         color: #ffcc00;
         font-weight: 800;
-        font-size: 0.8rem;
-        min-height: 18px;
-        margin-bottom: 20px;
+        font-size: 0.7rem;
+        margin: 5px 0 15px;
       }
 
       .comment-box {
         text-align: left;
+        margin-top: 10px;
       }
       .comment-box label {
         display: block;
-        font-size: 0.65rem;
+        font-size: 0.6rem;
         font-weight: 800;
-        color: #444;
+        color: #333;
         text-transform: uppercase;
-        margin-bottom: 8px;
+        margin-bottom: 5px;
+      }
+      .view-comment {
+        color: #fff;
+        font-style: italic;
+        font-size: 0.95rem;
+        line-height: 1.4;
+        padding: 10px;
+        background: #000;
+        border-radius: 8px;
+        border: 1px solid #111;
       }
       textarea {
         width: 100%;
         background: #000;
-        border: 1px solid #222;
-        border-radius: 12px;
-        padding: 12px;
+        border: 1px solid #1a1a1a;
+        border-radius: 10px;
+        padding: 10px;
         color: white;
         resize: none;
-        height: 100px;
+        height: 60px;
         font-family: inherit;
+        font-size: 0.85rem;
+      }
+
+      /* REPLY UI - ENHANCED FOR READABILITY */
+      .reply-container {
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px dashed #222;
+        text-align: left;
+      }
+      .reply-card {
+        background: rgba(255, 102, 0, 0.08);
+        padding: 15px;
+        border-radius: 12px;
+        border-left: 3px solid #ff6600;
+      }
+      .r-lbl {
+        font-size: 0.65rem;
+        font-weight: 900;
+        color: #ff6600;
+        text-transform: uppercase;
+        display: block;
+        margin-bottom: 6px;
+        letter-spacing: 1px;
+      }
+      .r-text {
+        color: #ffffff;
+        line-height: 1.5;
         font-size: 0.9rem;
+        font-weight: 500;
       }
 
       .footer {
-        margin-top: 25px;
+        margin-top: 20px;
       }
       .actions {
         display: flex;
@@ -213,43 +295,42 @@ import { ToastService } from '../../services/toast';
         background: #1a1a1a;
         color: #555;
         border: 1px solid #222;
-        padding: 14px;
-        border-radius: 12px;
+        padding: 12px;
+        border-radius: 10px;
         font-weight: 800;
         cursor: pointer;
+        font-size: 0.8rem;
       }
       .btn-submit {
         flex: 2;
         background: #ff6600;
         color: white;
         border: none;
-        padding: 14px;
-        border-radius: 12px;
+        padding: 12px;
+        border-radius: 10px;
         font-weight: 900;
         cursor: pointer;
+        font-size: 0.85rem;
       }
       .btn-close {
         width: 100%;
-        background: #222;
+        background: #1a1a1a;
         color: white;
-        border: none;
-        padding: 14px;
-        border-radius: 12px;
+        border: 1px solid #222;
+        padding: 12px;
+        border-radius: 10px;
         font-weight: 800;
         cursor: pointer;
-      }
-      .btn-submit:disabled {
-        opacity: 0.2;
-        cursor: not-allowed;
+        font-size: 0.85rem;
       }
 
       .animate-slide-up {
-        animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        animation: slideUp 0.3s ease-out;
       }
       @keyframes slideUp {
         from {
           opacity: 0;
-          transform: translateY(30px);
+          transform: translateY(15px);
         }
         to {
           opacity: 1;
@@ -271,19 +352,38 @@ export class FeedbackModalComponent {
   @Input() items: any[] = [];
   @Input() initialRating = 0;
   @Input() initialComment = '';
+  @Input() ownerReply = '';
+  @Input() dishRatings: any[] = [];
 
   @Output() close = new EventEmitter<void>();
   @Output() refresh = new EventEmitter<void>();
 
   selectedRating = signal(0);
   comment = '';
+  dishScores: number[] = [];
   loading = false;
 
   ngOnChanges() {
     if (this.isVisible) {
       this.selectedRating.set(this.initialRating || 0);
       this.comment = this.initialComment || '';
+
+      if (this.dishRatings && this.dishRatings.length > 0) {
+        this.dishScores = this.items.map((item) => {
+          const found = this.dishRatings.find(
+            (dr) => dr.menuItemId === (item.menuItemId || item._id),
+          );
+          return found ? found.rating : 0;
+        });
+      } else {
+        this.dishScores = new Array(this.items.length).fill(0);
+      }
     }
+  }
+
+  setDishRating(idx: number, score: number) {
+    this.dishScores[idx] = score;
+    this.cdr.detectChanges();
   }
 
   setRating(r: number) {
@@ -303,15 +403,9 @@ export class FeedbackModalComponent {
         rating: 0,
         comment: 'USER DISMISSED',
       })
-      .subscribe({
-        next: () => {
-          this.loading = false;
-          this.close.emit();
-        },
-        error: () => {
-          this.loading = false;
-          this.close.emit();
-        },
+      .subscribe(() => {
+        this.loading = false;
+        this.close.emit();
       });
   }
 
@@ -323,21 +417,28 @@ export class FeedbackModalComponent {
     this.loading = true;
     this.cdr.detectChanges();
 
+    const granular = this.items.map((item, i) => ({
+      menuItemId: item.menuItemId || item._id,
+      name: item.name,
+      rating: this.dishScores[i] || this.selectedRating(),
+    }));
+
     this.ratingService
       .submitFeedback({
         orderId: this.orderId,
         rating: this.selectedRating(),
         comment: this.comment,
+        dishRatings: granular,
       })
       .subscribe({
         next: () => {
-          this.toast.success('Thank you for the legendary feedback!');
+          this.toast.success('Feedback received!');
           this.refresh.emit();
           this.close.emit();
           this.loading = false;
         },
         error: () => {
-          this.toast.error('Failed to submit feedback.');
+          this.toast.error('Failed to submit.');
           this.loading = false;
           this.cdr.detectChanges();
         },
