@@ -21,7 +21,7 @@ import { Router } from '@angular/router';
 
         <!-- Empty State -->
         <div *ngIf="cartService.cartItems().length === 0" class="empty-state glass-card">
-          <div class="empty-icon">🛒</div>
+          <div class="empty-icon">🍽️</div>
           <h3>Your cart is empty</h3>
           <p>Hungry? Discover something delicious in our collection.</p>
           <button class="browse-btn" (click)="router.navigate(['/menu'])">Explore Menu</button>
@@ -48,27 +48,29 @@ import { Router } from '@angular/router';
                   <span class="unit-price">₹{{ item.computedPrice }} / unit</span>
                 </div>
               </div>
-
               <div class="item-controls">
                 <div class="qty-selector">
+                  <!-- FIXED: Added ! to item._id -->
                   <button
-                    (click)="cartService.updateQuantity(item._id, item.selectedVariant!, -1)"
+                    (click)="cartService.updateQuantity(item._id!, item.selectedVariant!, -1)"
                     class="qty-btn"
                   >
                     -
                   </button>
                   <span class="qty-val">{{ item.quantity }}</span>
+                  <!-- FIXED: Added ! to item._id -->
                   <button
-                    (click)="cartService.updateQuantity(item._id, item.selectedVariant!, 1)"
+                    (click)="cartService.updateQuantity(item._id!, item.selectedVariant!, 1)"
                     class="qty-btn"
                   >
                     +
                   </button>
                 </div>
                 <div class="item-total">₹{{ item.computedPrice * item.quantity }}</div>
+                <!-- FIXED: Added ! to item._id -->
                 <button
                   class="remove-btn"
-                  (click)="cartService.removeFromCart(item._id, item.selectedVariant!)"
+                  (click)="cartService.removeFromCart(item._id!, item.selectedVariant!)"
                 >
                   &times;
                 </button>
@@ -84,7 +86,6 @@ import { Router } from '@angular/router';
                 <span>Total Amount</span>
                 <span class="grand-total">₹{{ cartService.totalPrice() }}</span>
               </div>
-
               <p class="inclusive-text">Prices are inclusive of all service charges.</p>
 
               <div class="action-zone">
@@ -147,7 +148,6 @@ import { Router } from '@angular/router';
         color: #777;
         font-size: 1rem;
       }
-
       .cart-layout {
         display: grid;
         grid-template-columns: 1fr 380px;
@@ -158,7 +158,6 @@ import { Router } from '@angular/router';
         flex-direction: column;
         gap: 16px;
       }
-
       .item-card {
         display: grid;
         grid-template-columns: 100px 1fr auto;
@@ -208,7 +207,6 @@ import { Router } from '@angular/router';
         font-weight: 600;
         font-size: 0.85rem;
       }
-
       .item-controls {
         display: flex;
         align-items: center;
@@ -264,7 +262,6 @@ import { Router } from '@angular/router';
       .remove-btn:hover {
         opacity: 1;
       }
-
       .summary-card {
         padding: 35px;
         border-radius: 32px;
@@ -300,7 +297,6 @@ import { Router } from '@angular/router';
         margin: 15px 0 30px;
         font-weight: 600;
       }
-
       .btn-checkout {
         width: 100%;
         padding: 20px;
@@ -333,7 +329,6 @@ import { Router } from '@angular/router';
         font-weight: 800;
         letter-spacing: 1px;
       }
-
       .empty-state {
         text-align: center;
         padding: 80px 40px;
@@ -354,12 +349,10 @@ import { Router } from '@angular/router';
         cursor: pointer;
         margin-top: 25px;
       }
-
       .glass-card {
         background: rgba(15, 15, 15, 0.6);
         backdrop-filter: blur(25px);
       }
-
       @media (max-width: 1100px) {
         .cart-layout {
           grid-template-columns: 1fr;

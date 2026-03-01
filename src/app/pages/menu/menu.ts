@@ -66,7 +66,7 @@ import { MenuItem } from '../../models/menu-item.model';
             [class.recommended-border]="selectedCategory() === 'Recommended'"
           >
             <div class="media">
-              <img [src]="item.imageUrl" (error)="handleImageError($event)" [alt]="item.name" />
+              <img [src]="item.imageUrl" [alt]="item.name" (error)="handleImageError($event)" />
               <div class="category-pill">
                 {{
                   item.category === 'non-veg'
@@ -77,11 +77,33 @@ import { MenuItem } from '../../models/menu-item.model';
                 }}
               </div>
             </div>
+
             <div class="info">
               <div class="meta">
                 <h3>{{ item.name }}</h3>
+
+                <!-- IMPROVED: Rating Logic & Visibility -->
+                <div class="menu-rating">
+                  <!-- Star is always visible, color changes if rated -->
+                  <span
+                    class="star-icon"
+                    [class.active-star]="item.averageRating && item.averageRating > 0"
+                    >★</span
+                  >
+
+                  <ng-container *ngIf="item.averageRating && item.averageRating > 0; else noRating">
+                    <span class="rating-val">{{ item.averageRating | number: '1.1-1' }}</span>
+                    <span class="review-count">({{ item.totalReviews || 0 }})</span>
+                  </ng-container>
+
+                  <ng-template #noRating>
+                    <span class="new-tag">New</span>
+                  </ng-template>
+                </div>
+
                 <p class="subtitle capitalize">{{ item.subCategory }}</p>
               </div>
+
               <div class="pricing-actions">
                 <!-- Single Price Template -->
                 <div *ngIf="item.pricing.type === 'SINGLE'" class="single-price">
@@ -102,6 +124,7 @@ import { MenuItem } from '../../models/menu-item.model';
                 </div>
               </div>
             </div>
+
             <div class="ai-recommendation-badge" *ngIf="selectedCategory() === 'Recommended'">
               AI Match
             </div>
@@ -127,23 +150,19 @@ import { MenuItem } from '../../models/menu-item.model';
         padding-bottom: 100px;
         font-family: 'Poppins', sans-serif;
       }
-
       .container {
         max-width: 1400px;
         margin: 0 auto;
         padding: 0 24px;
       }
-
       .highlight {
         color: #ff6600;
       }
-
       /* Header Section */
       .menu-header {
         padding: 120px 0 60px;
         background: linear-gradient(to bottom, #111, #0a0a0a);
       }
-
       .header-inner {
         display: flex;
         justify-content: space-between;
@@ -151,26 +170,22 @@ import { MenuItem } from '../../models/menu-item.model';
         gap: 40px;
         flex-wrap: wrap;
       }
-
       .title-group h1 {
         font-size: 3.5rem;
         font-weight: 800;
         margin: 0;
         letter-spacing: -1px;
       }
-
       .title-group p {
         color: #888;
         margin-top: 10px;
         font-size: 1.1rem;
       }
-
       .search-bar {
         position: relative;
         flex-grow: 1;
         max-width: 450px;
       }
-
       .search-bar .icon {
         position: absolute;
         left: 20px;
@@ -178,7 +193,6 @@ import { MenuItem } from '../../models/menu-item.model';
         transform: translateY(-50%);
         color: #666;
       }
-
       .search-bar input {
         width: 100%;
         background: #1a1a1a;
@@ -189,14 +203,12 @@ import { MenuItem } from '../../models/menu-item.model';
         font-size: 1rem;
         transition: 0.3s ease;
       }
-
       .search-bar input:focus {
         outline: none;
         border-color: #ff6600;
         background: #222;
         box-shadow: 0 0 20px rgba(255, 102, 0, 0.1);
       }
-
       /* Category Sticky Nav */
       .category-sticky {
         position: sticky;
@@ -207,18 +219,15 @@ import { MenuItem } from '../../models/menu-item.model';
         padding: 15px 0;
         border-bottom: 1px solid #222;
       }
-
       .chips-container {
         display: flex;
         gap: 12px;
         overflow-x: auto;
         padding-bottom: 5px;
       }
-
       .chips-container::-webkit-scrollbar {
         display: none;
       }
-
       .chips-container button {
         padding: 10px 24px;
         border-radius: 50px;
@@ -233,23 +242,19 @@ import { MenuItem } from '../../models/menu-item.model';
         align-items: center;
         gap: 8px;
       }
-
       .chips-container button.active {
         background: #ff6600;
         color: white;
         border-color: #ff6600;
       }
-
       .chips-container button.special {
         border-color: #ff6600;
         color: #ff6600;
       }
-
       .chips-container button.special.active {
         background: #ff6600;
         color: white;
       }
-
       .dot {
         width: 8px;
         height: 8px;
@@ -257,23 +262,19 @@ import { MenuItem } from '../../models/menu-item.model';
         border-radius: 50%;
         box-shadow: 0 0 10px #ff6600;
       }
-
       .active .dot {
         background: white;
         box-shadow: none;
       }
-
       /* Grid and Cards */
       .menu-content {
         margin-top: 50px;
       }
-
       .grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
         gap: 32px;
       }
-
       .food-item {
         background: #161616;
         border-radius: 28px;
@@ -284,34 +285,28 @@ import { MenuItem } from '../../models/menu-item.model';
         display: flex;
         flex-direction: column;
       }
-
       .food-item:hover {
         transform: translateY(-10px);
         border-color: #444;
         box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
       }
-
       .recommended-border {
         border: 2px solid #ff6600 !important;
       }
-
       .media {
         height: 230px;
         position: relative;
         overflow: hidden;
       }
-
       .media img {
         width: 100%;
         height: 100%;
         object-fit: cover;
         transition: 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
       }
-
       .food-item:hover .media img {
         transform: scale(1.1);
       }
-
       .category-pill {
         position: absolute;
         top: 20px;
@@ -326,19 +321,53 @@ import { MenuItem } from '../../models/menu-item.model';
         text-transform: uppercase;
         letter-spacing: 1px;
       }
-
       .info {
         padding: 25px;
         flex-grow: 1;
         display: flex;
         flex-direction: column;
       }
-
       .meta h3 {
         font-size: 1.5rem;
         margin: 0;
         font-weight: 800;
         line-height: 1.2;
+      }
+
+      /* IMPROVED RATING STYLES */
+      .menu-rating {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .star-icon {
+        color: #333; /* Dark star by default */
+        font-size: 1.1rem;
+        transition: color 0.3s;
+      }
+      .active-star {
+        color: #ffcc00 !important; /* Gold star when rating exists */
+      }
+      .rating-val {
+        color: #fff;
+        font-weight: 800;
+        font-size: 0.9rem;
+      }
+      .review-count {
+        color: #555;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+      .new-tag {
+        color: #ff6600;
+        font-size: 0.7rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        background: rgba(255, 102, 0, 0.1);
+        padding: 2px 8px;
+        border-radius: 6px;
       }
 
       .subtitle {
@@ -347,24 +376,23 @@ import { MenuItem } from '../../models/menu-item.model';
         margin: 8px 0 25px;
         font-weight: 500;
       }
-
+      .capitalize {
+        text-transform: capitalize;
+      }
       .pricing-actions {
         margin-top: auto;
       }
-
       .single-price {
         display: flex;
         justify-content: space-between;
         align-items: center;
       }
-
       .price {
         font-size: 1.8rem;
         font-weight: 900;
         color: #ff6600;
         letter-spacing: -1px;
       }
-
       .add-main {
         background: #ff6600;
         color: white;
@@ -375,18 +403,15 @@ import { MenuItem } from '../../models/menu-item.model';
         cursor: pointer;
         transition: 0.3s;
       }
-
       .add-main:hover {
         transform: scale(1.05);
         box-shadow: 0 10px 20px rgba(255, 102, 0, 0.3);
       }
-
       .multi-price {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 12px;
       }
-
       .variant-btn {
         background: #222;
         border: 1px solid #333;
@@ -396,7 +421,6 @@ import { MenuItem } from '../../models/menu-item.model';
         text-align: left;
         transition: 0.3s;
       }
-
       .variant-btn .v-name {
         display: block;
         font-size: 0.75rem;
@@ -405,7 +429,6 @@ import { MenuItem } from '../../models/menu-item.model';
         text-transform: uppercase;
         transition: 0.3s;
       }
-
       .variant-btn .v-price {
         display: block;
         font-size: 1.2rem;
@@ -413,13 +436,11 @@ import { MenuItem } from '../../models/menu-item.model';
         color: #ff6600;
         margin-top: 4px;
       }
-
       .variant-btn:hover {
         border-color: #ff6600;
         background: #2a2a2a;
         transform: translateY(-2px);
       }
-
       .ai-recommendation-badge {
         position: absolute;
         bottom: 15px;
@@ -432,18 +453,15 @@ import { MenuItem } from '../../models/menu-item.model';
         font-weight: 900;
         text-transform: uppercase;
       }
-
       /* Empty State UI */
       .empty-results {
         text-align: center;
         padding: 100px 0;
       }
-
       .empty-icon {
         font-size: 5rem;
         margin-bottom: 25px;
       }
-
       .reset-btn {
         background: #222;
         color: white;
@@ -455,12 +473,10 @@ import { MenuItem } from '../../models/menu-item.model';
         margin-top: 25px;
         transition: 0.3s;
       }
-
       .reset-btn:hover {
         background: #ff6600;
         border-color: #ff6600;
       }
-
       /* Skeleton Animation */
       .skeleton-card {
         background: #161616;
@@ -470,7 +486,6 @@ import { MenuItem } from '../../models/menu-item.model';
         position: relative;
         overflow: hidden;
       }
-
       .skeleton-card::after {
         content: '';
         position: absolute;
@@ -482,13 +497,11 @@ import { MenuItem } from '../../models/menu-item.model';
         background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
         animation: loading 1.5s infinite;
       }
-
       @keyframes loading {
         100% {
           transform: translateX(100%);
         }
       }
-
       .s-img {
         height: 200px;
         background: #222;
@@ -507,7 +520,6 @@ import { MenuItem } from '../../models/menu-item.model';
       .s-line.short {
         width: 40%;
       }
-
       @media (max-width: 768px) {
         .menu-header {
           padding-top: 100px;
@@ -559,9 +571,7 @@ export class MenuComponent implements OnInit {
     this.loadData();
   }
 
-  /**
-   * Loads both the general menu and personalized recommendations
-   */
+  // Loads both the general menu and personalized recommendations
   loadData() {
     this.loading.set(true);
 
@@ -596,17 +606,13 @@ export class MenuComponent implements OnInit {
     }
   }
 
-  /**
-   * Updates the selected category and triggers filter refresh
-   */
+  // Updates the selected category and triggers filter refresh
   filterByCategory(cat: string) {
     this.selectedCategory.set(cat);
     this.applyFilters();
   }
 
-  /**
-   * Combines category selection and search query logic
-   */
+  // Combines category selection and search query logic
   applyFilters() {
     let items: MenuItem[] = [];
 
@@ -630,25 +636,19 @@ export class MenuComponent implements OnInit {
     this.filteredItems.set(items);
   }
 
-  /**
-   * Resets all filters back to default
-   */
+  // Resets all filters back to default
   resetFilters() {
     this.searchQuery = '';
     this.selectedCategory.set('All');
     this.applyFilters();
   }
 
-  /**
-   * Adds an item to the cart with the specified variant
-   */
+  // Adds an item to the cart with the specified variant
   addToCart(item: MenuItem, variant: 'SINGLE' | 'HALF' | 'FULL') {
     this.cartService.addToCart(item, variant);
   }
 
-  /**
-   * Fallback for broken image URLs
-   */
+  // Fallback for broken image URLs
   handleImageError(event: any) {
     event.target.src = 'https://placehold.co/600x400/1a1a1a/ffffff?text=Killa+Kitchen';
   }

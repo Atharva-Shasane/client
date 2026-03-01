@@ -1,5 +1,6 @@
 export interface MenuItem {
-  _id: string;
+  id?: string;
+  _id?: string;
   name: string;
   category: string;
   subCategory: string;
@@ -12,4 +13,7 @@ export interface MenuItem {
   isAvailable: boolean;
   imageUrl: string;
   description?: string;
+  // Dynamic fields populated by AIML / Backend
+  averageRating?: number;
+  totalReviews?: number;
 }

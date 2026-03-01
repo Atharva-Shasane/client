@@ -15,7 +15,6 @@ import { MenuItem } from '../../models/menu-item.model';
   imports: [CommonModule, RouterLink, FeedbackModalComponent],
   template: `
     <div class="home-container">
-      <!-- Global Standalone Feedback Component -->
       <app-feedback-modal
         [isVisible]="showFeedback()"
         [orderId]="pendingOrder()?._id"
@@ -24,14 +23,13 @@ import { MenuItem } from '../../models/menu-item.model';
         (close)="showFeedback.set(false)"
       ></app-feedback-modal>
 
-      <!-- Hero Section -->
       <section class="hero">
         <div class="hero-content fade-in">
           <span class="badge">Legendary Flavors</span>
           <h1>Experience the <span class="highlight">Killa</span> Taste</h1>
           <p>
-            The most authentic restaurant experience in town. Fresh ingredients, bold spices, and
-            legendary service.
+            The most authentic restaurant experience in town. Fresh ingredients and legendary
+            service.
           </p>
           <div class="hero-actions">
             <a routerLink="/menu" class="btn-primary">Explore Menu</a>
@@ -41,12 +39,11 @@ import { MenuItem } from '../../models/menu-item.model';
         <div class="hero-image"></div>
       </section>
 
-      <!-- AI Recommendations -->
       <section class="recommendations" *ngIf="recommendations().length > 0">
         <div class="container">
           <div class="section-header">
             <h2>Legendary <span class="highlight">Picks</span></h2>
-            <p>Based on top ratings and order volume.</p>
+            <p>AI-curated recommendations based on top ratings and volume.</p>
           </div>
           <div class="recommendation-grid">
             <div class="recommendation-card glass-card" *ngFor="let item of recommendations()">
@@ -56,12 +53,28 @@ import { MenuItem } from '../../models/menu-item.model';
               </div>
               <div class="card-info">
                 <h3>{{ item.name }}</h3>
-                <div class="card-footer">
-                  <span class="price"
-                    >₹{{
-                      item.pricing.type === 'SINGLE' ? item.pricing.price : item.pricing.priceHalf
-                    }}</span
+
+                <!-- FIXED: Added rating logic to recommendations on homepage -->
+                <div class="rating-wrap">
+                  <span
+                    class="star-icon"
+                    [class.active]="item.averageRating && item.averageRating > 0"
+                    >★</span
                   >
+                  <ng-container *ngIf="item.averageRating && item.averageRating > 0; else noRating">
+                    <span class="rating-val">{{ item.averageRating | number: '1.1-1' }}</span>
+                  </ng-container>
+                  <ng-template #noRating>
+                    <span class="new-pill">NEW</span>
+                  </ng-template>
+                </div>
+
+                <div class="card-footer">
+                  <span class="price">
+                    ₹{{
+                      item.pricing.type === 'SINGLE' ? item.pricing.price : item.pricing.priceHalf
+                    }}
+                  </span>
                   <button (click)="addToCart(item)" class="btn-add">Add</button>
                 </div>
               </div>
@@ -70,12 +83,11 @@ import { MenuItem } from '../../models/menu-item.model';
         </div>
       </section>
 
-      <!-- Features Section -->
       <section class="features">
         <div class="container">
           <div class="feature-grid">
             <div class="feature-card glass-card">
-              <div class="icon">🚚</div>
+              <div class="icon">🚀</div>
               <h3>Quick Delivery</h3>
               <p>Legendary speed for your cravings.</p>
             </div>
@@ -85,29 +97,9 @@ import { MenuItem } from '../../models/menu-item.model';
               <p>Masters of flavor and culinary precision.</p>
             </div>
             <div class="feature-card glass-card">
-              <div class="icon">✨</div>
+              <div class="icon">⭐</div>
               <h3>Quality Taste</h3>
               <p>Only the freshest ingredients.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Stats Section -->
-      <section class="stats">
-        <div class="container">
-          <div class="stats-grid">
-            <div class="stat-item">
-              <h2>15k+</h2>
-              <p>Customers</p>
-            </div>
-            <div class="stat-item">
-              <h2>50+</h2>
-              <p>Awards</p>
-            </div>
-            <div class="stat-item">
-              <h2>10+</h2>
-              <p>Years</p>
             </div>
           </div>
         </div>
@@ -136,14 +128,10 @@ import { MenuItem } from '../../models/menu-item.model';
         margin: 0 auto;
         gap: 40px;
       }
-      .hero-content {
-        flex: 1;
-      }
-      h1 {
+      .hero-content h1 {
         font-size: clamp(2.5rem, 6vw, 3.5rem);
         font-weight: 900;
         line-height: 1.1;
-        letter-spacing: -2px;
       }
       .highlight {
         color: #ff6600;
@@ -186,11 +174,6 @@ import { MenuItem } from '../../models/menu-item.model';
         padding: 60px 0;
         background: #080808;
       }
-      .section-header h2 {
-        font-size: 2.2rem;
-        font-weight: 800;
-        margin-bottom: 10px;
-      }
       .recommendation-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -223,11 +206,40 @@ import { MenuItem } from '../../models/menu-item.model';
       .card-info {
         padding: 18px;
       }
+
+      /* Rating Styles */
+      .rating-wrap {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 6px;
+        margin-bottom: 12px;
+      }
+      .star-icon {
+        color: #222;
+        font-size: 1rem;
+      }
+      .star-icon.active {
+        color: #ffcc00;
+      }
+      .rating-val {
+        color: #fff;
+        font-weight: 800;
+        font-size: 0.85rem;
+      }
+      .new-pill {
+        font-size: 0.6rem;
+        background: rgba(255, 102, 0, 0.1);
+        color: #ff6600;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-weight: 800;
+      }
+
       .card-footer {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-top: 12px;
       }
       .price {
         font-size: 1.3rem;
@@ -258,20 +270,32 @@ import { MenuItem } from '../../models/menu-item.model';
         border: 1px solid #1a1a1a;
         border-radius: 28px;
       }
-      .stats {
-        padding: 50px 0;
-        background: #050505;
+      .feature-card .icon {
+        font-size: 2.5rem;
+        margin-bottom: 15px;
       }
-      .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        text-align: center;
+      .glass-card {
+        background: rgba(26, 26, 26, 0.8);
+        backdrop-filter: blur(15px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
       }
-      .stat-item h2 {
-        font-size: 3rem;
-        font-weight: 900;
-        color: #ff6600;
-        margin: 0;
+
+      @media (max-width: 768px) {
+        .hero {
+          flex-direction: column;
+          text-align: center;
+        }
+        .feature-grid {
+          grid-template-columns: 1fr;
+        }
+        .hero-actions {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .btn-secondary {
+          margin-left: 0;
+        }
       }
     `,
   ],
