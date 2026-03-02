@@ -32,14 +32,20 @@ import { Router, RouterLink } from '@angular/router';
       </header>
 
       <div class="orders-grid">
-        <div class="order-card glass-card" *ngFor="let order of orders()">
+        <div class="order-card glass-card fade-in" *ngFor="let order of orders()">
           <div class="card-header">
             <div class="meta">
               <span class="id">#{{ order.orderNumber }}</span>
               <span class="date">{{ order.createdAt | date: 'medium' }}</span>
             </div>
             <div class="status-group">
-              <!-- NEW: Message Badge Indicator -->
+              <!-- NEW: Live Wait Time for active orders -->
+              <div
+                class="wait-badge"
+                *ngIf="order.orderStatus === 'NEW' || order.orderStatus === 'PREPARING'"
+              >
+                <span class="pulse"></span> Est. {{ calculateWait(order) }}m
+              </div>
               <span *ngIf="order.feedback?.ownerReply" class="reply-badge">New Reply</span>
               <span class="status" [ngClass]="order.orderStatus.toLowerCase()">
                 {{ order.orderStatus }}
@@ -47,13 +53,37 @@ import { Router, RouterLink } from '@angular/router';
             </div>
           </div>
 
+          <!-- NEW: Visual Progress Bar -->
+          <div
+            class="progress-track"
+            *ngIf="order.orderStatus !== 'CANCELLED' && order.orderStatus !== 'COMPLETED'"
+          >
+            <div class="p-bar" [style.width]="getProgress(order.orderStatus)"></div>
+          </div>
+
           <div class="card-body">
-            <div class="item-summary" *ngFor="let item of order.items">
-              <span class="qty">{{ item.quantity }}x</span> {{ item.name }}
+            <!-- NEW: Table Reference -->
+            <div class="table-info" *ngIf="order.tableNumber">
+              <span class="lbl">DINE-IN:</span> Table {{ order.tableNumber }}
             </div>
+
+            <div class="item-list">
+              <div class="item-summary" *ngFor="let item of order.items">
+                <div class="item-main-row">
+                  <span class="qty">{{ item.quantity }} x</span>
+                  <span class="name">{{ item.name }}</span>
+                  <span class="variant" *ngIf="item.variant !== 'SINGLE'"
+                    >({{ item.variant }})</span
+                  >
+                </div>
+                <!-- NEW: Display Instructions if present -->
+                <p class="item-instr" *ngIf="item.instructions">"{{ item.instructions }}"</p>
+              </div>
+            </div>
+
             <div class="total-bar">
               <span class="lbl">Total Paid:</span>
-              <span class="val">₹{{ order.totalAmount }}</span>
+              <span class="val">₹ {{ order.totalAmount }}</span>
             </div>
           </div>
 
@@ -71,7 +101,6 @@ import { Router, RouterLink } from '@angular/router';
                 </div>
                 <span class="view-lbl">View Response</span>
               </div>
-
               <ng-template #addFeedback>
                 <button (click)="openFeedback(order, false)" class="btn-rate">Rate Order</button>
               </ng-template>
@@ -92,7 +121,9 @@ import { Router, RouterLink } from '@angular/router';
       </div>
 
       <div *ngIf="orders().length === 0" class="empty-state glass-card">
+        <div class="empty-icon">🍽️</div>
         <h3>No history found.</h3>
+        <p>Your legendary journey begins with your first bite.</p>
         <a routerLink="/menu" class="btn-primary">Explore Menu</a>
       </div>
     </div>
@@ -100,15 +131,15 @@ import { Router, RouterLink } from '@angular/router';
   styles: [
     `
       .orders-container {
-        padding: 60px 24px 80px;
+        padding: 100px 24px 80px;
         max-width: 850px;
         margin: 0 auto;
       }
-      h1 {
-        font-size: 2rem;
+      .header h1 {
+        font-size: 2.5rem;
         font-weight: 900;
         margin: 0;
-        letter-spacing: -1px;
+        letter-spacing: -1.5px;
       }
       .highlight {
         color: #ff6600;
@@ -116,72 +147,165 @@ import { Router, RouterLink } from '@angular/router';
       .header p {
         color: #555;
         margin-top: 5px;
-        font-size: 0.9rem;
+        font-size: 1rem;
       }
 
       .orders-grid {
         display: flex;
         flex-direction: column;
-        gap: 15px;
-        margin-top: 30px;
+        gap: 20px;
+        margin-top: 40px;
       }
       .order-card {
-        padding: 20px;
-        border: 1px solid #1a1a1a;
-        border-radius: 16px;
-        transition: 0.2s;
+        padding: 25px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 24px;
       }
 
       .card-header {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        margin-bottom: 15px;
+        margin-bottom: 20px;
       }
       .id {
         display: block;
         font-family: monospace;
         font-weight: 900;
         color: #ff6600;
-        font-size: 0.95rem;
+        font-size: 1.1rem;
       }
       .date {
-        font-size: 0.7rem;
+        font-size: 0.75rem;
         color: #444;
       }
 
       .status-group {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 12px;
       }
-      .reply-badge {
-        background: #ff6600;
-        color: white;
-        font-size: 0.55rem;
+      .wait-badge {
+        background: rgba(255, 102, 0, 0.1);
+        color: #ff6600;
+        font-size: 0.7rem;
         font-weight: 900;
-        padding: 3px 8px;
-        border-radius: 4px;
-        text-transform: uppercase;
-        animation: pulse 2s infinite;
+        padding: 4px 10px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
       }
-      @keyframes pulse {
+      .pulse {
+        width: 6px;
+        height: 6px;
+        background: #ff6600;
+        border-radius: 50%;
+        animation: pulse-ring 1.5s infinite;
+      }
+      @keyframes pulse-ring {
         0% {
-          opacity: 0.6;
+          transform: scale(0.8);
+          opacity: 0.5;
         }
         50% {
+          transform: scale(1.2);
           opacity: 1;
         }
         100% {
-          opacity: 0.6;
+          transform: scale(0.8);
+          opacity: 0.5;
         }
+      }
+
+      /* Progress Bar */
+      .progress-track {
+        height: 4px;
+        background: #111;
+        border-radius: 2px;
+        margin-bottom: 20px;
+        overflow: hidden;
+      }
+      .p-bar {
+        height: 100%;
+        background: #ff6600;
+        transition: 1s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .table-info {
+        background: #000;
+        border: 1px solid #1a1a1a;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 800;
+        margin-bottom: 15px;
+        color: #00ff88;
+        width: fit-content;
+      }
+      .table-info .lbl {
+        color: #444;
+        margin-right: 5px;
+        font-size: 0.7rem;
+      }
+
+      .item-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+      .item-summary {
+        border-left: 2px solid #111;
+        padding-left: 12px;
+      }
+      .item-main-row {
+        font-size: 0.95rem;
+        font-weight: 600;
+      }
+      .qty {
+        color: #ff6600;
+        font-weight: 900;
+        margin-right: 8px;
+      }
+      .variant {
+        font-size: 0.8rem;
+        color: #555;
+        text-transform: uppercase;
+        margin-left: 5px;
+      }
+      .item-instr {
+        font-size: 0.8rem;
+        color: #ffcc00;
+        font-style: italic;
+        margin-top: 4px;
+        font-weight: 500;
+      }
+
+      .total-bar {
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid #111;
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+      }
+      .total-bar .val {
+        color: #ff6600;
+        font-size: 1.4rem;
+        font-weight: 900;
+      }
+      .total-bar .lbl {
+        color: #555;
+        font-size: 0.85rem;
+        font-weight: 700;
       }
 
       .status {
         padding: 4px 10px;
         border-radius: 6px;
-        font-size: 0.6rem;
-        font-weight: 800;
+        font-size: 0.65rem;
+        font-weight: 900;
         text-transform: uppercase;
       }
       .completed {
@@ -192,33 +316,13 @@ import { Router, RouterLink } from '@angular/router';
         background: rgba(52, 152, 219, 0.1);
         color: #3498db;
       }
+      .preparing {
+        background: rgba(243, 156, 18, 0.1);
+        color: #f39c12;
+      }
       .cancelled {
         background: rgba(231, 76, 60, 0.1);
         color: #e74c3c;
-      }
-
-      .card-body {
-        margin-bottom: 15px;
-      }
-      .item-summary {
-        font-size: 0.85rem;
-        color: #bbb;
-        margin-bottom: 4px;
-      }
-      .qty {
-        color: #ff6600;
-        font-weight: 900;
-        margin-right: 6px;
-      }
-      .total-bar {
-        margin-top: 10px;
-        font-weight: 800;
-        display: flex;
-        gap: 6px;
-        font-size: 0.9rem;
-      }
-      .total-bar .val {
-        color: #ff6600;
       }
 
       .card-footer {
@@ -228,97 +332,61 @@ import { Router, RouterLink } from '@angular/router';
         border-top: 1px solid #111;
         padding-top: 15px;
       }
-      .action-buttons {
-        display: flex;
-        gap: 8px;
-      }
-
       .btn-rate {
         background: #ff6600;
         color: white;
         border: none;
-        padding: 8px 16px;
-        border-radius: 8px;
+        padding: 10px 20px;
+        border-radius: 10px;
         font-weight: 800;
         cursor: pointer;
-        font-size: 0.8rem;
+        font-size: 0.85rem;
       }
       .btn-reorder {
         background: #111;
         color: white;
         border: 1px solid #222;
-        padding: 8px 16px;
-        border-radius: 8px;
+        padding: 10px 20px;
+        border-radius: 10px;
         font-weight: 800;
         cursor: pointer;
-        font-size: 0.8rem;
+        font-size: 0.85rem;
       }
       .btn-cancel {
         background: transparent;
         border: 1px solid #333;
         color: #444;
-        padding: 8px 16px;
-        border-radius: 8px;
-        font-weight: 800;
-        cursor: pointer;
-        font-size: 0.8rem;
-      }
-
-      .feedback-pill {
-        cursor: pointer;
-        display: flex;
-        flex-direction: column;
-        padding: 6px 14px;
+        padding: 10px 20px;
         border-radius: 10px;
-        background: #000;
-        border: 1px solid #1a1a1a;
-        min-width: 110px;
-      }
-      .rating-info {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-      .rating-num {
-        font-size: 1rem;
-        font-weight: 900;
-        color: #fff;
-      }
-      .stars {
-        font-size: 0.85rem;
-        color: #ffcc00;
-      }
-      .view-lbl {
-        font-size: 0.5rem;
-        color: #555;
         font-weight: 800;
-        text-transform: uppercase;
-        margin-top: 2px;
+        cursor: pointer;
+        font-size: 0.85rem;
       }
 
-      .rate-excellent .rating-num {
-        color: #2ecc71;
+      .empty-state {
+        text-align: center;
+        padding: 80px 40px;
+        border-radius: 32px;
       }
-      .rate-good .rating-num {
-        color: #f1c40f;
-      }
-      .rate-poor .rating-num {
-        color: #e74c3c;
-      }
-
-      .glass-card {
-        background: rgba(10, 10, 10, 0.6);
-        backdrop-filter: blur(10px);
+      .empty-icon {
+        font-size: 4rem;
+        opacity: 0.2;
+        margin-bottom: 20px;
       }
       .btn-primary {
         background: #ff6600;
         color: white;
-        padding: 10px 24px;
-        border-radius: 10px;
+        padding: 14px 40px;
+        border-radius: 50px;
         text-decoration: none;
-        font-weight: 800;
+        font-weight: 900;
         display: inline-block;
-        margin-top: 15px;
+        margin-top: 20px;
+      }
+
+      .glass-card {
+        background: rgba(10, 10, 10, 0.6);
+        backdrop-filter: blur(15px);
       }
     `,
   ],
@@ -327,6 +395,7 @@ export class MyOrdersComponent implements OnInit {
   orderService = inject(OrderService);
   toast = inject(ToastService);
   router = inject(Router);
+
   orders = signal<any[]>([]);
   modalVisible = false;
   isViewOnly = false;
@@ -334,12 +403,36 @@ export class MyOrdersComponent implements OnInit {
 
   ngOnInit() {
     this.loadOrders();
+    // Auto-refresh order status for the user
+    setInterval(() => this.loadOrders(), 20000);
   }
 
   loadOrders() {
     this.orderService.getMyOrders().subscribe((data) => {
       this.orders.set(data);
     });
+  }
+
+  getProgress(status: string): string {
+    switch (status) {
+      case 'NEW':
+        return '20%';
+      case 'PREPARING':
+        return '60%';
+      case 'READY':
+        return '90%';
+      case 'COMPLETED':
+        return '100%';
+      default:
+        return '0%';
+    }
+  }
+
+  calculateWait(order: any): number {
+    // Basic logic: 15 mins base + random factor per order number
+    // In a real app, this would be calculated by the server
+    const base = order.orderStatus === 'NEW' ? 25 : 12;
+    return base;
   }
 
   getRatingClass(rating: number): string {
@@ -359,13 +452,13 @@ export class MyOrdersComponent implements OnInit {
   }
 
   onCancel(orderId: string) {
-    if (confirm('Cancel this order?')) {
+    if (confirm('Permanently cancel this legendary order?')) {
       this.orderService.cancelOrder(orderId).subscribe({
         next: () => {
-          this.toast.success('Cancelled.');
+          this.toast.success('Order successfully cancelled.');
           this.loadOrders();
         },
-        error: (err) => this.toast.error(err.error?.msg || 'Failed.'),
+        error: (err) => this.toast.error(err.error?.msg || 'Cancellation failed.'),
       });
     }
   }

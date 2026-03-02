@@ -1,10 +1,19 @@
-import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, OnInit, signal, computed, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { CartService } from '../../services/cart';
 import { OrderService } from '../../services/order';
 import { ToastService } from '../../services/toast';
+
+interface CheckoutCartItem {
+  _id?: string;
+  name: string;
+  quantity: number;
+  selectedVariant: string;
+  computedPrice: number;
+  instructions?: string;
+}
 
 @Component({
   selector: 'app-checkout',
@@ -13,521 +22,562 @@ import { ToastService } from '../../services/toast';
   template: `
     <div class="checkout-wrapper fade-in">
       <div class="container">
-        <header class="header">
-          <button class="back-link" (click)="router.navigate(['cart'])">← Return to Cart</button>
-          <span class="badge">Final Step</span>
-          <h1>Complete Your <span class="highlight">Order</span></h1>
-        </header>
-
-        <div class="checkout-grid">
-          <!-- Selection Side -->
-          <div class="form-side">
-            <div class="config-card glass-card">
-              <div class="card-head">
-                <span class="icon">🏠</span>
-                <h3>Dining Preference</h3>
-              </div>
-
-              <div class="option-grid">
-                <label class="select-card" [class.active]="orderType === 'DINE_IN'">
-                  <input type="radio" name="orderType" [(ngModel)]="orderType" value="DINE_IN" />
-                  <div class="card-content">
-                    <span class="card-title">Dine In</span>
-                    <span class="card-desc">Reserve a table at our venue</span>
-                  </div>
-                </label>
-                <label class="select-card" [class.active]="orderType === 'TAKEAWAY'">
-                  <input type="radio" name="orderType" [(ngModel)]="orderType" value="TAKEAWAY" />
-                  <div class="card-content">
-                    <span class="card-title">Takeaway</span>
-                    <span class="card-desc">Pick up your feast at the counter</span>
-                  </div>
-                </label>
-              </div>
-
-              <!-- Extra info for Dine-in -->
-              <div *ngIf="orderType === 'DINE_IN'" class="extra-config fade-in">
-                <div class="row">
-                  <div class="field">
-                    <label>Guest Count</label>
-                    <div class="stepper">
-                      <button (click)="updateGuests(-1)">-</button>
-                      <span class="val">{{ numberOfPeople }}</span>
-                      <button (click)="updateGuests(1)">+</button>
-                    </div>
-                  </div>
-                  <div class="field">
-                    <label>Arrival Date</label>
-                    <input
-                      type="date"
-                      [(ngModel)]="selectedDate"
-                      [min]="minDate"
-                      class="dark-input"
-                      (change)="generateTimeSlots()"
-                    />
-                  </div>
-                </div>
-                <div class="slots-area">
-                  <label>Arrival Time Slot</label>
-                  <div class="slots-grid">
-                    <button
-                      *ngFor="let slot of availableSlots"
-                      [class.active]="selectedSlot === slot"
-                      (click)="selectedSlot = slot"
-                      class="slot-btn"
-                    >
-                      {{ slot }}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="config-card glass-card">
-              <div class="card-head">
-                <span class="icon">💳</span>
-                <h3>Payment Method</h3>
-              </div>
-
-              <div class="payment-list">
-                <label class="payment-card" [class.active]="paymentMethod === 'CASH'">
-                  <input type="radio" name="payMethod" [(ngModel)]="paymentMethod" value="CASH" />
-                  <div class="p-info">
-                    <span class="p-title">Pay at Restaurant</span>
-                    <span class="p-desc">Cash or UPI at the counter</span>
-                  </div>
-                </label>
-                <label class="payment-card" [class.active]="paymentMethod === 'ONLINE'">
-                  <input type="radio" name="payMethod" [(ngModel)]="paymentMethod" value="ONLINE" />
-                  <div class="p-info">
-                    <span class="p-title">KillaPay Secure Online</span>
-                    <span class="p-desc">Instant confirmation with card/UPI</span>
-                  </div>
-                </label>
-              </div>
-            </div>
-
-            <button
-              (click)="handleCheckout()"
-              class="submit-order-btn"
-              [disabled]="
-                loading ||
-                cartService.totalItems() === 0 ||
-                (orderType === 'DINE_IN' && !selectedSlot)
-              "
+        <!-- STEPS - RESPONSIVE MOBILE ADAPTIVE -->
+        <div class="checkout-hud glass-card">
+          <div class="stepper">
+            <div
+              class="step"
+              [class.active]="currentStep() >= 1"
+              [class.complete]="currentStep() > 1"
             >
-              <span *ngIf="!loading">{{
-                paymentMethod === 'ONLINE' ? 'Verify & Pay Now' : 'Confirm Order'
-              }}</span>
-              <span *ngIf="loading">Processing Order...</span>
-            </button>
-          </div>
-
-          <!-- Sidebar Summary -->
-          <div class="summary-side">
-            <div class="summary-box glass-card sticky-top">
-              <h3>Receipt</h3>
-              <div class="items-list-mini">
-                <div *ngFor="let item of cartService.cartItems()" class="mini-row">
-                  <div class="m-info">
-                    <span class="m-qty">{{ item.quantity }}x</span>
-                    <span class="m-name">{{ item.name }}</span>
-                  </div>
-                  <span class="m-price">₹{{ item.computedPrice * item.quantity }}</span>
-                </div>
-              </div>
-
-              <div class="totals-area">
-                <div class="t-row">
-                  <span>Total Payable</span>
-                  <span class="t-val">₹{{ cartService.totalPrice() }}</span>
-                </div>
-                <p class="tax-note">Fixed pricing with no hidden charges</p>
-              </div>
+              <span class="num">{{ currentStep() > 1 ? '✓' : '1' }}</span>
+              <span class="lbl">Style</span>
+            </div>
+            <div class="connector"></div>
+            <div
+              class="step"
+              [class.active]="currentStep() >= 2"
+              [class.complete]="currentStep() > 2"
+            >
+              <span class="num">{{ currentStep() > 2 ? '✓' : '2' }}</span>
+              <span class="lbl">Details</span>
+            </div>
+            <div class="connector"></div>
+            <div class="step" [class.active]="currentStep() >= 3">
+              <span class="num">3</span>
+              <span class="lbl">Pay</span>
             </div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- Payment Overlay -->
-    <div class="pay-overlay" *ngIf="showPaymentModal">
-      <div class="pay-dialog glass-card animate-pop">
-        <div class="spinner"></div>
-        <h4>Securing Transaction</h4>
-        <p>Connecting to KillaPay servers...</p>
-        <div class="success-msg fade-in" *ngIf="paymentStep === 'SUCCESS'">Payment Authorized!</div>
+        <div class="checkout-main-grid">
+          <div class="flow-container">
+            <!-- STEP 1: Preference -->
+            <div class="step-card glass-card animate-slide-up" *ngIf="currentStep() === 1">
+              <h2>Dining Preference</h2>
+              <div class="choice-grid">
+                <button
+                  class="choice-box"
+                  [class.selected]="orderType === 'DINE_IN'"
+                  (click)="orderType = 'DINE_IN'"
+                >
+                  <span class="icon">🍽️</span>
+                  <h3>Dine In</h3>
+                  <p>Experience the legendary ambiance.</p>
+                </button>
+                <button
+                  class="choice-box"
+                  [class.selected]="orderType === 'TAKEAWAY'"
+                  (click)="orderType = 'TAKEAWAY'"
+                >
+                  <span class="icon">🥡</span>
+                  <h3>Takeaway</h3>
+                  <p>Perfectly packed for the road.</p>
+                </button>
+              </div>
+              <button class="btn-next" (click)="goToStep(2)">Next: Location Details</button>
+            </div>
+
+            <!-- STEP 2: Location/Table -->
+            <div class="step-card glass-card animate-slide-up" *ngIf="currentStep() === 2">
+              <div class="header-inline">
+                <button class="back-link" (click)="goToStep(1)">← Change Style</button>
+                <h2>{{ orderType === 'DINE_IN' ? 'Table Selection' : 'Pickup Slot' }}</h2>
+              </div>
+
+              <div *ngIf="orderType === 'DINE_IN'" class="table-map">
+                <p class="section-hint">Select a table from our visual layout:</p>
+                <div class="table-grid-responsive">
+                  <button
+                    *ngFor="let t of tables"
+                    class="t-btn"
+                    [class.sel]="selectedTable === t"
+                    (click)="selectedTable = t"
+                  >
+                    T{{ t }}
+                  </button>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="input-grp">
+                  <label>Guests</label>
+                  <div class="counter-input">
+                    <button (click)="updateGuests(-1)">-</button>
+                    <span>{{ numberOfPeople }}</span>
+                    <button (click)="updateGuests(1)">+</button>
+                  </div>
+                </div>
+                <div class="input-grp">
+                  <label>Arrival Slot</label>
+                  <select [(ngModel)]="selectedSlot" class="killa-select">
+                    <option *ngFor="let s of availableSlots" [value]="s">{{ s }}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="status-box">
+                <div class="timer">
+                  ⏲️ Wait Time: <span>{{ estimatedWaitTime() }}m</span>
+                </div>
+                <p>Kitchen is currently managing {{ activeOrderCount() }} legendary feasts.</p>
+              </div>
+
+              <button
+                class="btn-next"
+                [disabled]="orderType === 'DINE_IN' && !selectedTable"
+                (click)="goToStep(3)"
+              >
+                Next: Payment Method
+              </button>
+            </div>
+
+            <!-- STEP 3: Payment -->
+            <div class="step-card glass-card animate-slide-up" *ngIf="currentStep() === 3">
+              <button class="back-link" (click)="goToStep(2)">← Change Details</button>
+              <h2>Secure Payment</h2>
+              <div class="pay-options">
+                <button
+                  class="pay-box"
+                  [class.sel]="paymentMethod === 'CASH'"
+                  (click)="paymentMethod = 'CASH'"
+                >
+                  <span class="p-title">Pay at Killa Counter</span>
+                  <span class="p-sub">Cash or UPI accepted on arrival</span>
+                </button>
+                <button
+                  class="pay-box"
+                  [class.sel]="paymentMethod === 'ONLINE'"
+                  (click)="paymentMethod = 'ONLINE'"
+                >
+                  <span class="p-title">Instant KillaPay</span>
+                  <span class="p-sub">Secure checkout with Credit/Debit/UPI</span>
+                </button>
+              </div>
+
+              <div class="final-checkout">
+                <div class="total-summary-mobile">
+                  <span>Total Amount:</span>
+                  <span class="total">₹ {{ cartService.totalPrice() }}</span>
+                </div>
+                <button
+                  class="btn-final-order"
+                  [disabled]="loading || activeOrderCount() > 20"
+                  (click)="handleCheckout()"
+                >
+                  {{ loading ? 'Securing Order...' : 'Confirm legendary order' }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- SIDEBAR RECEIPT -->
+          <aside class="checkout-sidebar">
+            <div class="receipt glass-card">
+              <h3>Receipt</h3>
+              <div class="items-scroller">
+                <div *ngFor="let item of getCheckoutItems()" class="receipt-item">
+                  <div class="r-text">
+                    <span class="r-qty">{{ item.quantity }}x</span>
+                    <span class="r-name">{{ item.name }}</span>
+                    <span class="r-instr" *ngIf="item.instructions">"{{ item.instructions }}"</span>
+                  </div>
+                  <span class="r-price">₹ {{ item.computedPrice * item.quantity }}</span>
+                </div>
+              </div>
+              <div class="receipt-total">
+                <div class="line">
+                  <span>Net Payable</span><span>₹ {{ cartService.totalPrice() }}</span>
+                </div>
+                <p class="tax-info">Price inclusive of all taxes & kitchen fees.</p>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+
+      <!-- KillaPay Overlay -->
+      <div class="killa-pay-modal" *ngIf="showPaymentModal">
+        <div class="pay-card glass-card animate-pop">
+          <div class="killa-loader"></div>
+          <h2>KillaPay Gateway</h2>
+          <p>Authorizing transaction secure tunnel...</p>
+          <div class="success-check" *ngIf="paymentStep === 'SUCCESS'">✓ Payment Confirmed</div>
+        </div>
       </div>
     </div>
   `,
   styles: [
     `
       .checkout-wrapper {
-        padding: 100px 0 80px;
+        padding: 120px 0 80px;
         min-height: 100vh;
         background: #050505;
         color: white;
-        font-family: 'Inter', sans-serif;
       }
       .container {
-        max-width: 1300px;
+        max-width: 1200px;
         margin: 0 auto;
-        padding: 0 24px;
-      }
-      .badge {
-        color: #ff6600;
-        font-weight: 800;
-        font-size: 0.65rem;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-      }
-      .header h1 {
-        font-size: 2.5rem;
-        font-weight: 900;
-        margin: 10px 0;
-        letter-spacing: -1px;
-      }
-      .highlight {
-        color: #ff6600;
-      }
-      .back-link {
-        background: none;
-        border: none;
-        color: #ff6600;
-        cursor: pointer;
-        font-weight: 800;
-        margin-bottom: 20px;
-        transition: 0.2s;
-      }
-      .back-link:hover {
-        color: #fff;
+        padding: 0 20px;
       }
 
-      .checkout-grid {
-        display: grid;
-        grid-template-columns: 1fr 380px;
-        gap: 30px;
-      }
-
-      .config-card {
-        padding: 30px;
-        border-radius: 32px;
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        margin-bottom: 25px;
-      }
-      .card-head {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 25px;
-      }
-      .card-head .icon {
-        font-size: 1.2rem;
-        background: #111;
-        padding: 8px;
-        border-radius: 10px;
-        border: 1px solid #222;
-      }
-      .card-head h3 {
-        font-size: 1rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        color: #666;
-      }
-
-      .option-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-      }
-      .select-card {
-        padding: 20px;
-        border: 2px solid #222;
-        border-radius: 20px;
-        cursor: pointer;
-        background: #111;
-        display: block;
-        transition: 0.3s;
-      }
-      .select-card.active {
-        border-color: #ff6600;
-        background: rgba(255, 102, 0, 0.05);
-      }
-      .select-card input {
-        display: none;
-      }
-      .card-title {
-        display: block;
-        font-weight: 900;
-        font-size: 1.1rem;
-        color: #fff;
-      }
-      .card-desc {
-        color: #555;
-        font-size: 0.8rem;
-        font-weight: 600;
-        margin-top: 4px;
-        display: block;
-      }
-
-      .extra-config {
-        margin-top: 30px;
-        background: rgba(0, 0, 0, 0.2);
-        padding: 20px;
-        border-radius: 20px;
-        border: 1px dashed #333;
-      }
-      .row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 15px;
-        margin-bottom: 20px;
-      }
-      .field label {
-        display: block;
-        font-size: 0.7rem;
-        font-weight: 800;
-        color: #444;
-        text-transform: uppercase;
-        margin-bottom: 10px;
+      .checkout-hud {
+        padding: 25px;
+        border-radius: 30px;
+        margin-bottom: 40px;
       }
       .stepper {
         display: flex;
         align-items: center;
-        gap: 15px;
-        background: #111;
-        padding: 6px;
-        border-radius: 10px;
-        width: fit-content;
-        border: 1px solid #222;
+        justify-content: center;
+        gap: 20px;
       }
-      .stepper button {
-        width: 32px;
-        height: 32px;
+      .step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        opacity: 0.3;
+        transition: 0.4s;
+      }
+      .step.active {
+        opacity: 1;
+      }
+      .step.complete .num {
+        background: #00ff88;
+        border-color: #00ff88;
+        color: #000;
+      }
+      .num {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        border: 2px solid white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        font-size: 0.8rem;
+      }
+      .lbl {
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      .connector {
+        height: 2px;
+        width: 60px;
+        background: rgba(255, 255, 255, 0.1);
+        margin-bottom: 25px;
+      }
+
+      .checkout-main-grid {
+        display: grid;
+        grid-template-columns: 1fr 350px;
+        gap: 30px;
+      }
+
+      .step-card {
+        padding: 40px;
+        border-radius: 35px;
+      }
+      .step-card h2 {
+        font-size: 2rem;
+        font-weight: 900;
+        margin-bottom: 30px;
+        letter-spacing: -1px;
+      }
+
+      .choice-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        margin-bottom: 30px;
+      }
+      .choice-box {
+        background: #111;
+        border: 2px solid #222;
+        padding: 30px;
+        border-radius: 25px;
+        cursor: pointer;
+        color: white;
+        transition: 0.3s;
+        text-align: left;
+      }
+      .choice-box.selected {
+        border-color: #ff6600;
+        background: rgba(255, 102, 0, 0.05);
+        box-shadow: 0 0 20px rgba(255, 102, 0, 0.2);
+      }
+      .choice-box .icon {
+        font-size: 2.5rem;
+        display: block;
+        margin-bottom: 15px;
+      }
+      .choice-box h3 {
+        margin-bottom: 5px;
+        font-weight: 800;
+      }
+      .choice-box p {
+        color: #666;
+        font-size: 0.85rem;
+        font-weight: 500;
+      }
+
+      .table-grid-responsive {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(65px, 1fr));
+        gap: 10px;
+        margin-top: 15px;
+      }
+      .t-btn {
+        aspect-ratio: 1;
+        background: #111;
+        border: 1px solid #222;
+        border-radius: 12px;
+        color: white;
+        font-weight: 900;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .t-btn.sel {
+        background: #ff6600;
+        border-color: #ff6600;
+        box-shadow: 0 0 15px rgba(255, 102, 0, 0.4);
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin: 30px 0;
+      }
+      .input-grp label {
+        display: block;
+        font-size: 0.7rem;
+        font-weight: 900;
+        color: #555;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+      }
+      .counter-input {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        background: #000;
+        border: 1px solid #222;
+        border-radius: 12px;
+        padding: 8px;
+        width: fit-content;
+      }
+      .counter-input button {
+        width: 30px;
+        height: 30px;
         border: none;
-        border-radius: 8px;
+        border-radius: 6px;
         background: #222;
         color: white;
         cursor: pointer;
         font-weight: 900;
       }
-      .stepper .val {
+      .counter-input span {
         font-weight: 900;
         font-size: 1.1rem;
-        color: #ff6600;
-        min-width: 35px;
+        min-width: 30px;
         text-align: center;
       }
-      .dark-input {
-        background: #111;
-        border: 1px solid #222;
-        padding: 12px;
-        border-radius: 10px;
-        color: white;
+      .killa-select {
         width: 100%;
-        font-family: inherit;
-        font-weight: 700;
-      }
-
-      .slots-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-        gap: 8px;
-        margin-top: 10px;
-      }
-      .slot-btn {
-        padding: 10px;
-        background: #111;
+        background: #000;
         border: 1px solid #222;
-        border-radius: 10px;
-        color: #fff;
-        cursor: pointer;
-        font-size: 0.75rem;
+        border-radius: 12px;
+        padding: 12px;
+        color: white;
         font-weight: 700;
-        transition: 0.2s;
-      }
-      .slot-btn.active {
-        background: #ff6600;
-        border-color: #ff6600;
       }
 
-      .payment-list {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-      }
-      .payment-card {
+      .status-box {
+        background: rgba(255, 102, 0, 0.05);
+        border: 1px solid rgba(255, 102, 0, 0.1);
         padding: 20px;
-        border: 2px solid #222;
         border-radius: 20px;
+        margin-bottom: 30px;
+      }
+      .timer {
+        font-size: 1.2rem;
+        font-weight: 900;
+        margin-bottom: 5px;
+      }
+      .timer span {
+        color: #ff6600;
+      }
+      .status-box p {
+        font-size: 0.8rem;
+        color: #666;
+      }
+
+      .btn-next,
+      .btn-final-order {
+        width: 100%;
+        padding: 20px;
+        background: #ff6600;
+        color: white;
+        border: none;
+        border-radius: 20px;
+        font-weight: 900;
+        font-size: 1.1rem;
         cursor: pointer;
-        background: #111;
-        display: block;
         transition: 0.3s;
       }
-      .payment-card.active {
+      .btn-next:disabled,
+      .btn-final-order:disabled {
+        opacity: 0.2;
+        cursor: not-allowed;
+      }
+
+      .pay-options {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 30px;
+      }
+      .pay-box {
+        background: #000;
+        border: 2px solid #222;
+        padding: 25px;
+        border-radius: 20px;
+        text-align: left;
+        cursor: pointer;
+        color: white;
+        transition: 0.3s;
+      }
+      .pay-box.sel {
         border-color: #ff6600;
         background: rgba(255, 102, 0, 0.05);
-      }
-      .payment-card input {
-        display: none;
       }
       .p-title {
         display: block;
         font-weight: 800;
         font-size: 1.1rem;
-        color: #fff;
       }
-      .p-desc {
-        color: #555;
+      .p-sub {
         font-size: 0.8rem;
-        font-weight: 600;
-        margin-top: 3px;
+        color: #555;
       }
 
-      .submit-order-btn {
-        width: 100%;
-        padding: 22px;
-        background: #ff6600;
-        color: white;
-        border: none;
-        border-radius: 18px;
-        font-weight: 900;
-        font-size: 1.2rem;
-        cursor: pointer;
-        margin-top: 10px;
-        transition: 0.3s;
+      .receipt {
+        padding: 30px;
+        border-radius: 30px;
       }
-      .submit-order-btn:disabled {
-        opacity: 0.2;
-        cursor: not-allowed;
-      }
-
-      .summary-box {
-        padding: 35px;
-        border-radius: 32px;
-        border: 1px solid rgba(255, 255, 255, 0.05);
-      }
-      .sticky-top {
-        position: sticky;
-        top: 100px;
-      }
-      .summary-box h3 {
-        font-size: 1.3rem;
-        font-weight: 900;
-        margin-bottom: 25px;
-        border-bottom: 1px solid #1a1a1a;
-        padding-bottom: 15px;
-        color: #fff;
-      }
-      .items-list-mini {
+      .items-scroller {
         max-height: 250px;
         overflow-y: auto;
-        margin-bottom: 25px;
+        margin: 20px 0;
+        padding-right: 10px;
       }
-      .mini-row {
+      .receipt-item {
         display: flex;
         justify-content: space-between;
-        margin-bottom: 12px;
-        align-items: baseline;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #222;
+        padding-bottom: 10px;
       }
-      .m-qty {
+      .r-text {
+        display: flex;
+        flex-direction: column;
+      }
+      .r-qty {
         color: #ff6600;
         font-weight: 900;
-        margin-right: 10px;
+        font-size: 0.8rem;
       }
-      .m-name {
-        color: #fff;
-        font-weight: 600;
-        font-size: 0.95rem;
-      }
-      .m-price {
-        color: #666;
+      .r-name {
         font-weight: 700;
-        font-size: 0.85rem;
+        font-size: 0.9rem;
       }
-
-      .totals-area {
-        border-top: 1px solid #1a1a1a;
-        padding-top: 25px;
+      .r-instr {
+        font-size: 0.75rem;
+        font-style: italic;
+        color: #555;
       }
-      .t-row {
+      .receipt-total {
+        border-top: 2px dashed #333;
+        padding-top: 20px;
+      }
+      .receipt-total .line {
         display: flex;
         justify-content: space-between;
-        align-items: baseline;
+        font-weight: 900;
+        font-size: 1.2rem;
+        color: #ff6600;
       }
-      .t-row span {
-        font-size: 1rem;
-        font-weight: 800;
-        color: #fff;
-      }
-      .t-val {
-        font-size: 2.8rem !important;
-        font-weight: 900 !important;
-        color: #ff6600 !important;
-        letter-spacing: -2px;
-      }
-      .tax-note {
+      .tax-info {
         font-size: 0.65rem;
-        color: #00ff88;
-        font-weight: 800;
-        text-transform: uppercase;
-        margin-top: 8px;
-        letter-spacing: 1px;
+        color: #444;
+        margin-top: 10px;
       }
 
-      .pay-overlay {
+      .killa-pay-modal {
         position: fixed;
         inset: 0;
         background: rgba(0, 0, 0, 0.95);
-        backdrop-filter: blur(20px);
-        z-index: 10000;
+        backdrop-filter: blur(15px);
+        z-index: 5000;
         display: flex;
         align-items: center;
         justify-content: center;
         padding: 20px;
       }
-      .pay-dialog {
-        padding: 50px;
+      .pay-card {
+        padding: 60px;
         text-align: center;
         border-radius: 40px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        max-width: 400px;
         width: 100%;
-        max-width: 440px;
       }
-      .spinner {
+      .killa-loader {
         width: 50px;
         height: 50px;
         border: 5px solid #222;
         border-top-color: #ff6600;
         border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin: 0 auto 25px;
+        animation: k-spin 1s linear infinite;
+        margin: 0 auto 30px;
       }
-      @keyframes spin {
+      @keyframes k-spin {
         to {
           transform: rotate(360deg);
         }
       }
-      .success-msg {
+      .success-check {
         color: #00ff88;
         font-weight: 900;
-        font-size: 1.3rem;
-        margin-top: 20px;
+        font-size: 1.4rem;
+        margin-top: 25px;
       }
 
       .glass-card {
-        background: rgba(18, 18, 18, 0.7);
+        background: rgba(20, 20, 20, 0.7);
         backdrop-filter: blur(30px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
       }
 
-      @media (max-width: 1000px) {
-        .checkout-grid {
+      @media (max-width: 900px) {
+        .checkout-main-grid {
           grid-template-columns: 1fr;
         }
-        .summary-side {
+        .checkout-sidebar {
           order: -1;
+        }
+        .choice-grid {
+          grid-template-columns: 1fr;
+        }
+        .stepper {
+          gap: 10px;
+        }
+        .connector {
+          width: 30px;
         }
       }
     `,
@@ -540,23 +590,46 @@ export class CheckoutComponent implements OnInit {
   toast = inject(ToastService);
   cdr = inject(ChangeDetectorRef);
 
+  currentStep = signal(1);
   orderType: 'DINE_IN' | 'TAKEAWAY' = 'DINE_IN';
   paymentMethod: 'CASH' | 'ONLINE' = 'CASH';
   numberOfPeople = 2;
-  selectedDate = '';
   selectedSlot = '';
+  selectedTable: number | null = null;
   availableSlots: string[] = [];
+  tables = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+
   loading = false;
   showPaymentModal = false;
   paymentStep: 'PROCESSING' | 'SUCCESS' = 'PROCESSING';
 
+  activeOrderCount = signal(0);
+  estimatedWaitTime = computed(() => 15 + this.activeOrderCount() * 3);
+
   ngOnInit() {
-    this.selectedDate = new Date().toISOString().slice(0, 10);
     this.generateTimeSlots();
+    this.selectedSlot = this.availableSlots[0];
+    this.fetchActiveOrderVolume();
+    setInterval(() => this.fetchActiveOrderVolume(), 60000);
   }
 
-  get minDate() {
-    return new Date().toISOString().slice(0, 10);
+  getCheckoutItems(): CheckoutCartItem[] {
+    return this.cartService.cartItems() as unknown as CheckoutCartItem[];
+  }
+
+  fetchActiveOrderVolume() {
+    this.orderService.getKitchenStatus().subscribe({
+      next: (status) => {
+        this.activeOrderCount.set(status.activeOrders);
+        this.cdr.detectChanges();
+      },
+      error: () => console.warn('Sync issues'),
+    });
+  }
+
+  goToStep(step: number) {
+    this.currentStep.set(step);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   updateGuests(change: number) {
@@ -569,7 +642,8 @@ export class CheckoutComponent implements OnInit {
     for (let h = 11; h < 23; h++) {
       const displayH = h > 12 ? h - 12 : h;
       const suffix = h >= 12 ? 'PM' : 'AM';
-      slots.push(`${displayH}:00 ${suffix}`, `${displayH}:30 ${suffix}`);
+      slots.push(`${displayH}:00 ${suffix}`);
+      slots.push(`${displayH}:30 ${suffix}`);
     }
     this.availableSlots = slots;
   }
@@ -591,41 +665,40 @@ export class CheckoutComponent implements OnInit {
   }
 
   placeFinalOrder(paymentStatus: string = 'PENDING', txId: string = '') {
-    setTimeout(() => {
-      this.loading = true;
-      this.cdr.detectChanges();
+    this.loading = true;
+    this.cdr.detectChanges();
 
-      const orderData = {
-        orderType: this.orderType,
-        numberOfPeople: this.orderType === 'DINE_IN' ? this.numberOfPeople : 0,
-        scheduledTime:
-          this.orderType === 'DINE_IN' ? `${this.selectedDate} ${this.selectedSlot}` : null,
-        paymentMethod: this.paymentMethod,
-        paymentStatus: paymentStatus,
-        transactionId: txId,
-        totalAmount: this.cartService.totalPrice(),
-        items: this.cartService.cartItems().map((i) => ({
-          menuItemId: i._id,
-          name: i.name,
-          quantity: i.quantity,
-          variant: i.selectedVariant,
-          unitPrice: i.computedPrice,
-        })),
-      };
+    const orderData = {
+      orderType: this.orderType,
+      numberOfPeople: this.numberOfPeople,
+      tableNumber: this.selectedTable,
+      scheduledTime: `${new Date().toLocaleDateString()} ${this.selectedSlot}`,
+      paymentMethod: this.paymentMethod,
+      paymentStatus: paymentStatus,
+      transactionId: txId,
+      totalAmount: this.cartService.totalPrice(),
+      items: this.getCheckoutItems().map((i) => ({
+        menuItemId: i._id,
+        name: i.name,
+        quantity: i.quantity,
+        variant: i.selectedVariant,
+        unitPrice: i.computedPrice,
+        instructions: i.instructions || '',
+      })),
+    };
 
-      this.orderService.createOrder(orderData).subscribe({
-        next: () => {
-          this.loading = false;
-          this.toast.success('Legendary order received!');
-          this.cartService.clearCart();
-          this.router.navigate(['/my-orders']);
-        },
-        error: (err) => {
-          this.loading = false;
-          this.toast.error(err.error?.msg || 'Failed to place order.');
-          this.cdr.detectChanges();
-        },
-      });
-    }, 0);
+    this.orderService.createOrder(orderData).subscribe({
+      next: () => {
+        this.loading = false;
+        this.toast.success('Order Received!');
+        this.cartService.clearCart();
+        this.router.navigate(['/my-orders']);
+      },
+      error: (err) => {
+        this.loading = false;
+        this.toast.error(err.error?.msg || 'Error placing order.');
+        this.cdr.detectChanges();
+      },
+    });
   }
 }

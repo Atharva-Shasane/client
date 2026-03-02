@@ -1,76 +1,102 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { MenuItem } from '../models/menu-item.model';
-import { CartItem } from '../models/cart-item.model';
 
-@Injectable({ providedIn: 'root' })
+export interface CartItem {
+  _id?: string;
+  name: string;
+  category: string;
+  imageUrl: string;
+  quantity: number;
+  selectedVariant: 'SINGLE' | 'HALF' | 'FULL';
+  computedPrice: number;
+  // NEW: Support for granular kitchen instructions
+  instructions: string;
+}
+
+@Injectable({
+  providedIn: 'root',
+})
 export class CartService {
-  // Main state signal
   cartItems = signal<CartItem[]>([]);
 
-  // Computed values that update automatically when cartItems change
   totalItems = computed(() => this.cartItems().reduce((acc, item) => acc + item.quantity, 0));
 
   totalPrice = computed(() =>
-    this.cartItems().reduce((acc, item) => {
-      return acc + item.computedPrice * item.quantity;
-    }, 0)
+    this.cartItems().reduce((acc, item) => acc + item.computedPrice * item.quantity, 0),
   );
 
-  addToCart(item: MenuItem, variant: 'SINGLE' | 'HALF' | 'FULL' = 'SINGLE') {
-    let price = 0;
-    if (variant === 'SINGLE') price = item.pricing.price || 0;
-    if (variant === 'HALF') price = item.pricing.priceHalf || 0;
-    if (variant === 'FULL') price = item.pricing.priceFull || 0;
+  addToCart(item: MenuItem, variant: 'SINGLE' | 'HALF' | 'FULL') {
+    const price =
+      variant === 'SINGLE'
+        ? item.pricing.price!
+        : variant === 'HALF'
+          ? item.pricing.priceHalf!
+          : item.pricing.priceFull!;
 
-    this.cartItems.update((currentItems) => {
-      const existing = currentItems.find(
-        (i) => i._id === item._id && i.selectedVariant === variant
-      );
+    this.cartItems.update((items) => {
+      const existingItem = items.find((i) => i._id === item._id && i.selectedVariant === variant);
 
-      if (existing) {
-        return currentItems.map((i) =>
+      if (existingItem) {
+        return items.map((i) =>
           i._id === item._id && i.selectedVariant === variant
             ? { ...i, quantity: i.quantity + 1 }
-            : i
+            : i,
         );
       }
 
       return [
-        ...currentItems,
+        ...items,
         {
-          ...item,
+          _id: item._id,
+          name: item.name,
+          category: item.category,
+          imageUrl: item.imageUrl,
           quantity: 1,
           selectedVariant: variant,
           computedPrice: price,
+          instructions: '', // Initializing empty instructions
         },
       ];
     });
   }
 
-  /**
-   * New: Update quantity with +/- change
-   */
-  updateQuantity(itemId: string, variant: string, change: number) {
-    this.cartItems.update((items) => {
-      return items
-        .map((i) => {
-          if (i._id === itemId && i.selectedVariant === variant) {
-            const newQty = i.quantity + change;
-            return newQty > 0 ? { ...i, quantity: newQty } : i;
-          }
-          return i;
-        })
-        .filter((i) => i.quantity > 0); // Remove if quantity becomes 0
-    });
+  updateQuantity(id: string, variant: string, change: number) {
+    this.cartItems.update((items) =>
+      items
+        .map((item) =>
+          item._id === id && item.selectedVariant === variant
+            ? { ...item, quantity: item.quantity + change }
+            : item,
+        )
+        .filter((item) => item.quantity > 0),
+    );
   }
 
-  removeFromCart(itemId: string, variant?: string) {
+  removeFromCart(id: string, variant: string) {
     this.cartItems.update((items) =>
-      items.filter((i) => !(i._id === itemId && (!variant || i.selectedVariant === variant)))
+      items.filter((i) => !(i._id === id && i.selectedVariant === variant)),
     );
   }
 
   clearCart() {
     this.cartItems.set([]);
+  }
+
+  reorderToCart(order: any) {
+    this.clearCart();
+    order.items.forEach((item: any) => {
+      // Re-map backend order structure to CartItem structure
+      const cartItem: CartItem = {
+        _id: item.menuItemId,
+        name: item.name,
+        category: 'reordered',
+        imageUrl: '', // Optional: would require a lookup if needed
+        quantity: item.quantity,
+        selectedVariant: item.variant,
+        computedPrice: item.unitPrice,
+        instructions: item.instructions || '',
+      };
+      this.cartItems.update((prev) => [...prev, cartItem]);
+    });
   }
 }

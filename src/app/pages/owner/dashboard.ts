@@ -1,198 +1,303 @@
-import { Component, inject, OnInit, signal, computed, ChangeDetectorRef } from '@angular/core';
+import {
+  Component,
+  inject,
+  OnInit,
+  signal,
+  computed,
+  ChangeDetectorRef,
+  effect,
+} from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { OrderService } from '../../services/order';
 import { ToastService } from '../../services/toast';
 
 @Component({
   selector: 'app-owner-dashboard',
   standalone: true,
-  imports: [CommonModule, DatePipe],
+  imports: [CommonModule, DatePipe, FormsModule],
   template: `
-    <div class="dashboard-wrapper">
-      <div class="container-fluid">
-        <!-- Header Section -->
-        <header class="dash-header">
-          <div class="header-main">
-            <div class="title-group">
-              <span class="badge-accent">Management Console</span>
-              <h1>Kitchen <span class="highlight">Control</span></h1>
-              <p>Real-time order synchronization & performance tracking</p>
-            </div>
-            <div class="header-actions">
-              <div class="live-counter">
-                <span class="count">{{ activeOrders().length }}</span>
-                <span class="label">Live Orders</span>
+    <div class="admin-layout">
+      <div class="admin-container">
+        <!-- Header -->
+        <header class="admin-header">
+          <div class="header-titles">
+            <h1>Order Management</h1>
+            <p>Live tracking and operations dashboard</p>
+          </div>
+          <div class="header-actions">
+            <div class="quick-stats">
+              <div class="stat">
+                <span class="stat-lbl">Active</span>
+                <span class="stat-val primary">{{ activeOrders().length }}</span>
               </div>
-              <button (click)="refresh()" class="btn-refresh" [class.loading]="isRefreshing()">
-                <span class="icon">🔄</span>
-                {{ isRefreshing() ? 'Syncing...' : 'Refresh Feed' }}
-              </button>
+              <div class="stat">
+                <span class="stat-lbl">Today</span>
+                <span class="stat-val">{{ todayOrdersCount() }}</span>
+              </div>
             </div>
+            <button class="btn-sync" (click)="refresh()" [disabled]="isRefreshing()">
+              {{ isRefreshing() ? 'Syncing...' : '↻ Refresh' }}
+            </button>
           </div>
         </header>
 
-        <!-- Active Queue Section -->
-        <section class="queue-section">
-          <div class="section-title">
-            <h2>Active <span class="highlight">Queue</span></h2>
-            <div class="status-legend">
-              <span class="legend-item"><span class="dot new"></span> New</span>
-              <span class="legend-item"><span class="dot cooking"></span> Cooking</span>
-              <span class="legend-item"><span class="dot ready"></span> Ready</span>
+        <!-- Live Operations Board -->
+        <div class="ops-board">
+          <!-- Column 1: Incoming -->
+          <div class="ops-column">
+            <div class="col-header incoming-border">
+              <h2>
+                Incoming <span>({{ newOrders().length }})</span>
+              </h2>
             </div>
-          </div>
-
-          <div class="order-grid" *ngIf="activeOrders().length > 0; else emptyState">
-            <div
-              *ngFor="let order of activeOrders()"
-              class="order-card"
-              [ngClass]="'status-border-' + order.orderStatus"
-            >
-              <div class="card-top">
-                <div class="order-meta">
-                  <!-- Sequential 6-digit Order ID -->
-                  <span class="order-id">#{{ order.orderNumber }}</span>
-                  <span class="order-time">Placed: {{ order.createdAt | date: 'shortTime' }}</span>
+            <div class="col-scroll">
+              <div class="order-card" *ngFor="let order of newOrders()">
+                <div class="card-top">
+                  <button class="ref-link" (click)="openDetailedView(order)">
+                    #{{ order.orderNumber }}
+                  </button>
+                  <span class="time">{{ order.createdAt | date: 'shortTime' }}</span>
                 </div>
-                <div class="status-chip" [ngClass]="order.orderStatus.toLowerCase()">
-                  {{ order.orderStatus }}
-                </div>
-              </div>
-
-              <div class="customer-info">
-                <div class="user-main">
-                  <h3>{{ order.userId?.name || 'Guest User' }}</h3>
-                  <a [href]="'tel:' + order.userId?.mobile" class="phone-link">
-                    📞 {{ order.userId?.mobile || 'N/A' }}
-                  </a>
-                </div>
-                <div class="tags">
-                  <span class="tag-type" [class.dine-in]="order.orderType === 'DINE_IN'">
-                    {{ order.orderType }}
-                  </span>
-                  <span class="tag-payment" [class.is-paid]="order.paymentStatus === 'PAID'">
-                    {{ order.paymentMethod }} | {{ order.paymentStatus }}
-                  </span>
-                </div>
-              </div>
-
-              <div class="reservation-box" *ngIf="order.orderType === 'DINE_IN'">
-                <div class="res-item">
-                  <span class="res-label">Guests</span>
-                  <span class="res-value">{{ order.numberOfPeople }} People</span>
-                </div>
-                <div class="res-item">
-                  <span class="res-label">Arrival Time</span>
-                  <span class="res-value highlight-time">{{
-                    order.scheduledTime | date: 'shortTime'
-                  }}</span>
-                </div>
-              </div>
-
-              <div class="items-container">
-                <div class="items-label">Order Items:</div>
-                <div *ngFor="let item of order.items" class="item-row">
-                  <span class="item-qty">{{ item.quantity }}x</span>
-                  <div class="item-details">
-                    <span class="item-name">{{ item.name }}</span>
-                    <span class="item-variant" *ngIf="item.variant !== 'SINGLE'">{{
-                      item.variant
-                    }}</span>
+                <div class="card-mid">
+                  <div class="cust-name">{{ order.userId?.name || 'Guest' }}</div>
+                  <div class="tags">
+                    <span class="tag bg-dark">{{ order.orderType }}</span>
+                    <span class="tag bg-green" *ngIf="order.tableNumber"
+                      >Table {{ order.tableNumber }}</span
+                    >
+                    <!-- NEW: Schedule & Guests -->
+                    <span class="tag bg-purple" *ngIf="order.scheduledTime"
+                      >⏱️ {{ order.scheduledTime | date: 'shortTime' }}</span
+                    >
+                    <span
+                      class="tag bg-blue"
+                      *ngIf="order.orderType === 'DINE_IN' && order.numberOfPeople"
+                      >👥 {{ order.numberOfPeople }}</span
+                    >
                   </div>
                 </div>
-              </div>
 
-              <div class="card-actions">
-                <button
-                  *ngIf="order.orderStatus === 'NEW'"
-                  (click)="updateStatus(order._id, 'PREPARING')"
-                  class="btn-action btn-prepare"
-                >
-                  Start Cooking
+                <!-- RESTORED: Full Order Details Preview -->
+                <div class="card-items-preview">
+                  <div class="kitchen-item" *ngFor="let item of order.items">
+                    <div class="item-line">
+                      <b>{{ item.quantity }}x</b>
+                      <span class="i-name highlight-text">{{ item.name }}</span>
+                      <!-- NEW: Prominent Variant Badge -->
+                      <span
+                        class="i-var-badge"
+                        [ngClass]="item.variant?.toLowerCase()"
+                        *ngIf="item.variant && item.variant !== 'SINGLE'"
+                      >
+                        {{ item.variant }}
+                      </span>
+                    </div>
+                    <div class="item-note" *ngIf="item.instructions">
+                      📝 "{{ item.instructions }}"
+                    </div>
+                  </div>
+                </div>
+
+                <button class="btn-action bg-blue" (click)="updateStatus(order._id, 'PREPARING')">
+                  Start Preparing
                 </button>
-                <button
-                  *ngIf="order.orderStatus === 'PREPARING'"
-                  (click)="updateStatus(order._id, 'READY')"
-                  class="btn-action btn-ready"
-                >
+              </div>
+              <div class="empty-col" *ngIf="newOrders().length === 0">No incoming orders</div>
+            </div>
+          </div>
+
+          <!-- Column 2: Preparing -->
+          <div class="ops-column">
+            <div class="col-header preparing-border">
+              <h2>
+                Preparing <span>({{ prepOrders().length }})</span>
+              </h2>
+            </div>
+            <div class="col-scroll">
+              <div class="order-card" *ngFor="let order of prepOrders()">
+                <div class="card-top">
+                  <button class="ref-link" (click)="openDetailedView(order)">
+                    #{{ order.orderNumber }}
+                  </button>
+                  <span class="time text-orange">{{ getDuration(order.updatedAt) }}m elapsed</span>
+                </div>
+                <div class="card-mid">
+                  <div class="cust-name">{{ order.userId?.name || 'Guest' }}</div>
+                  <div class="tags">
+                    <span class="tag bg-green" *ngIf="order.tableNumber"
+                      >Table {{ order.tableNumber }}</span
+                    >
+                    <!-- NEW: Schedule & Guests -->
+                    <span class="tag bg-purple" *ngIf="order.scheduledTime"
+                      >⏱️ {{ order.scheduledTime | date: 'shortTime' }}</span
+                    >
+                    <span
+                      class="tag bg-blue"
+                      *ngIf="order.orderType === 'DINE_IN' && order.numberOfPeople"
+                      >👥 {{ order.numberOfPeople }}</span
+                    >
+                  </div>
+                </div>
+
+                <!-- RESTORED: Full Order Details Preview -->
+                <div class="card-items-preview">
+                  <div class="kitchen-item" *ngFor="let item of order.items">
+                    <div class="item-line">
+                      <b>{{ item.quantity }}x</b>
+                      <span class="i-name highlight-text">{{ item.name }}</span>
+                      <!-- NEW: Prominent Variant Badge -->
+                      <span
+                        class="i-var-badge"
+                        [ngClass]="item.variant?.toLowerCase()"
+                        *ngIf="item.variant && item.variant !== 'SINGLE'"
+                      >
+                        {{ item.variant }}
+                      </span>
+                    </div>
+                    <div class="item-note" *ngIf="item.instructions">
+                      📝 "{{ item.instructions }}"
+                    </div>
+                  </div>
+                </div>
+
+                <button class="btn-action bg-orange" (click)="updateStatus(order._id, 'READY')">
                   Mark as Ready
                 </button>
-                <button
-                  *ngIf="order.orderStatus === 'READY'"
-                  (click)="handleCompletion(order)"
-                  class="btn-action btn-complete"
-                >
-                  Handover & Complete
+              </div>
+              <div class="empty-col" *ngIf="prepOrders().length === 0">Kitchen is clear</div>
+            </div>
+          </div>
+
+          <!-- Column 3: Ready -->
+          <div class="ops-column">
+            <div class="col-header ready-border">
+              <h2>
+                Ready to Serve <span>({{ readyOrders().length }})</span>
+              </h2>
+            </div>
+            <div class="col-scroll">
+              <div
+                class="order-card"
+                *ngFor="let order of readyOrders()"
+                [class.card-unpaid]="order.paymentStatus === 'PENDING'"
+              >
+                <div class="card-top">
+                  <button class="ref-link" (click)="openDetailedView(order)">
+                    #{{ order.orderNumber }}
+                  </button>
+                  <span class="total-amt">₹{{ order.totalAmount }}</span>
+                </div>
+
+                <div class="payment-alert" *ngIf="order.paymentStatus === 'PENDING'">
+                  Collect Payment: {{ order.paymentMethod }}
+                </div>
+
+                <div class="card-mid">
+                  <div class="cust-name">{{ order.userId?.name || 'Guest' }}</div>
+                  <div class="tags">
+                    <span class="tag bg-green" *ngIf="order.tableNumber"
+                      >Table {{ order.tableNumber }}</span
+                    >
+                    <!-- NEW: Schedule -->
+                    <span class="tag bg-purple" *ngIf="order.scheduledTime"
+                      >⏱️ {{ order.scheduledTime | date: 'shortTime' }}</span
+                    >
+                  </div>
+                </div>
+
+                <!-- RESTORED: Full Order Details Preview -->
+                <div class="card-items-preview">
+                  <div class="kitchen-item" *ngFor="let item of order.items">
+                    <div class="item-line">
+                      <b>{{ item.quantity }}x</b>
+                      <span class="i-name highlight-text">{{ item.name }}</span>
+                      <span
+                        class="i-var-badge"
+                        [ngClass]="item.variant?.toLowerCase()"
+                        *ngIf="item.variant && item.variant !== 'SINGLE'"
+                      >
+                        {{ item.variant }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <button class="btn-action bg-green" (click)="handleCompletion(order)">
+                  {{
+                    order.paymentStatus === 'PENDING' ? 'Collect Cash & Close' : 'Complete Order'
+                  }}
                 </button>
               </div>
+              <div class="empty-col" *ngIf="readyOrders().length === 0">No orders waiting</div>
             </div>
           </div>
+        </div>
 
-          <ng-template #emptyState>
-            <div class="empty-kitchen glass-card">
-              <div class="empty-icon">🍳</div>
-              <h3>Kitchen is Clear</h3>
-              <p>No active orders are currently in the queue.</p>
-            </div>
-          </ng-template>
-        </section>
-
-        <!-- Activity History Section -->
+        <!-- History Table -->
         <section class="history-section">
-          <div class="section-title">
-            <h2>Activity <span class="highlight">History</span></h2>
-            <p class="history-subtitle">Showing completed and cancelled orders</p>
+          <div class="history-header">
+            <h2>Recent History</h2>
+            <select
+              [ngModel]="historyFilter()"
+              (ngModelChange)="updateHistoryFilter($event)"
+              class="select-filter"
+            >
+              <option value="today">Today</option>
+              <option value="week">Past 7 Days</option>
+              <option value="month">Past 30 Days</option>
+            </select>
           </div>
-          <div class="table-container glass-card">
-            <table class="activity-table">
+          <div class="table-container">
+            <table class="data-table">
               <thead>
                 <tr>
-                  <th>Order ID</th>
+                  <th>Order #</th>
                   <th>Customer</th>
-                  <th>Details & Status</th>
-                  <th>Amount</th>
-                  <th>Last Update</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Total</th>
+                  <th>Time</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 <tr
-                  *ngFor="let order of historyOrders()"
-                  [class.row-cancelled]="order.orderStatus === 'CANCELLED'"
+                  *ngFor="let order of filteredHistory()"
+                  [class.dim-row]="order.orderStatus === 'CANCELLED'"
                 >
                   <td>
-                    <span class="mono-id">#{{ order.orderNumber }}</span>
+                    <button class="ref-link" (click)="openDetailedView(order)">
+                      #{{ order.orderNumber }}
+                    </button>
                   </td>
                   <td>
-                    <div class="cust-cell">
-                      <span class="name">{{ order.userId?.name || 'Guest' }}</span>
-                      <span class="sub">{{ order.userId?.mobile }}</span>
+                    <div class="td-stack">
+                      <span>{{ order.userId?.name || 'Guest' }}</span>
+                      <span class="td-sub">{{ order.userId?.mobile || 'N/A' }}</span>
                     </div>
                   </td>
+                  <td>{{ order.orderType }}</td>
                   <td>
-                    <div class="details-cell">
-                      <div class="status-row">
-                        <span class="type-badge">{{ order.orderType }}</span>
-                        <span class="history-status" [ngClass]="order.orderStatus.toLowerCase()">{{
-                          order.orderStatus
-                        }}</span>
-                      </div>
-                      <span class="pay-info"
-                        >{{ order.paymentMethod }} | {{ order.paymentStatus }}</span
-                      >
-                    </div>
+                    <span class="status-badge" [ngClass]="order.orderStatus.toLowerCase()">
+                      {{ order.orderStatus }}
+                    </span>
                   </td>
+                  <td>₹{{ order.totalAmount }}</td>
+                  <td>{{ order.updatedAt | date: 'short' }}</td>
                   <td>
-                    <span
-                      class="price-text"
-                      [class.text-strikethrough]="order.orderStatus === 'CANCELLED'"
-                      >₹{{ order.totalAmount }}</span
+                    <button
+                      class="btn-text-danger"
+                      *ngIf="order.orderStatus !== 'CANCELLED'"
+                      (click)="voidOrderRecord(order._id)"
                     >
+                      Cancel/Void
+                    </button>
+                    <span class="void-txt" *ngIf="order.orderStatus === 'CANCELLED'">Voided</span>
                   </td>
-                  <td>
-                    <span class="time-text">{{
-                      order.updatedAt || order.createdAt | date: 'shortTime'
-                    }}</span>
-                  </td>
+                </tr>
+                <tr *ngIf="filteredHistory().length === 0">
+                  <td colspan="7" class="text-center">No history found for this period.</td>
                 </tr>
               </tbody>
             </table>
@@ -200,21 +305,120 @@ import { ToastService } from '../../services/toast';
         </section>
       </div>
 
-      <!-- Payment Verification Modal -->
-      <div class="modal-backdrop" *ngIf="showPaymentModal">
-        <div class="payment-modal glass-card">
-          <div class="modal-icon">💰</div>
-          <h3>Verify Cash Payment</h3>
-          <p>
-            Please confirm receipt of ₹{{ pendingOrder?.totalAmount }} for Order #{{
-              pendingOrder?.orderNumber
-            }}.
-          </p>
-          <div class="modal-actions">
-            <button (click)="showPaymentModal = false" class="btn-cancel">Not Received</button>
-            <button (click)="completeWithPayment('PAID')" class="btn-confirm">
-              Confirm & Complete
-            </button>
+      <!-- MODALS -->
+
+      <!-- Detailed Order View Modal -->
+      <div class="overlay" *ngIf="detailsOrder">
+        <div class="modal-box details-modal">
+          <div class="modal-header">
+            <h2>Order Details #{{ detailsOrder.orderNumber }}</h2>
+            <button class="btn-close" (click)="detailsOrder = null">✕</button>
+          </div>
+
+          <div class="modal-body">
+            <div class="info-blocks">
+              <div class="info-box">
+                <span class="info-lbl">Customer</span>
+                <span class="info-val">{{ detailsOrder.userId?.name || 'Guest' }}</span>
+                <span class="info-sub">{{ detailsOrder.userId?.mobile }}</span>
+              </div>
+              <div class="info-box">
+                <span class="info-lbl">Service</span>
+                <span class="info-val">{{ detailsOrder.orderType }}</span>
+                <span class="info-sub" *ngIf="detailsOrder.tableNumber"
+                  >Table {{ detailsOrder.tableNumber }}</span
+                >
+                <span
+                  class="info-sub"
+                  *ngIf="detailsOrder.orderType === 'DINE_IN' && detailsOrder.numberOfPeople"
+                  >Guests: {{ detailsOrder.numberOfPeople }}</span
+                >
+                <!-- NEW: Emphasized Schedule Time -->
+                <span class="info-sub text-purple text-bold" *ngIf="detailsOrder.scheduledTime">
+                  {{ detailsOrder.orderType === 'DINE_IN' ? 'Arriving' : 'Pickup' }}:
+                  {{ detailsOrder.scheduledTime | date: 'shortTime' }}
+                </span>
+              </div>
+              <div class="info-box">
+                <span class="info-lbl">Payment</span>
+                <span
+                  class="info-val"
+                  [class.text-green]="detailsOrder.paymentStatus === 'PAID'"
+                  [class.text-red]="detailsOrder.paymentStatus !== 'PAID'"
+                >
+                  {{ detailsOrder.paymentStatus }}
+                </span>
+                <span class="info-sub">Method: {{ detailsOrder.paymentMethod }}</span>
+              </div>
+            </div>
+
+            <div class="items-table-wrapper">
+              <table class="items-table">
+                <thead>
+                  <tr>
+                    <th style="width: 15%">Qty</th>
+                    <th>Item Details</th>
+                    <th class="text-right">Price</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of detailsOrder.items">
+                    <td class="qty-lg">{{ item.quantity }}x</td>
+                    <td>
+                      <div class="item-name-lg">
+                        {{ item.name }}
+                        <!-- NEW: Extremely visible variant badge in Modal -->
+                        <span
+                          class="variant-badge"
+                          [ngClass]="item.variant?.toLowerCase()"
+                          *ngIf="item.variant && item.variant !== 'SINGLE'"
+                        >
+                          {{ item.variant }}
+                        </span>
+                      </div>
+                      <div class="item-ins" *ngIf="item.instructions">
+                        Note: {{ item.instructions }}
+                      </div>
+                    </td>
+                    <td class="text-right font-bold">₹{{ item.unitPrice * item.quantity }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="modal-total">
+              <span>Total Amount</span>
+              <span class="total-val">₹{{ detailsOrder.totalAmount }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cash Handover Modal -->
+      <div class="overlay" *ngIf="showPaymentModal">
+        <div class="modal-box cash-modal">
+          <div class="modal-header">
+            <h2>Confirm Cash Payment</h2>
+            <button class="btn-close" (click)="showPaymentModal = false">✕</button>
+          </div>
+          <div class="modal-body text-center">
+            <p>
+              Please confirm receipt of physical cash for
+              <strong>Order #{{ pendingOrder?.orderNumber }}</strong
+              >.
+            </p>
+
+            <div class="cash-amount-box">
+              <span class="cash-lbl">Collect from {{ pendingOrder?.userId?.name }}</span>
+              <span class="cash-val">₹{{ pendingOrder?.totalAmount }}</span>
+            </div>
+
+            <div class="modal-actions">
+              <button class="btn-outline" (click)="showPaymentModal = false">Cancel</button>
+              <button class="btn-fill bg-primary" (click)="completeWithPayment('PAID')">
+                Confirm & Close Order
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -222,517 +426,724 @@ import { ToastService } from '../../services/toast';
   `,
   styles: [
     `
-      .dashboard-wrapper {
-        background: #0a0a0a;
-        min-height: 100vh;
-        color: #fff;
-        font-family: 'Poppins', sans-serif;
-        padding: 100px 24px 60px;
+      /* Base Variables & Reset */
+      :host {
+        --bg-dark: #050505;
+        --surface: rgba(20, 20, 20, 0.8);
+        --surface-light: rgba(30, 30, 30, 0.6);
+        --border: rgba(255, 255, 255, 0.08);
+        --text-main: #ffffff;
+        --text-muted: #888888;
+        --primary: #ff6600;
+        --blue: #3498db;
+        --orange: #f39c12;
+        --green: #2ecc71;
+        --red: #ef4444;
       }
-      .container-fluid {
+
+      .admin-layout {
+        background: var(--bg-dark);
+        min-height: 100vh;
+        color: var(--text-main);
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+        padding-top: 80px;
+      }
+      .admin-container {
         max-width: 1440px;
         margin: 0 auto;
+        padding: 20px;
       }
-      .dash-header {
-        margin-bottom: 50px;
-        padding-bottom: 30px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+      /* Clean typography scale */
+      h1 {
+        font-size: 1.5rem;
+        margin: 0 0 4px 0;
+        font-weight: 700;
       }
-      .header-main {
+      h2 {
+        font-size: 1.1rem;
+        margin: 0;
+        font-weight: 600;
+      }
+      p {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin: 0;
+      }
+
+      /* Header */
+      .admin-header {
         display: flex;
         justify-content: space-between;
-        align-items: flex-end;
-        gap: 30px;
-        flex-wrap: wrap;
-      }
-      .badge-accent {
-        display: inline-block;
-        font-size: 0.7rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        color: #ff6600;
-        background: rgba(255, 102, 0, 0.1);
-        padding: 4px 12px;
-        border-radius: 50px;
-        margin-bottom: 12px;
-      }
-      .title-group h1 {
-        font-size: 3rem;
-        font-weight: 900;
-        margin: 0;
-        line-height: 1.1;
-      }
-      .highlight {
-        color: #ff6600;
-      }
-      .title-group p {
-        color: #777;
-        font-size: 1rem;
-        margin-top: 5px;
+        align-items: center;
+        background: var(--surface);
+        backdrop-filter: blur(20px);
+        padding: 20px 24px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        margin-bottom: 24px;
       }
       .header-actions {
         display: flex;
         align-items: center;
-        gap: 40px;
+        gap: 24px;
       }
-      .live-counter {
-        text-align: right;
-      }
-      .live-counter .count {
-        display: block;
-        font-size: 2.8rem;
-        font-weight: 900;
-        color: #ff6600;
-        line-height: 1;
-      }
-      .live-counter .label {
-        font-size: 0.75rem;
-        font-weight: 700;
-        color: #555;
-        text-transform: uppercase;
-      }
-      .btn-refresh {
-        background: #fff;
-        color: #000;
-        border: none;
-        padding: 14px 28px;
-        border-radius: 12px;
-        font-weight: 800;
-        cursor: pointer;
-        transition: 0.3s;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-      .btn-refresh.loading .icon {
-        animation: spin 1s linear infinite;
-        display: inline-block;
-      }
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
-      }
-      .section-title {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 10px;
-        margin-top: 20px;
-      }
-      .section-title h2 {
-        font-size: 1.8rem;
-        font-weight: 800;
-        margin: 0;
-      }
-      .history-subtitle {
-        font-size: 0.85rem;
-        color: #555;
-        margin: 0;
-        font-weight: 600;
-      }
-      .status-legend {
+      .quick-stats {
         display: flex;
         gap: 20px;
+        border-right: 1px solid var(--border);
+        padding-right: 20px;
       }
-      .legend-item {
-        font-size: 0.8rem;
-        color: #666;
+      .stat {
+        display: flex;
+        flex-direction: column;
+      }
+      .stat-lbl {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        font-weight: 600;
+      }
+      .stat-val {
+        font-size: 1.25rem;
+        font-weight: 700;
+      }
+      .stat-val.primary {
+        color: var(--primary);
+      }
+
+      .btn-sync {
+        background: var(--surface-light);
+        color: var(--text-main);
+        border: 1px solid var(--border);
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .btn-sync:hover:not([disabled]) {
+        background: #2a2a2a;
+      }
+
+      /* Operations Board - Fixed Heights */
+      .ops-board {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin-bottom: 40px;
+      }
+      .ops-column {
+        background: var(--surface);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 280px);
+        min-height: 500px;
+      }
+
+      .col-header {
+        padding: 16px;
+        border-bottom: 1px solid var(--border);
+      }
+      .col-header h2 {
         display: flex;
         align-items: center;
         gap: 8px;
-        font-weight: 600;
+        font-size: 1rem;
       }
-      .dot {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
+      .col-header h2 span {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        font-weight: normal;
       }
-      .dot.new {
-        background: #3498db;
+
+      .incoming-border {
+        border-top: 3px solid var(--blue);
+        border-radius: 12px 12px 0 0;
       }
-      .dot.cooking {
-        background: #f39c12;
+      .preparing-border {
+        border-top: 3px solid var(--orange);
+        border-radius: 12px 12px 0 0;
       }
-      .dot.ready {
-        background: #2ecc71;
+      .ready-border {
+        border-top: 3px solid var(--green);
+        border-radius: 12px 12px 0 0;
       }
-      .order-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-        gap: 24px;
-      }
-      .order-card {
-        background: #161616;
-        border: 1px solid #222;
-        border-radius: 24px;
-        padding: 24px;
+
+      /* Scrollable Inner Area */
+      .col-scroll {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
         display: flex;
         flex-direction: column;
-        transition: 0.3s;
-        position: relative;
+        gap: 16px;
+        scrollbar-width: thin;
+        scrollbar-color: var(--border) transparent;
       }
-      .order-card:hover {
-        border-color: #444;
-        transform: translateY(-5px);
+      .col-scroll::-webkit-scrollbar {
+        width: 6px;
       }
-      .status-border-NEW {
-        border-top: 6px solid #3498db;
+      .col-scroll::-webkit-scrollbar-thumb {
+        background-color: var(--border);
+        border-radius: 4px;
       }
-      .status-border-PREPARING {
-        border-top: 6px solid #f39c12;
+
+      /* Order Cards */
+      .order-card {
+        background: var(--surface-light);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
       }
-      .status-border-READY {
-        border-top: 6px solid #2ecc71;
+      .card-unpaid {
+        border-color: rgba(239, 68, 68, 0.4);
+        background: rgba(239, 68, 68, 0.05);
       }
+
       .card-top {
         display: flex;
         justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 20px;
-      }
-      .order-id {
-        font-family: monospace;
-        color: #aaa;
-        font-weight: 800;
-        font-size: 1.1rem;
-        display: block;
-      }
-      .order-time {
-        font-size: 0.8rem;
-        color: #555;
-        font-weight: 600;
-      }
-      .status-chip {
-        font-size: 0.65rem;
-        font-weight: 900;
-        padding: 4px 10px;
-        border-radius: 6px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-      .status-chip.new {
-        background: rgba(52, 152, 219, 0.1);
-        color: #3498db;
-      }
-      .status-chip.preparing {
-        background: rgba(243, 156, 18, 0.1);
-        color: #f39c12;
-      }
-      .status-chip.ready {
-        background: rgba(46, 204, 113, 0.1);
-        color: #2ecc71;
-      }
-      .customer-info {
-        margin-bottom: 20px;
-        padding-bottom: 15px;
-        border-bottom: 1px solid #222;
-      }
-      .user-main {
-        display: flex;
-        justify-content: space-between;
         align-items: center;
-        margin-bottom: 10px;
+        margin-bottom: 12px;
       }
-      .customer-info h3 {
-        font-size: 1.4rem;
-        font-weight: 800;
-        margin: 0;
-        color: #fff;
+      .ref-link {
+        background: none;
+        border: none;
+        color: var(--primary);
+        font-family: monospace;
+        font-size: 1.05rem;
+        font-weight: bold;
+        cursor: pointer;
+        padding: 0;
+        text-decoration: underline;
       }
-      .phone-link {
-        color: #ff6600;
-        text-decoration: none;
-        font-weight: 700;
-        font-size: 0.9rem;
+      .time {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+      .total-amt {
+        font-size: 1rem;
+        font-weight: bold;
+        color: var(--green);
+      }
+      .text-orange {
+        color: var(--orange);
+      }
+
+      .payment-alert {
+        background: var(--red);
+        color: white;
+        font-size: 0.75rem;
+        padding: 4px 8px;
+        border-radius: 4px;
+        text-align: center;
+        margin-bottom: 12px;
+        font-weight: bold;
+      }
+
+      .card-mid {
+        margin-bottom: 12px;
+      }
+      .cust-name {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 6px;
       }
       .tags {
         display: flex;
-        gap: 10px;
+        gap: 6px;
+        flex-wrap: wrap;
       }
-      .tag-type,
-      .tag-payment {
-        font-size: 0.75rem;
-        font-weight: 800;
-        padding: 4px 12px;
-        border-radius: 6px;
-        background: #222;
-        color: #888;
-        text-transform: uppercase;
-      }
-      .tag-type.dine-in {
-        color: #ff6600;
-        background: rgba(255, 102, 0, 0.1);
-      }
-      .tag-payment.is-paid {
-        background: rgba(46, 204, 113, 0.1);
-        color: #2ecc71;
-      }
-      .reservation-box {
-        background: rgba(255, 102, 0, 0.05);
-        border-radius: 12px;
-        padding: 15px;
-        margin-bottom: 20px;
-        display: flex;
-        justify-content: space-around;
-        border: 1px solid rgba(255, 102, 0, 0.15);
-      }
-      .res-item {
-        text-align: center;
-      }
-      .res-label {
-        display: block;
-        font-size: 0.65rem;
-        color: #666;
-        text-transform: uppercase;
-        font-weight: 800;
-        margin-bottom: 4px;
-      }
-      .res-value {
-        display: block;
-        font-size: 1rem;
-        font-weight: 800;
-        color: #eee;
-      }
-      .highlight-time {
-        color: #ff6600;
-      }
-      .items-container {
-        background: #0d0d0d;
-        border-radius: 16px;
-        padding: 18px;
-        margin-bottom: 24px;
-        flex-grow: 1;
-        border: 1px solid #222;
-      }
-      .items-label {
+      .tag {
         font-size: 0.7rem;
-        font-weight: 800;
-        color: #444;
-        text-transform: uppercase;
-        margin-bottom: 12px;
-        letter-spacing: 1px;
+        padding: 3px 6px;
+        border-radius: 4px;
+        font-weight: 600;
       }
-      .item-row {
-        display: flex;
-        gap: 12px;
-        margin-bottom: 12px;
-      }
-      .item-qty {
-        font-weight: 900;
-        color: #ff6600;
-        font-size: 1rem;
-      }
-      .item-name {
-        font-weight: 700;
+      .bg-dark {
+        background: #000;
+        border: 1px solid rgba(255, 255, 255, 0.1);
         color: #eee;
+      }
+      .bg-green {
+        background: rgba(46, 204, 113, 0.15);
+        color: var(--green);
+        border: 1px solid rgba(46, 204, 113, 0.2);
+      }
+      .bg-purple {
+        background: rgba(255, 204, 0, 0.1);
+        color: #ffcc00;
+        border: 1px solid rgba(255, 204, 0, 0.2);
+      }
+      .bg-blue {
+        background: rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      /* Highlights for Card Items */
+      .card-items-preview {
+        font-size: 0.85rem;
+        color: #ccc;
+        background: rgba(0, 0, 0, 0.2);
+        padding: 10px;
+        border-radius: 6px;
+        margin-bottom: 16px;
+        flex-grow: 1;
+        border: 1px solid #1a1a1a;
+      }
+      .kitchen-item {
+        margin-bottom: 8px;
+      }
+      .kitchen-item:last-child {
+        margin-bottom: 0;
+      }
+      .item-line {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .item-line b {
+        color: var(--primary);
         font-size: 0.95rem;
       }
-      .item-variant {
-        font-size: 0.75rem;
-        color: #666;
-        text-transform: uppercase;
-        font-weight: 800;
-        display: block;
-        margin-top: 2px;
+      .highlight-text {
+        font-weight: 700;
+        color: #fff;
+        font-size: 0.9rem;
       }
+
+      /* Variant Badges on Cards */
+      .i-var-badge {
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.65rem;
+        font-weight: 800;
+        color: #000;
+        letter-spacing: 0.5px;
+      }
+      .i-var-badge.half {
+        background: #fcd34d;
+      }
+      .i-var-badge.full {
+        background: #34d399;
+      }
+
+      .item-note {
+        font-size: 0.75rem;
+        color: #facc15;
+        font-style: italic;
+        background: rgba(250, 204, 21, 0.1);
+        padding: 4px 8px;
+        border-radius: 4px;
+        margin-top: 4px;
+        border-left: 2px solid #facc15;
+      }
+
       .btn-action {
         width: 100%;
-        padding: 16px;
+        padding: 10px;
         border: none;
-        border-radius: 14px;
-        font-weight: 900;
-        font-size: 1rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: white;
         cursor: pointer;
-        transition: 0.3s;
-      }
-      .btn-prepare {
-        background: #3498db;
-        color: #fff;
-        box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
-      }
-      .btn-ready {
-        background: #f39c12;
-        color: #fff;
-        box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
-      }
-      .btn-complete {
-        background: #2ecc71;
-        color: #fff;
-        box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
+        transition: 0.2s;
       }
       .btn-action:hover {
         filter: brightness(1.1);
-        transform: translateY(-3px);
       }
-      .empty-kitchen {
+      .bg-blue {
+        background: var(--blue);
+      }
+      .bg-orange {
+        background: var(--orange);
+        color: #000;
+      }
+      .bg-green {
+        background: var(--green);
+        color: #000;
+      }
+
+      .empty-col {
         text-align: center;
-        padding: 80px;
-        border-radius: 32px;
-        border: 1px solid #222;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        padding: 40px 0;
       }
-      .empty-icon {
-        font-size: 5rem;
+
+      /* History Table */
+      .history-section {
+        background: var(--surface);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+      }
+      .history-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         margin-bottom: 20px;
-        opacity: 0.2;
       }
-      .modal-backdrop {
+      .select-filter {
+        background: var(--surface-light);
+        border: 1px solid var(--border);
+        color: var(--text-main);
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        outline: none;
+      }
+
+      .table-container {
+        overflow-x: auto;
+      }
+      .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+        text-align: left;
+      }
+      .data-table th {
+        padding: 12px;
+        border-bottom: 1px solid var(--border);
+        color: var(--text-muted);
+        font-weight: 600;
+      }
+      .data-table td {
+        padding: 12px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+      }
+
+      .td-stack {
+        display: flex;
+        flex-direction: column;
+      }
+      .td-sub {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+      }
+
+      .status-badge {
+        font-size: 0.7rem;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+      .status-badge.completed {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--green);
+      }
+      .status-badge.cancelled {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--red);
+      }
+
+      .btn-text-danger {
+        background: none;
+        border: none;
+        color: var(--red);
+        cursor: pointer;
+        font-size: 0.8rem;
+        text-decoration: underline;
+      }
+      .void-txt {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+      }
+      .dim-row {
+        opacity: 0.5;
+      }
+      .text-center {
+        text-align: center;
+        padding: 30px !important;
+        color: var(--text-muted);
+      }
+      .text-right {
+        text-align: right;
+      }
+
+      /* Strict Modal Positioning */
+      .overlay {
         position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.9);
-        backdrop-filter: blur(10px);
-        z-index: 5000;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 9999;
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 20px;
+        padding: 16px;
       }
-      .payment-modal {
-        max-width: 440px;
+
+      .modal-box {
+        background: var(--surface);
+        backdrop-filter: blur(25px);
+        border: 1px solid var(--border);
+        border-radius: 12px;
         width: 100%;
-        padding: 45px;
-        text-align: center;
-        border: 1px solid #333;
-        border-radius: 40px;
-      }
-      .modal-icon {
-        font-size: 4rem;
-        margin-bottom: 25px;
-      }
-      .modal-actions {
-        display: grid;
-        grid-template-columns: 1fr 1.2fr;
-        gap: 15px;
-        margin-top: 35px;
-      }
-      .btn-cancel {
-        background: #222;
-        color: #888;
-        border: none;
-        padding: 18px;
-        border-radius: 16px;
-        font-weight: 800;
-        cursor: pointer;
-      }
-      .btn-confirm {
-        background: #ff6600;
-        color: #fff;
-        border: none;
-        padding: 18px;
-        border-radius: 16px;
-        font-weight: 900;
-        cursor: pointer;
-      }
-      .history-section {
-        margin-top: 100px;
-      }
-      .table-container {
-        border-radius: 28px;
-        overflow: hidden;
-        border: 1px solid #222;
-      }
-      .activity-table {
-        width: 100%;
-        border-collapse: collapse;
-        text-align: left;
-      }
-      .activity-table th {
-        padding: 25px;
-        background: #111;
-        color: #555;
-        font-size: 0.7rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 1.5px;
-      }
-      .activity-table td {
-        padding: 22px 25px;
-        border-bottom: 1px solid #222;
-        font-size: 0.95rem;
-        vertical-align: middle;
-      }
-      .mono-id {
-        font-family: monospace;
-        color: #ff6600;
-        font-weight: 900;
-        font-size: 1rem;
-      }
-      .cust-cell {
+        max-height: 85vh; /* Prevents going off screen */
         display: flex;
         flex-direction: column;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
       }
-      .cust-cell .sub {
-        font-size: 0.8rem;
-        color: #666;
-        margin-top: 4px;
-        font-weight: 600;
+
+      .details-modal {
+        max-width: 600px;
       }
-      .details-cell {
+      .cash-modal {
+        max-width: 400px;
+      }
+
+      .modal-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
         display: flex;
-        flex-direction: column;
-        gap: 6px;
-      }
-      .status-row {
-        display: flex;
-        gap: 10px;
+        justify-content: space-between;
         align-items: center;
       }
-      .type-badge {
-        font-size: 0.65rem;
-        font-weight: 900;
-        color: #aaa;
-        background: #222;
-        padding: 2px 8px;
-        border-radius: 4px;
+      .modal-header h2 {
+        font-size: 1.1rem;
       }
-      .history-status {
-        font-size: 0.65rem;
-        font-weight: 900;
-        text-transform: uppercase;
-        padding: 2px 8px;
-        border-radius: 4px;
-      }
-      .history-status.completed {
-        background: rgba(46, 204, 113, 0.1);
-        color: #2ecc71;
-      }
-      .history-status.cancelled {
-        background: rgba(231, 76, 60, 0.1);
-        color: #e74c3c;
-      }
-      .row-cancelled {
-        background: rgba(231, 76, 60, 0.02);
-      }
-      .text-strikethrough {
-        text-decoration: line-through;
-        opacity: 0.5;
-      }
-      .pay-info {
-        font-size: 0.8rem;
-        color: #888;
-        font-weight: 600;
-      }
-      .price-text {
-        font-weight: 900;
+      .btn-close {
+        background: none;
+        border: none;
+        color: var(--text-muted);
         font-size: 1.2rem;
-        color: #ff6600;
+        cursor: pointer;
       }
-      .time-text {
-        color: #555;
+      .btn-close:hover {
+        color: white;
+      }
+
+      .modal-body {
+        padding: 20px;
+        overflow-y: auto;
+      } /* Internal scroll */
+
+      /* Details Modal Content */
+      .info-blocks {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+      .info-box {
+        background: var(--surface-light);
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+      }
+      .info-lbl {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        margin-bottom: 4px;
+      }
+      .info-val {
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 2px;
+      }
+      .info-sub {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+      .text-green {
+        color: var(--green);
+      }
+      .text-red {
+        color: var(--red);
+      }
+      .text-purple {
+        color: #ffcc00;
+      }
+      .text-bold {
+        font-weight: bold;
+      }
+
+      .items-table-wrapper {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 20px;
+      }
+      .items-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+        text-align: left;
+      }
+      .items-table th {
+        background: #1a1a1a;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        text-transform: uppercase;
+      }
+      .items-table td {
+        padding: 16px 12px;
+        border-bottom: 1px solid var(--border);
+      }
+      .items-table tr:last-child td {
+        border-bottom: none;
+      }
+
+      .qty-lg {
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: var(--primary);
+        vertical-align: top;
+      }
+      .item-name-lg {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      /* Variant Badges inside Modal */
+      .variant-badge {
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: #000;
+        letter-spacing: 0.5px;
+      }
+      .variant-badge.half {
+        background: #fcd34d;
+      }
+      .variant-badge.full {
+        background: #34d399;
+      }
+
+      .item-ins {
+        font-size: 0.8rem;
+        color: #facc15;
+        background: rgba(250, 204, 21, 0.1);
+        padding: 6px 10px;
+        border-radius: 6px;
+        margin-top: 8px;
+        border-left: 2px solid #facc15;
+        font-style: italic;
+      }
+
+      .modal-total {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+      }
+      .total-val {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: var(--primary);
+      }
+
+      /* Cash Modal Content */
+      .cash-amount-box {
+        background: var(--surface-light);
+        border: 1px solid var(--primary);
+        padding: 20px;
+        border-radius: 8px;
+        margin: 20px 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .cash-lbl {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+      }
+      .cash-val {
+        font-size: 2rem;
+        font-weight: bold;
+        color: var(--primary);
+      }
+
+      .modal-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .btn-outline {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text-main);
+        padding: 10px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        cursor: pointer;
+      }
+      .btn-outline:hover {
+        background: var(--surface-light);
+      }
+      .btn-fill {
+        border: none;
+        padding: 10px;
+        border-radius: 6px;
         font-size: 0.85rem;
         font-weight: 600;
+        color: white;
+        cursor: pointer;
       }
-      @media (max-width: 1000px) {
-        .order-grid {
+      .bg-primary {
+        background: var(--primary);
+      }
+      .bg-primary:hover {
+        filter: brightness(1.1);
+      }
+
+      /* Responsiveness */
+      @media (max-width: 1024px) {
+        .ops-board {
           grid-template-columns: 1fr;
         }
-        .header-main {
+        .ops-column {
+          height: auto;
+          min-height: auto;
+          max-height: 500px;
+        } /* Mobile columns don't stretch to vh */
+        .info-blocks {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 600px) {
+        .admin-header {
           flex-direction: column;
           align-items: flex-start;
-          gap: 20px;
+          gap: 16px;
         }
-        .live-counter {
-          text-align: left;
+        .header-actions {
+          width: 100%;
+          justify-content: space-between;
         }
       }
     `,
@@ -745,21 +1156,70 @@ export class OwnerDashboardComponent implements OnInit {
 
   orders = signal<any[]>([]);
   isRefreshing = signal<boolean>(false);
+
+  // Modals and Filtering State
   showPaymentModal = false;
+  detailsOrder: any = null;
   pendingOrder: any = null;
+  historyFilter = signal<string>('today');
+
+  // OPERATIONAL DERIVED SIGNALS
+  newOrders = computed(() => this.orders().filter((o) => o.orderStatus === 'NEW'));
+  prepOrders = computed(() => this.orders().filter((o) => o.orderStatus === 'PREPARING'));
+  readyOrders = computed(() => this.orders().filter((o) => o.orderStatus === 'READY'));
 
   activeOrders = computed(() =>
-    this.orders().filter(
-      (o) => o.orderStatus === 'NEW' || o.orderStatus === 'PREPARING' || o.orderStatus === 'READY',
-    ),
+    this.orders().filter((o) => ['NEW', 'PREPARING', 'READY'].includes(o.orderStatus)),
   );
 
-  historyOrders = computed(() =>
-    this.orders().filter((o) => o.orderStatus === 'COMPLETED' || o.orderStatus === 'CANCELLED'),
-  );
+  todayOrdersCount = computed(() => {
+    const todayStr = new Date().toDateString();
+    return this.orders().filter((o) => new Date(o.createdAt).toDateString() === todayStr).length;
+  });
+
+  // HISTORY FILTER LOGIC
+  filteredHistory = computed(() => {
+    const historyPool = this.orders().filter((o) =>
+      ['COMPLETED', 'CANCELLED'].includes(o.orderStatus),
+    );
+    const range = this.historyFilter();
+    const now = new Date();
+
+    return historyPool.filter((o) => {
+      const oDate = new Date(o.createdAt);
+      if (range === 'today') return oDate.toDateString() === now.toDateString();
+      if (range === 'week') {
+        const diffDays = (now.getTime() - oDate.getTime()) / (1000 * 3600 * 24);
+        return diffDays <= 7;
+      }
+      if (range === 'month') {
+        const diffDays = (now.getTime() - oDate.getTime()) / (1000 * 3600 * 24);
+        return diffDays <= 30;
+      }
+      return true;
+    });
+  });
+
+  constructor() {
+    effect(() => {
+      // Clean body lock implementation
+      if (this.showPaymentModal || this.detailsOrder) {
+        document.body.style.overflow = 'hidden';
+      } else {
+        document.body.style.overflow = '';
+      }
+    });
+  }
 
   ngOnInit() {
     this.refresh();
+    // 30s background sync
+    setInterval(() => this.refresh(), 30000);
+  }
+
+  updateHistoryFilter(val: string) {
+    this.historyFilter.set(val);
+    this.cdr.detectChanges();
   }
 
   refresh() {
@@ -773,7 +1233,7 @@ export class OwnerDashboardComponent implements OnInit {
       },
       error: () => {
         this.isRefreshing.set(false);
-        this.toast.error('Failed to sync live feed.');
+        this.toast.error('Sync failed.');
       },
     });
   }
@@ -781,17 +1241,32 @@ export class OwnerDashboardComponent implements OnInit {
   updateStatus(id: string, status: string, paymentStatus?: string) {
     this.orderService.updateOrderStatus(id, status, paymentStatus).subscribe({
       next: () => {
-        this.toast.success(`Order status updated`);
+        this.toast.success(`Moved to ${status}`);
         this.refresh();
       },
-      error: () => this.toast.error('Failed to update order status.'),
+      error: () => this.toast.error('Error updating order.'),
     });
+  }
+
+  voidOrderRecord(id: string) {
+    if (confirm('Cancel and VOID this record?')) {
+      this.orderService.updateOrderStatus(id, 'CANCELLED').subscribe(() => {
+        this.toast.success('Order Voided.');
+        this.refresh();
+      });
+    }
+  }
+
+  openDetailedView(order: any) {
+    this.detailsOrder = order;
+    this.cdr.detectChanges();
   }
 
   handleCompletion(order: any) {
     if (order.paymentMethod === 'CASH' && order.paymentStatus === 'PENDING') {
       this.pendingOrder = order;
       this.showPaymentModal = true;
+      this.cdr.detectChanges();
     } else {
       this.updateStatus(order._id, 'COMPLETED');
     }
@@ -802,5 +1277,11 @@ export class OwnerDashboardComponent implements OnInit {
     this.updateStatus(this.pendingOrder._id, 'COMPLETED', status);
     this.showPaymentModal = false;
     this.pendingOrder = null;
+  }
+
+  getDuration(startTime: string): number {
+    const start = new Date(startTime).getTime();
+    const now = new Date().getTime();
+    return Math.max(0, Math.floor((now - start) / 60000));
   }
 }

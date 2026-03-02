@@ -10,12 +10,13 @@ import { OwnerDashboardComponent } from './pages/owner/dashboard';
 import { MenuManagementComponent } from './pages/owner/menu-management';
 import { CheckoutComponent } from './pages/checkout/checkout';
 import { NotFoundComponent } from './pages/not-found/not-found';
-import { adminGuard } from './guards/admin';
-import { authGuard } from './guards/auth';
 import { AnalyticsComponent } from './pages/owner/analytics';
 import { OwnerFeedbackComponent } from './pages/owner/feedback-admin';
+import { authGuard } from './guards/auth';
+import { adminGuard } from './guards/admin';
 
 export const routes: Routes = [
+  // Redirect empty path to home
   { path: '', redirectTo: 'home', pathMatch: 'full' },
   { path: 'home', component: HomeComponent },
   { path: 'menu', component: MenuComponent },
@@ -23,6 +24,7 @@ export const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
 
+  // Customer Routes with Auth Guard
   {
     path: 'my-orders',
     component: MyOrdersComponent,
@@ -39,7 +41,7 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
 
-  // Owner Exclusive Routes
+  // Owner Exclusive Routes with Admin Guard
   {
     path: 'owner',
     component: OwnerDashboardComponent,
@@ -61,6 +63,6 @@ export const routes: Routes = [
     canActivate: [adminGuard],
   },
 
-  // Fallback
+  // Fallback for 404
   { path: '**', component: NotFoundComponent },
 ];
