@@ -11,48 +11,48 @@ export class MenuService {
   private apiUrl = 'http://localhost:5000/api/menu';
 
   /**
-   * Public: Get only available items for the menu
+   * Public: Get available menu items
    */
   getMenu(): Observable<MenuItem[]> {
     return this.http.get<MenuItem[]>(this.apiUrl);
   }
 
   /**
-   * AI Integration: Get recommendations for the current user.
-   * UPDATED: Changed from GET to POST to send userId in the body.
-   * FIX: Changed 'user.id' to 'user._id' to match the User model interface.
+   * Public: Get AI recommendations
    */
   getAiRecommendations(): Observable<MenuItem[]> {
     const user = this.authService.currentUser();
-    // Accessing _id instead of id to satisfy TypeScript and match MongoDB structure
-    const userId = user ? (user as any)._id || (user as any).id : null;
-
-    return this.http.post<MenuItem[]>(
-      `${this.apiUrl}/recommendations`,
-      { userId },
-      { withCredentials: true },
-    );
+    // Using any cast to access ID properties if type definition is inconsistent
+    const userId = (user as any)?._id || (user as any)?.id || null;
+    
+    return this.http.post<MenuItem[]>(`${this.apiUrl}/recommendations`, {
+      userId: userId,
+    });
   }
 
   /**
    * Owner: Get ALL items (including unavailable) for management dashboard
    */
   getAllMenuItems(): Observable<MenuItem[]> {
-    return this.http.get<MenuItem[]>(`${this.apiUrl}?all=true`, { withCredentials: true });
+    return this.http.get<MenuItem[]>(`${this.apiUrl}?all=true`, {
+      withCredentials: true,
+    });
   }
 
   /**
    * Owner: Add new menu item
+   * UPDATED: Now accepts FormData to support Cloudinary image uploads
    */
-  addMenuItem(item: any): Observable<any> {
-    return this.http.post(this.apiUrl, item, { withCredentials: true });
+  addMenuItem(formData: FormData): Observable<any> {
+    return this.http.post(this.apiUrl, formData, { withCredentials: true });
   }
 
   /**
    * Owner: Update existing menu item
+   * UPDATED: Now accepts FormData to support Cloudinary image updates
    */
-  updateMenuItem(id: string, item: any): Observable<any> {
-    return this.http.put(`${this.apiUrl}/${id}`, item, { withCredentials: true });
+  updateMenuItem(id: string, formData: FormData): Observable<any> {
+    return this.http.put(`${this.apiUrl}/${id}`, formData, { withCredentials: true });
   }
 
   /**
