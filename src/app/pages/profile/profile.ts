@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { AuthService } from '../../services/auth';
 import { User } from '../../models/user.model';
@@ -9,7 +9,7 @@ import { User } from '../../models/user.model';
   imports: [CommonModule, DatePipe],
   template: `
     <div class="profile-wrapper container">
-      <div class="profile-card glass-card fade-in">
+      <div class="profile-card glass-card fade-in" *ngIf="!loading(); else loader">
         <!-- Profile Header -->
         <div class="header">
           <div class="avatar-box">
@@ -32,35 +32,44 @@ import { User } from '../../models/user.model';
           </div>
           <div class="info-row">
             <span class="label">Member Since</span>
-            <span class="value">{{ user()?.createdAt | date : 'longDate' }}</span>
+            <span class="value">{{ user()?.createdAt | date: 'longDate' }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Last Legend Login</span>
+            <span class="value">{{ user()?.lastLogin | date: 'medium' }}</span>
           </div>
         </div>
 
-        <!-- Account Actions -->
         <div class="actions">
-          <button (click)="authService.logout()" class="logout-btn">Sign Out Account</button>
+          <button (click)="onLogout()" class="logout-btn">Terminate Session</button>
         </div>
       </div>
+
+      <ng-template #loader>
+        <div class="loader-container">
+          <div class="spinner"></div>
+          <p>Retrieving Identity...</p>
+        </div>
+      </ng-template>
     </div>
   `,
   styles: [
     `
       .profile-wrapper {
-        min-height: 80vh;
+        padding: 140px 20px 80px;
+        min-height: 100vh;
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 40px 20px;
       }
       .profile-card {
         width: 100%;
         max-width: 500px;
         padding: 50px 40px;
+        border-radius: 35px;
         text-align: center;
-        position: relative;
       }
 
-      /* Avatar Section */
       .avatar-box {
         position: relative;
         width: 110px;
@@ -103,19 +112,21 @@ import { User } from '../../models/user.model';
         background: rgba(255, 102, 0, 0.1);
         color: #ff6600;
         border-radius: 50px;
-        font-size: 0.75rem;
-        font-weight: 800;
+        font-size: 0.65rem;
+        font-weight: 900;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 1.5px;
       }
 
-      /* Details */
       .details-grid {
         margin: 40px 0;
         text-align: left;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
       }
       .info-row {
-        padding: 15px 0;
+        padding-bottom: 15px;
         border-bottom: 1px solid rgba(255, 255, 255, 0.05);
       }
       .label {
@@ -133,7 +144,6 @@ import { User } from '../../models/user.model';
         font-weight: 600;
       }
 
-      /* Action */
       .logout-btn {
         width: 100%;
         padding: 18px;
@@ -155,30 +165,47 @@ import { User } from '../../models/user.model';
         text-overflow: ellipsis;
         white-space: nowrap;
       }
-
-      @media (max-width: 500px) {
-        .profile-card {
-          padding: 40px 24px;
-          border-radius: 0;
-          height: 100vh;
-          max-width: 100%;
+      .loader-container {
+        text-align: center;
+        color: #666;
+      }
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #111;
+        border-top-color: #ff6600;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
         }
       }
     `,
   ],
 })
 export class ProfileComponent implements OnInit {
-  authService = inject(AuthService);
-  user = signal<User | null>(null);
-  loading = signal<boolean>(true);
+  private authService = inject(AuthService);
+  user = this.authService.currentUser;
+  loading = signal(true);
 
   ngOnInit() {
+    this.fetchProfile();
+  }
+
+  fetchProfile() {
     this.authService.getProfile().subscribe({
-      next: (data) => {
-        this.user.set(data);
+      next: (data: User) => {
+        this.authService.currentUser.set(data);
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
     });
+  }
+
+  onLogout() {
+    this.authService.logout().subscribe();
   }
 }

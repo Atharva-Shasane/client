@@ -1,8 +1,8 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { tap, catchError } from 'rxjs/operators';
-import { of, firstValueFrom } from 'rxjs';
+import { tap } from 'rxjs/operators';
+import { Observable } from 'rxjs';
 import { User } from '../models/user.model';
 import { CartService } from './cart';
 
@@ -16,44 +16,34 @@ export class AuthService {
   // Timer reference to handle the strict 1-hour logout
   private sessionTimeoutTimer: any;
 
-  // State managed via Signals
+  // State managed via Signals (Matches naming used in Guards and Interceptors)
   currentUser = signal<User | null>(null);
   isLoggedIn = computed(() => !!this.currentUser());
 
   constructor() {
-    // We no longer call checkSession here because APP_INITIALIZER will handle it
-    // during the bootstrap process to prevent race conditions with Guards.
+    // Initial session check is handled via APP_INITIALIZER in app.config.ts
   }
 
   /**
-   * Verified if the user has a valid HttpOnly cookie session
-   * This is now returned as a Promise so the APP_INITIALIZER can wait for it.
+   * Check if user has an active session on app load
    */
-  async checkSession(): Promise<void> {
-    try {
-      // We use firstValueFrom to convert the Observable to a Promise
-      const user = await firstValueFrom(this.getProfile());
-      if (user) {
-        this.currentUser.set(user);
-        this.startSessionCountdown();
-      }
-    } catch (error) {
-      this.currentUser.set(null);
-      this.stopSessionCountdown();
-    }
+  checkSession(): void {
+    this.http.get<User>(`${this.apiUrl}/me`, { withCredentials: true }).subscribe({
+      next: (user) => {
+        if (user) {
+          this.currentUser.set(user);
+          this.startSessionCountdown();
+        }
+      },
+      error: () => this.currentUser.set(null)
+    });
   }
 
-  /**
-   * Starts a 1-hour countdown. When time is up, it triggers a logout.
-   */
   private startSessionCountdown() {
-    this.stopSessionCountdown(); // Clear any existing timer
-
-    // 3600000 ms = 1 Hour
+    this.stopSessionCountdown();
     this.sessionTimeoutTimer = setTimeout(() => {
-      console.warn('Session safety limit reached (1 hour). Auto-logging out.');
-      this.logout();
-    }, 3600000);
+      this.logout().subscribe();
+    }, 3600000); // 1 hour
   }
 
   private stopSessionCountdown() {
@@ -62,60 +52,56 @@ export class AuthService {
     }
   }
 
-  requestOtp(email: string) {
+  requestOtp(email: string): Observable<any> {
     return this.http.post(`${this.apiUrl}/request-otp`, { email }, { withCredentials: true });
   }
 
-  register(userData: any) {
+  register(userData: any): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/register`, userData, { withCredentials: true }).pipe(
       tap((res) => {
-        this.currentUser.set(res.user);
-        this.startSessionCountdown();
-      }),
-    );
-  }
-
-  login(credentials: any) {
-    return this.http.post<any>(`${this.apiUrl}/login`, credentials, { withCredentials: true }).pipe(
-      tap((res) => {
-        if (!res.requiresOtp) {
+        if (res.user) {
           this.currentUser.set(res.user);
           this.startSessionCountdown();
         }
-      }),
+      })
     );
   }
 
-  getProfile() {
-    // withCredentials: true ensures the HttpOnly cookie is sent to verify identity
+  login(credentials: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/login`, credentials, { withCredentials: true }).pipe(
+      tap((res) => {
+        if (!res.requiresOtp && res.user) {
+          this.currentUser.set(res.user);
+          this.startSessionCountdown();
+        }
+      })
+    );
+  }
+
+  /**
+   * Used by Profile page to fetch fresh data
+   */
+  getProfile(): Observable<User> {
     return this.http.get<User>(`${this.apiUrl}/me`, { withCredentials: true });
   }
 
-  logout() {
-    this.stopSessionCountdown();
-    return this.http
-      .post(`${this.apiUrl}/logout`, {}, { withCredentials: true })
-      .pipe(
-        tap(() => {
-          this.performLocalCleanup();
-        }),
-        catchError(() => {
-          this.performLocalCleanup();
-          return of(null);
-        }),
-      )
-      .subscribe();
+  logout(): Observable<any> {
+    return this.http.post(`${this.apiUrl}/logout`, {}, { withCredentials: true }).pipe(
+      tap(() => {
+        this.performLocalCleanup();
+      })
+    );
   }
 
   private performLocalCleanup() {
+    this.stopSessionCountdown();
     this.currentUser.set(null);
     this.cartService.clearCart();
     this.router.navigate(['/home']);
   }
 
-  // Helper used by interceptor or guards
+  // Helper for manual token handling (though HttpOnly is used)
   getToken() {
-    // With HttpOnly cookies, we don't handle the token manually in JS
     return null;
   }
 }

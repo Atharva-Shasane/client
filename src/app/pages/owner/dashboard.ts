@@ -63,28 +63,25 @@ import { ToastService } from '../../services/toast';
                   <div class="cust-name">{{ order.userId?.name || 'Guest' }}</div>
                   <div class="tags">
                     <span class="tag bg-dark">{{ order.orderType }}</span>
-                    <span class="tag bg-green" *ngIf="order.tableNumber"
-                      >Table {{ order.tableNumber }}</span
-                    >
-                    <!-- NEW: Schedule & Guests -->
-                    <span class="tag bg-purple" *ngIf="order.scheduledTime"
-                      >⏱️ {{ order.scheduledTime | date: 'shortTime' }}</span
-                    >
-                    <span
-                      class="tag bg-blue"
-                      *ngIf="order.orderType === 'DINE_IN' && order.numberOfPeople"
-                      >👥 {{ order.numberOfPeople }}</span
-                    >
+                    <!-- FIXED: Display tableNumbers array -->
+                    <span class="tag bg-green" *ngIf="order.tableNumbers?.length">
+                      T: {{ order.tableNumbers.join(', ') }}
+                    </span>
+                    <span class="tag bg-purple" *ngIf="order.scheduledTime">
+                      ⏱️ {{ order.scheduledTime | date: 'shortTime' }}
+                    </span>
+                    <span class="tag bg-blue" *ngIf="order.orderType === 'DINE IN' && order.numberOfPeople">
+                      👥 {{ order.numberOfPeople }}
+                    </span>
                   </div>
                 </div>
 
-                <!-- RESTORED: Full Order Details Preview -->
+                <!-- Full Order Details Preview -->
                 <div class="card-items-preview">
                   <div class="kitchen-item" *ngFor="let item of order.items">
                     <div class="item-line">
                       <b>{{ item.quantity }}x</b>
                       <span class="i-name highlight-text">{{ item.name }}</span>
-                      <!-- NEW: Prominent Variant Badge -->
                       <span
                         class="i-var-badge"
                         [ngClass]="item.variant?.toLowerCase()"
@@ -125,28 +122,24 @@ import { ToastService } from '../../services/toast';
                 <div class="card-mid">
                   <div class="cust-name">{{ order.userId?.name || 'Guest' }}</div>
                   <div class="tags">
-                    <span class="tag bg-green" *ngIf="order.tableNumber"
-                      >Table {{ order.tableNumber }}</span
-                    >
-                    <!-- NEW: Schedule & Guests -->
-                    <span class="tag bg-purple" *ngIf="order.scheduledTime"
-                      >⏱️ {{ order.scheduledTime | date: 'shortTime' }}</span
-                    >
-                    <span
-                      class="tag bg-blue"
-                      *ngIf="order.orderType === 'DINE_IN' && order.numberOfPeople"
-                      >👥 {{ order.numberOfPeople }}</span
-                    >
+                    <!-- FIXED: Display tableNumbers array -->
+                    <span class="tag bg-green" *ngIf="order.tableNumbers?.length">
+                      T: {{ order.tableNumbers.join(', ') }}
+                    </span>
+                    <span class="tag bg-purple" *ngIf="order.scheduledTime">
+                      ⏱️ {{ order.scheduledTime | date: 'shortTime' }}
+                    </span>
+                    <span class="tag bg-blue" *ngIf="order.orderType === 'DINE IN' && order.numberOfPeople">
+                      👥 {{ order.numberOfPeople }}
+                    </span>
                   </div>
                 </div>
 
-                <!-- RESTORED: Full Order Details Preview -->
                 <div class="card-items-preview">
                   <div class="kitchen-item" *ngFor="let item of order.items">
                     <div class="item-line">
                       <b>{{ item.quantity }}x</b>
                       <span class="i-name highlight-text">{{ item.name }}</span>
-                      <!-- NEW: Prominent Variant Badge -->
                       <span
                         class="i-var-badge"
                         [ngClass]="item.variant?.toLowerCase()"
@@ -196,17 +189,16 @@ import { ToastService } from '../../services/toast';
                 <div class="card-mid">
                   <div class="cust-name">{{ order.userId?.name || 'Guest' }}</div>
                   <div class="tags">
-                    <span class="tag bg-green" *ngIf="order.tableNumber"
-                      >Table {{ order.tableNumber }}</span
-                    >
-                    <!-- NEW: Schedule -->
-                    <span class="tag bg-purple" *ngIf="order.scheduledTime"
-                      >⏱️ {{ order.scheduledTime | date: 'shortTime' }}</span
-                    >
+                    <!-- FIXED: Display tableNumbers array -->
+                    <span class="tag bg-green" *ngIf="order.tableNumbers?.length">
+                      T: {{ order.tableNumbers.join(', ') }}
+                    </span>
+                    <span class="tag bg-purple" *ngIf="order.scheduledTime">
+                      ⏱️ {{ order.scheduledTime | date: 'shortTime' }}
+                    </span>
                   </div>
                 </div>
 
-                <!-- RESTORED: Full Order Details Preview -->
                 <div class="card-items-preview">
                   <div class="kitchen-item" *ngFor="let item of order.items">
                     <div class="item-line">
@@ -325,17 +317,17 @@ import { ToastService } from '../../services/toast';
               <div class="info-box">
                 <span class="info-lbl">Service</span>
                 <span class="info-val">{{ detailsOrder.orderType }}</span>
-                <span class="info-sub" *ngIf="detailsOrder.tableNumber"
-                  >Table {{ detailsOrder.tableNumber }}</span
-                >
+                <!-- FIXED: Display tableNumbers array in Modal -->
+                <span class="info-sub" *ngIf="detailsOrder.tableNumbers?.length">
+                  Tables: {{ detailsOrder.tableNumbers.join(', ') }}
+                </span>
                 <span
                   class="info-sub"
-                  *ngIf="detailsOrder.orderType === 'DINE_IN' && detailsOrder.numberOfPeople"
+                  *ngIf="detailsOrder.orderType === 'DINE IN' && detailsOrder.numberOfPeople"
                   >Guests: {{ detailsOrder.numberOfPeople }}</span
                 >
-                <!-- NEW: Emphasized Schedule Time -->
                 <span class="info-sub text-purple text-bold" *ngIf="detailsOrder.scheduledTime">
-                  {{ detailsOrder.orderType === 'DINE_IN' ? 'Arriving' : 'Pickup' }}:
+                  {{ detailsOrder.orderType === 'DINE IN' ? 'Arriving' : 'Pickup' }}:
                   {{ detailsOrder.scheduledTime | date: 'shortTime' }}
                 </span>
               </div>
@@ -367,7 +359,6 @@ import { ToastService } from '../../services/toast';
                     <td>
                       <div class="item-name-lg">
                         {{ item.name }}
-                        <!-- NEW: Extremely visible variant badge in Modal -->
                         <span
                           class="variant-badge"
                           [ngClass]="item.variant?.toLowerCase()"
@@ -445,10 +436,7 @@ import { ToastService } from '../../services/toast';
         background: var(--bg-dark);
         min-height: 100vh;
         color: var(--text-main);
-        font-family:
-          system-ui,
-          -apple-system,
-          sans-serif;
+        font-family: system-ui, -apple-system, sans-serif;
         padding-top: 80px;
       }
       .admin-container {
@@ -457,24 +445,10 @@ import { ToastService } from '../../services/toast';
         padding: 20px;
       }
 
-      /* Clean typography scale */
-      h1 {
-        font-size: 1.5rem;
-        margin: 0 0 4px 0;
-        font-weight: 700;
-      }
-      h2 {
-        font-size: 1.1rem;
-        margin: 0;
-        font-weight: 600;
-      }
-      p {
-        font-size: 0.85rem;
-        color: var(--text-muted);
-        margin: 0;
-      }
+      h1 { font-size: 1.5rem; margin: 0 0 4px 0; font-weight: 700; }
+      h2 { font-size: 1.1rem; margin: 0; font-weight: 600; }
+      p { font-size: 0.85rem; color: var(--text-muted); margin: 0; }
 
-      /* Header */
       .admin-header {
         display: flex;
         justify-content: space-between;
@@ -486,34 +460,12 @@ import { ToastService } from '../../services/toast';
         border: 1px solid var(--border);
         margin-bottom: 24px;
       }
-      .header-actions {
-        display: flex;
-        align-items: center;
-        gap: 24px;
-      }
-      .quick-stats {
-        display: flex;
-        gap: 20px;
-        border-right: 1px solid var(--border);
-        padding-right: 20px;
-      }
-      .stat {
-        display: flex;
-        flex-direction: column;
-      }
-      .stat-lbl {
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        color: var(--text-muted);
-        font-weight: 600;
-      }
-      .stat-val {
-        font-size: 1.25rem;
-        font-weight: 700;
-      }
-      .stat-val.primary {
-        color: var(--primary);
-      }
+      .header-actions { display: flex; align-items: center; gap: 24px; }
+      .quick-stats { display: flex; gap: 20px; border-right: 1px solid var(--border); padding-right: 20px; }
+      .stat { display: flex; flex-direction: column; }
+      .stat-lbl { font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+      .stat-val { font-size: 1.25rem; font-weight: 700; }
+      .stat-val.primary { color: var(--primary); }
 
       .btn-sync {
         background: var(--surface-light);
@@ -525,11 +477,8 @@ import { ToastService } from '../../services/toast';
         cursor: pointer;
         transition: 0.2s;
       }
-      .btn-sync:hover:not([disabled]) {
-        background: #2a2a2a;
-      }
+      .btn-sync:hover:not([disabled]) { background: #2a2a2a; }
 
-      /* Operations Board - Fixed Heights */
       .ops-board {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
@@ -547,604 +496,108 @@ import { ToastService } from '../../services/toast';
         min-height: 500px;
       }
 
-      .col-header {
-        padding: 16px;
-        border-bottom: 1px solid var(--border);
-      }
-      .col-header h2 {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 1rem;
-      }
-      .col-header h2 span {
-        color: var(--text-muted);
-        font-size: 0.9rem;
-        font-weight: normal;
-      }
+      .col-header { padding: 16px; border-bottom: 1px solid var(--border); }
+      .col-header h2 { display: flex; align-items: center; gap: 8px; font-size: 1rem; }
+      .col-header h2 span { color: var(--text-muted); font-size: 0.9rem; font-weight: normal; }
 
-      .incoming-border {
-        border-top: 3px solid var(--blue);
-        border-radius: 12px 12px 0 0;
-      }
-      .preparing-border {
-        border-top: 3px solid var(--orange);
-        border-radius: 12px 12px 0 0;
-      }
-      .ready-border {
-        border-top: 3px solid var(--green);
-        border-radius: 12px 12px 0 0;
-      }
+      .incoming-border { border-top: 3px solid var(--blue); border-radius: 12px 12px 0 0; }
+      .preparing-border { border-top: 3px solid var(--orange); border-radius: 12px 12px 0 0; }
+      .ready-border { border-top: 3px solid var(--green); border-radius: 12px 12px 0 0; }
 
-      /* Scrollable Inner Area */
-      .col-scroll {
-        flex: 1;
-        overflow-y: auto;
-        padding: 16px;
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-        scrollbar-width: thin;
-        scrollbar-color: var(--border) transparent;
-      }
-      .col-scroll::-webkit-scrollbar {
-        width: 6px;
-      }
-      .col-scroll::-webkit-scrollbar-thumb {
-        background-color: var(--border);
-        border-radius: 4px;
-      }
+      .col-scroll { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+      .order-card { background: var(--surface-light); backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; }
+      .card-unpaid { border-color: rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.05); }
 
-      /* Order Cards */
-      .order-card {
-        background: var(--surface-light);
-        backdrop-filter: blur(10px);
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        padding: 16px;
-        display: flex;
-        flex-direction: column;
-      }
-      .card-unpaid {
-        border-color: rgba(239, 68, 68, 0.4);
-        background: rgba(239, 68, 68, 0.05);
-      }
+      .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+      .ref-link { background: none; border: none; color: var(--primary); font-family: monospace; font-size: 1.05rem; font-weight: bold; cursor: pointer; padding: 0; text-decoration: underline; }
+      .time { font-size: 0.8rem; color: var(--text-muted); }
+      .total-amt { font-size: 1rem; font-weight: bold; color: var(--green); }
+      .text-orange { color: var(--orange); }
 
-      .card-top {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 12px;
-      }
-      .ref-link {
-        background: none;
-        border: none;
-        color: var(--primary);
-        font-family: monospace;
-        font-size: 1.05rem;
-        font-weight: bold;
-        cursor: pointer;
-        padding: 0;
-        text-decoration: underline;
-      }
-      .time {
-        font-size: 0.8rem;
-        color: var(--text-muted);
-      }
-      .total-amt {
-        font-size: 1rem;
-        font-weight: bold;
-        color: var(--green);
-      }
-      .text-orange {
-        color: var(--orange);
-      }
+      .payment-alert { background: var(--red); color: white; font-size: 0.75rem; padding: 4px 8px; border-radius: 4px; text-align: center; margin-bottom: 12px; font-weight: bold; }
+      .card-mid { margin-bottom: 12px; }
+      .cust-name { font-size: 1rem; font-weight: 600; margin-bottom: 6px; }
+      .tags { display: flex; gap: 6px; flex-wrap: wrap; }
+      .tag { font-size: 0.7rem; padding: 3px 6px; border-radius: 4px; font-weight: 600; }
+      .bg-dark { background: #000; border: 1px solid rgba(255, 255, 255, 0.1); color: #eee; }
+      .bg-green { background: rgba(46, 204, 113, 0.15); color: var(--green); border: 1px solid rgba(46, 204, 113, 0.2); }
+      .bg-purple { background: rgba(255, 204, 0, 0.1); color: #ffcc00; border: 1px solid rgba(255, 204, 0, 0.2); }
+      .bg-blue { background: rgba(255, 255, 255, 0.1); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.2); }
 
-      .payment-alert {
-        background: var(--red);
-        color: white;
-        font-size: 0.75rem;
-        padding: 4px 8px;
-        border-radius: 4px;
-        text-align: center;
-        margin-bottom: 12px;
-        font-weight: bold;
-      }
+      .card-items-preview { font-size: 0.85rem; color: #ccc; background: rgba(0, 0, 0, 0.2); padding: 10px; border-radius: 6px; margin-bottom: 16px; flex-grow: 1; border: 1px solid #1a1a1a; }
+      .kitchen-item { margin-bottom: 8px; }
+      .item-line { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+      .item-line b { color: var(--primary); font-size: 0.95rem; }
+      .highlight-text { font-weight: 700; color: #fff; font-size: 0.9rem; }
+      .i-var-badge { padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 800; color: #000; }
+      .i-var-badge.half { background: #fcd34d; }
+      .i-var-badge.full { background: #34d399; }
 
-      .card-mid {
-        margin-bottom: 12px;
-      }
-      .cust-name {
-        font-size: 1rem;
-        font-weight: 600;
-        margin-bottom: 6px;
-      }
-      .tags {
-        display: flex;
-        gap: 6px;
-        flex-wrap: wrap;
-      }
-      .tag {
-        font-size: 0.7rem;
-        padding: 3px 6px;
-        border-radius: 4px;
-        font-weight: 600;
-      }
-      .bg-dark {
-        background: #000;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: #eee;
-      }
-      .bg-green {
-        background: rgba(46, 204, 113, 0.15);
-        color: var(--green);
-        border: 1px solid rgba(46, 204, 113, 0.2);
-      }
-      .bg-purple {
-        background: rgba(255, 204, 0, 0.1);
-        color: #ffcc00;
-        border: 1px solid rgba(255, 204, 0, 0.2);
-      }
-      .bg-blue {
-        background: rgba(255, 255, 255, 0.1);
-        color: #ffffff;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-      }
+      .item-note { font-size: 0.75rem; color: #facc15; font-style: italic; background: rgba(250, 204, 21, 0.1); padding: 4px 8px; border-radius: 4px; margin-top: 4px; border-left: 2px solid #facc15; }
+      .btn-action { width: 100%; padding: 10px; border: none; border-radius: 6px; font-size: 0.85rem; font-weight: 600; color: white; cursor: pointer; transition: 0.2s; }
+      .empty-col { text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 40px 0; }
 
-      /* Highlights for Card Items */
-      .card-items-preview {
-        font-size: 0.85rem;
-        color: #ccc;
-        background: rgba(0, 0, 0, 0.2);
-        padding: 10px;
-        border-radius: 6px;
-        margin-bottom: 16px;
-        flex-grow: 1;
-        border: 1px solid #1a1a1a;
-      }
-      .kitchen-item {
-        margin-bottom: 8px;
-      }
-      .kitchen-item:last-child {
-        margin-bottom: 0;
-      }
-      .item-line {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 6px;
-      }
-      .item-line b {
-        color: var(--primary);
-        font-size: 0.95rem;
-      }
-      .highlight-text {
-        font-weight: 700;
-        color: #fff;
-        font-size: 0.9rem;
-      }
+      .history-section { background: var(--surface); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+      .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+      .select-filter { background: var(--surface-light); border: 1px solid var(--border); color: var(--text-main); padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; outline: none; }
+      .table-container { overflow-x: auto; }
+      .data-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left; }
+      .data-table th { padding: 12px; border-bottom: 1px solid var(--border); color: var(--text-muted); font-weight: 600; }
+      .data-table td { padding: 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+      .status-badge { font-size: 0.7rem; padding: 4px 8px; border-radius: 4px; font-weight: 600; text-transform: uppercase; }
+      .status-badge.completed { background: rgba(16, 185, 129, 0.1); color: var(--green); }
+      .status-badge.cancelled { background: rgba(239, 68, 68, 0.1); color: var(--red); }
+      .btn-text-danger { background: none; border: none; color: var(--red); cursor: pointer; font-size: 0.8rem; text-decoration: underline; }
 
-      /* Variant Badges on Cards */
-      .i-var-badge {
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-size: 0.65rem;
-        font-weight: 800;
-        color: #000;
-        letter-spacing: 0.5px;
-      }
-      .i-var-badge.half {
-        background: #fcd34d;
-      }
-      .i-var-badge.full {
-        background: #34d399;
-      }
+      .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.8); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 16px; }
+      .modal-box { background: var(--surface); backdrop-filter: blur(25px); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5); }
+      .details-modal { max-width: 600px; }
+      .cash-modal { max-width: 400px; }
+      .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+      .btn-close { background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer; }
+      .modal-body { padding: 20px; overflow-y: auto; }
 
-      .item-note {
-        font-size: 0.75rem;
-        color: #facc15;
-        font-style: italic;
-        background: rgba(250, 204, 21, 0.1);
-        padding: 4px 8px;
-        border-radius: 4px;
-        margin-top: 4px;
-        border-left: 2px solid #facc15;
-      }
+      .info-blocks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
+      .info-box { background: var(--surface-light); padding: 12px; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; }
+      .info-lbl { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
+      .info-val { font-size: 0.9rem; font-weight: 600; margin-bottom: 2px; }
+      .info-sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+      .text-green { color: var(--green); }
+      .text-red { color: var(--red); }
+      .text-purple { color: #ffcc00; }
+      .text-bold { font-weight: bold; }
 
-      .btn-action {
-        width: 100%;
-        padding: 10px;
-        border: none;
-        border-radius: 6px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        color: white;
-        cursor: pointer;
-        transition: 0.2s;
-      }
-      .btn-action:hover {
-        filter: brightness(1.1);
-      }
-      .bg-blue {
-        background: var(--blue);
-      }
-      .bg-orange {
-        background: var(--orange);
-        color: #000;
-      }
-      .bg-green {
-        background: var(--green);
-        color: #000;
-      }
+      .items-table-wrapper { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
+      .items-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; text-align: left; }
+      .items-table th { background: #1a1a1a; padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; }
+      .items-table td { padding: 16px 12px; border-bottom: 1px solid var(--border); }
 
-      .empty-col {
-        text-align: center;
-        color: var(--text-muted);
-        font-size: 0.85rem;
-        padding: 40px 0;
-      }
+      .qty-lg { font-size: 1.1rem; font-weight: bold; color: var(--primary); vertical-align: top; }
+      .item-name-lg { font-size: 1.05rem; font-weight: 700; color: #fff; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+      .variant-badge { padding: 3px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 800; color: #000; }
+      .variant-badge.half { background: #fcd34d; }
+      .variant-badge.full { background: #34d399; }
 
-      /* History Table */
-      .history-section {
-        background: var(--surface);
-        backdrop-filter: blur(20px);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 20px;
-      }
-      .history-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-      }
-      .select-filter {
-        background: var(--surface-light);
-        border: 1px solid var(--border);
-        color: var(--text-main);
-        padding: 6px 12px;
-        border-radius: 6px;
-        font-size: 0.85rem;
-        outline: none;
-      }
+      .modal-total { display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid var(--border); }
+      .total-val { font-size: 1.5rem; font-weight: bold; color: var(--primary); }
 
-      .table-container {
-        overflow-x: auto;
-      }
-      .data-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 0.85rem;
-        text-align: left;
-      }
-      .data-table th {
-        padding: 12px;
-        border-bottom: 1px solid var(--border);
-        color: var(--text-muted);
-        font-weight: 600;
-      }
-      .data-table td {
-        padding: 12px;
-        border-bottom: 1px solid var(--border);
-        vertical-align: middle;
-      }
+      .cash-amount-box { background: var(--surface-light); border: 1px solid var(--primary); padding: 20px; border-radius: 8px; margin: 20px 0; display: flex; flex-direction: column; align-items: center; }
+      .cash-lbl { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; }
+      .cash-val { font-size: 2rem; font-weight: bold; color: var(--primary); }
 
-      .td-stack {
-        display: flex;
-        flex-direction: column;
-      }
-      .td-sub {
-        font-size: 0.75rem;
-        color: var(--text-muted);
-      }
+      .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); padding: 10px; border-radius: 6px; font-size: 0.85rem; cursor: pointer; }
+      .btn-fill { border: none; padding: 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; color: white; cursor: pointer; }
+      .bg-primary { background: var(--primary); }
 
-      .status-badge {
-        font-size: 0.7rem;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-weight: 600;
-        text-transform: uppercase;
-      }
-      .status-badge.completed {
-        background: rgba(16, 185, 129, 0.1);
-        color: var(--green);
-      }
-      .status-badge.cancelled {
-        background: rgba(239, 68, 68, 0.1);
-        color: var(--red);
-      }
-
-      .btn-text-danger {
-        background: none;
-        border: none;
-        color: var(--red);
-        cursor: pointer;
-        font-size: 0.8rem;
-        text-decoration: underline;
-      }
-      .void-txt {
-        font-size: 0.75rem;
-        color: var(--text-muted);
-      }
-      .dim-row {
-        opacity: 0.5;
-      }
-      .text-center {
-        text-align: center;
-        padding: 30px !important;
-        color: var(--text-muted);
-      }
-      .text-right {
-        text-align: right;
-      }
-
-      /* Strict Modal Positioning */
-      .overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.8);
-        z-index: 9999;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 16px;
-      }
-
-      .modal-box {
-        background: var(--surface);
-        backdrop-filter: blur(25px);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        width: 100%;
-        max-height: 85vh; /* Prevents going off screen */
-        display: flex;
-        flex-direction: column;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-      }
-
-      .details-modal {
-        max-width: 600px;
-      }
-      .cash-modal {
-        max-width: 400px;
-      }
-
-      .modal-header {
-        padding: 16px 20px;
-        border-bottom: 1px solid var(--border);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .modal-header h2 {
-        font-size: 1.1rem;
-      }
-      .btn-close {
-        background: none;
-        border: none;
-        color: var(--text-muted);
-        font-size: 1.2rem;
-        cursor: pointer;
-      }
-      .btn-close:hover {
-        color: white;
-      }
-
-      .modal-body {
-        padding: 20px;
-        overflow-y: auto;
-      } /* Internal scroll */
-
-      /* Details Modal Content */
-      .info-blocks {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 12px;
-        margin-bottom: 24px;
-      }
-      .info-box {
-        background: var(--surface-light);
-        padding: 12px;
-        border-radius: 8px;
-        border: 1px solid var(--border);
-        display: flex;
-        flex-direction: column;
-      }
-      .info-lbl {
-        font-size: 0.7rem;
-        color: var(--text-muted);
-        text-transform: uppercase;
-        margin-bottom: 4px;
-      }
-      .info-val {
-        font-size: 0.9rem;
-        font-weight: 600;
-        margin-bottom: 2px;
-      }
-      .info-sub {
-        font-size: 0.75rem;
-        color: var(--text-muted);
-        margin-top: 2px;
-      }
-      .text-green {
-        color: var(--green);
-      }
-      .text-red {
-        color: var(--red);
-      }
-      .text-purple {
-        color: #ffcc00;
-      }
-      .text-bold {
-        font-weight: bold;
-      }
-
-      .items-table-wrapper {
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        overflow: hidden;
-        margin-bottom: 20px;
-      }
-      .items-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 0.9rem;
-        text-align: left;
-      }
-      .items-table th {
-        background: #1a1a1a;
-        padding: 10px 12px;
-        border-bottom: 1px solid var(--border);
-        color: var(--text-muted);
-        font-size: 0.8rem;
-        text-transform: uppercase;
-      }
-      .items-table td {
-        padding: 16px 12px;
-        border-bottom: 1px solid var(--border);
-      }
-      .items-table tr:last-child td {
-        border-bottom: none;
-      }
-
-      .qty-lg {
-        font-size: 1.1rem;
-        font-weight: bold;
-        color: var(--primary);
-        vertical-align: top;
-      }
-      .item-name-lg {
-        font-size: 1.05rem;
-        font-weight: 700;
-        color: #fff;
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 8px;
-      }
-
-      /* Variant Badges inside Modal */
-      .variant-badge {
-        padding: 3px 8px;
-        border-radius: 6px;
-        font-size: 0.7rem;
-        font-weight: 800;
-        color: #000;
-        letter-spacing: 0.5px;
-      }
-      .variant-badge.half {
-        background: #fcd34d;
-      }
-      .variant-badge.full {
-        background: #34d399;
-      }
-
-      .item-ins {
-        font-size: 0.8rem;
-        color: #facc15;
-        background: rgba(250, 204, 21, 0.1);
-        padding: 6px 10px;
-        border-radius: 6px;
-        margin-top: 8px;
-        border-left: 2px solid #facc15;
-        font-style: italic;
-      }
-
-      .modal-total {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding-top: 16px;
-        border-top: 1px solid var(--border);
-      }
-      .total-val {
-        font-size: 1.5rem;
-        font-weight: bold;
-        color: var(--primary);
-      }
-
-      /* Cash Modal Content */
-      .cash-amount-box {
-        background: var(--surface-light);
-        border: 1px solid var(--primary);
-        padding: 20px;
-        border-radius: 8px;
-        margin: 20px 0;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-      }
-      .cash-lbl {
-        font-size: 0.85rem;
-        color: var(--text-muted);
-        margin-bottom: 8px;
-      }
-      .cash-val {
-        font-size: 2rem;
-        font-weight: bold;
-        color: var(--primary);
-      }
-
-      .modal-actions {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-      }
-      .btn-outline {
-        background: transparent;
-        border: 1px solid var(--border);
-        color: var(--text-main);
-        padding: 10px;
-        border-radius: 6px;
-        font-size: 0.85rem;
-        cursor: pointer;
-      }
-      .btn-outline:hover {
-        background: var(--surface-light);
-      }
-      .btn-fill {
-        border: none;
-        padding: 10px;
-        border-radius: 6px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        color: white;
-        cursor: pointer;
-      }
-      .bg-primary {
-        background: var(--primary);
-      }
-      .bg-primary:hover {
-        filter: brightness(1.1);
-      }
-
-      /* Responsiveness */
       @media (max-width: 1024px) {
-        .ops-board {
-          grid-template-columns: 1fr;
-        }
-        .ops-column {
-          height: auto;
-          min-height: auto;
-          max-height: 500px;
-        } /* Mobile columns don't stretch to vh */
-        .info-blocks {
-          grid-template-columns: 1fr;
-        }
+        .ops-board { grid-template-columns: 1fr; }
+        .ops-column { height: auto; min-height: auto; max-height: 500px; }
+        .info-blocks { grid-template-columns: 1fr; }
       }
       @media (max-width: 600px) {
-        .admin-header {
-          flex-direction: column;
-          align-items: flex-start;
-          gap: 16px;
-        }
-        .header-actions {
-          width: 100%;
-          justify-content: space-between;
-        }
+        .admin-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+        .header-actions { width: 100%; justify-content: space-between; }
       }
     `,
   ],
@@ -1157,13 +610,11 @@ export class OwnerDashboardComponent implements OnInit {
   orders = signal<any[]>([]);
   isRefreshing = signal<boolean>(false);
 
-  // Modals and Filtering State
   showPaymentModal = false;
   detailsOrder: any = null;
   pendingOrder: any = null;
   historyFilter = signal<string>('today');
 
-  // OPERATIONAL DERIVED SIGNALS
   newOrders = computed(() => this.orders().filter((o) => o.orderStatus === 'NEW'));
   prepOrders = computed(() => this.orders().filter((o) => o.orderStatus === 'PREPARING'));
   readyOrders = computed(() => this.orders().filter((o) => o.orderStatus === 'READY'));
@@ -1177,7 +628,6 @@ export class OwnerDashboardComponent implements OnInit {
     return this.orders().filter((o) => new Date(o.createdAt).toDateString() === todayStr).length;
   });
 
-  // HISTORY FILTER LOGIC
   filteredHistory = computed(() => {
     const historyPool = this.orders().filter((o) =>
       ['COMPLETED', 'CANCELLED'].includes(o.orderStatus),
@@ -1202,7 +652,6 @@ export class OwnerDashboardComponent implements OnInit {
 
   constructor() {
     effect(() => {
-      // Clean body lock implementation
       if (this.showPaymentModal || this.detailsOrder) {
         document.body.style.overflow = 'hidden';
       } else {
@@ -1213,7 +662,6 @@ export class OwnerDashboardComponent implements OnInit {
 
   ngOnInit() {
     this.refresh();
-    // 30s background sync
     setInterval(() => this.refresh(), 30000);
   }
 
