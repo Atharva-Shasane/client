@@ -1,4 +1,4 @@
-import { Component, inject, signal, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, signal, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AuthService } from '../../services/auth';
@@ -296,6 +296,7 @@ import { ToastService } from '../../services/toast';
 export class LoginComponent {
   private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
+  private ngZone = inject(NgZone);
   authService = inject(AuthService);
   router = inject(Router);
   toast = inject(ToastService);
@@ -317,33 +318,42 @@ export class LoginComponent {
   resetLoginState() {
     this.requiresOtp = false;
     this.loginForm.get('otp')?.reset();
-    this.cdr.detectChanges();
+    this.cdr.markForCheck();
   }
 
   onSubmit() {
     if (this.loginForm.invalid && !this.requiresOtp) return;
 
-    this.loading = true;
-    this.authService.login(this.loginForm.value).subscribe({
-      next: (res: any) => {
-        if (res.requiresOtp) {
-          // Wrap in setTimeout to defer state change to next turn, preventing NG0100
-          setTimeout(() => {
-            this.requiresOtp = true;
-            this.loading = false;
-            this.toast.info('Owner verification code sent.');
-            this.cdr.detectChanges();
+    this.ngZone.runOutsideAngular(() => {
+      this.loading = true;
+
+      this.authService.login(this.loginForm.value).subscribe({
+        next: (res: any) => {
+          this.ngZone.run(() => {
+            if (res.requiresOtp) {
+              this.requiresOtp = true;
+              this.loading = false;
+              this.toast.info('Owner verification code sent.');
+              this.cdr.markForCheck();
+            } else {
+              this.loading = false;
+              this.toast.success('Access granted. Welcome back.');
+              this.cdr.markForCheck();
+
+              setTimeout(() => {
+                this.router.navigate(['/home']);
+              }, 200);
+            }
           });
-        } else {
-          this.toast.success('Access granted. Welcome back.');
-          this.router.navigate(['/home']);
-        }
-      },
-      error: (err) => {
-        this.loading = false;
-        this.toast.error(err.error?.msg || 'Invalid credentials');
-        this.cdr.detectChanges();
-      },
+        },
+        error: (err) => {
+          this.ngZone.run(() => {
+            this.loading = false;
+            this.toast.error(err.error?.msg || 'Invalid credentials or OTP');
+            this.cdr.markForCheck();
+          });
+        },
+      });
     });
   }
 }
