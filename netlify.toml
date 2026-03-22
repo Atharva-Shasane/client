@@ -1,8 +1,14 @@
+[build]
+  # We navigate to the client folder, install, and build. 
+  # The output is moved to the root 'dist' folder by the Angular builder.
+  command = "cd client && npm install && ng build --configuration production"
+  
+  # This path is relative to the root of your repository.
+  # Do NOT add 'client/' at the beginning.
+  publish = "dist/client/browser"
+
 [[redirects]]
+  # This prevents 404 errors when refreshing the page on the hosted site
   from = "/*"
   to = "/index.html"
   status = 200
-
-[build]
-  command = "cd client && npm install && ng build --configuration production"
-  publish = "client/dist/client/browser"
