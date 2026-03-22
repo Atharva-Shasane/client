@@ -51,7 +51,7 @@ import { ToastService } from '../../services/toast';
             <!-- Itemized breakdown for context -->
             <div class="dish-breakdown" *ngIf="item.dishRatings?.length">
               <div class="dish-pill" *ngFor="let dr of item.dishRatings">
-                <span class="d-name">{{ dr.name }}</span>
+                <span class="d-name">{{ dr.name || 'Dish' }}</span>
                 <span class="d-score">★{{ dr.rating }}</span>
               </div>
             </div>
@@ -93,7 +93,6 @@ import { ToastService } from '../../services/toast';
                 <span class="m-lbl">Order Ref</span>
                 <span class="m-val">#{{ item.orderId?.orderNumber }}</span>
               </div>
-              <!-- Re-added Date display to fix compiler warning -->
               <div class="meta-item">
                 <span class="m-lbl">Submitted</span>
                 <span class="m-val">{{ item.createdAt | date: 'MMM d, y' }}</span>
@@ -113,6 +112,7 @@ import { ToastService } from '../../services/toast';
         <div class="empty-state glass-card">
           <div class="empty-visual">📭</div>
           <h3>Inbox Empty</h3>
+          <p>Customer feedback will appear here once submitted.</p>
         </div>
       </ng-template>
     </div>
@@ -166,6 +166,7 @@ import { ToastService } from '../../services/toast';
         min-width: 120px;
         text-align: center;
         border: 1px solid rgba(255, 255, 255, 0.05);
+        background: rgba(255, 255, 255, 0.02);
       }
       .s-val {
         display: block;
@@ -221,6 +222,7 @@ import { ToastService } from '../../services/toast';
         font-weight: 900;
         background: #111;
         font-size: 1.1rem;
+        border: 1px solid transparent;
       }
       .u-name {
         display: block;
@@ -245,6 +247,7 @@ import { ToastService } from '../../services/toast';
       .rating-badge .stars {
         font-size: 0.75rem;
         letter-spacing: 1px;
+        color: #ffcc00;
       }
 
       .dish-breakdown {
@@ -302,12 +305,13 @@ import { ToastService } from '../../services/toast';
       .btn-edit {
         background: none;
         border: none;
-        color: #333;
+        color: #444;
         font-size: 0.6rem;
         cursor: pointer;
         text-decoration: underline;
         padding: 0;
       }
+      .btn-edit:hover { color: #ff6600; }
 
       textarea {
         width: 100%;
@@ -349,6 +353,8 @@ import { ToastService } from '../../services/toast';
         border-top: 1px solid #111;
         margin-top: auto;
       }
+      .meta-item { flex: 1; }
+      .text-right { text-align: right; }
       .m-lbl {
         font-size: 0.5rem;
         color: #333;
@@ -361,54 +367,23 @@ import { ToastService } from '../../services/toast';
         font-weight: 700;
         color: #aaa;
       }
-      .sentiment {
-        font-weight: 900;
-      }
-      .s-pos {
-        color: #00ff88;
-      }
-      .s-neg {
-        color: #ff4444;
-      }
-      .s-neu {
-        color: #555;
-      }
+      .sentiment { font-weight: 900; }
+      .s-pos { color: #00ff88; }
+      .s-neg { color: #ff4444; }
+      .s-neu { color: #555; }
 
-      .rate-excellent {
-        color: #00ff88;
-      }
-      .rate-excellent.avatar {
-        border-color: #00ff88;
-        color: #00ff88;
-        background: rgba(0, 255, 136, 0.05);
-      }
-      .rate-good {
-        color: #ffcc00;
-      }
-      .rate-good.avatar {
-        border-color: #ffcc00;
-        color: #ffcc00;
-        background: rgba(255, 204, 0, 0.05);
-      }
-      .rate-poor {
-        color: #ff4444;
-      }
-      .rate-poor.avatar {
-        border-color: #ff4444;
-        color: #ff4444;
-        background: rgba(255, 68, 68, 0.05);
-      }
+      .rate-excellent { color: #00ff88; }
+      .rate-excellent.avatar { border-color: #00ff88; background: rgba(0, 255, 136, 0.05); }
+      .rate-good { color: #ffcc00; }
+      .rate-good.avatar { border-color: #ffcc00; background: rgba(255, 204, 0, 0.05); }
+      .rate-poor { color: #ff4444; }
+      .rate-poor.avatar { border-color: #ff4444; background: rgba(255, 68, 68, 0.05); }
 
-      .empty-state {
-        text-align: center;
-        padding: 60px 40px;
-        border-radius: 30px;
-      }
-      .empty-visual {
-        font-size: 3rem;
-        opacity: 0.1;
-        margin-bottom: 15px;
-      }
+      .empty-state { text-align: center; padding: 60px 40px; border-radius: 30px; grid-column: 1 / -1; }
+      .empty-visual { font-size: 3rem; opacity: 0.1; margin-bottom: 15px; }
+      
+      .animate-pop { animation: pop 0.3s ease-out; }
+      @keyframes pop { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     `,
   ],
 })
@@ -416,6 +391,7 @@ export class OwnerFeedbackComponent implements OnInit {
   private ratingService = inject(RatingService);
   private toast = inject(ToastService);
   private cdr = inject(ChangeDetectorRef);
+  
   feedback = signal<any[]>([]);
 
   ngOnInit() {
@@ -423,21 +399,25 @@ export class OwnerFeedbackComponent implements OnInit {
   }
 
   loadAll() {
-    this.ratingService.getAdminFeedback().subscribe((data) => {
-      const processed = data.map((f) => ({
-        ...f,
-        showReply: false,
-        newReply: f.ownerReply || '',
-        loading: false,
-      }));
-      this.feedback.set(processed);
+    this.ratingService.getAdminFeedback().subscribe({
+      next: (data: any[]) => {
+        const processed = data.map((f: any) => ({
+          ...f,
+          showReply: false,
+          newReply: f.ownerReply || '',
+          loading: false,
+        }));
+        this.feedback.set(processed);
+      },
+      error: () => this.toast.show('Failed to load feedback records', 'error')
     });
   }
 
   getAverageRating(): string {
-    if (!this.feedback().length) return '0.0';
-    const sum = this.feedback().reduce((acc, curr) => acc + curr.rating, 0);
-    return (sum / this.feedback().length).toFixed(1);
+    const list = this.feedback();
+    if (!list.length) return '0.0';
+    const sum = list.reduce((acc, curr) => acc + curr.rating, 0);
+    return (sum / list.length).toFixed(1);
   }
 
   getRatingClass(rating: number) {
@@ -466,21 +446,23 @@ export class OwnerFeedbackComponent implements OnInit {
   }
 
   submitReply(item: any) {
-    // FIX for NG0100: Use a macrotask for safer lifecycle state changes
+    if (!item.newReply) return;
+
+    // Macrotask to handle state changes safely across change detection cycles
     setTimeout(() => {
       item.loading = true;
       this.cdr.detectChanges();
 
       this.ratingService.replyToFeedback(item._id, item.newReply).subscribe({
-        next: (res) => {
-          this.toast.success('Response published.');
+        next: (res: any) => {
+          this.toast.show('Response published successfully', 'success');
           item.ownerReply = res.ownerReply;
           item.showReply = false;
           item.loading = false;
           this.cdr.detectChanges();
         },
         error: () => {
-          this.toast.error('Submission failed.');
+          this.toast.show('Failed to publish response', 'error');
           item.loading = false;
           this.cdr.detectChanges();
         },

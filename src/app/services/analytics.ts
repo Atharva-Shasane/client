@@ -1,27 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../environments/environment';
 import { Observable } from 'rxjs';
-
-export interface TopSellingItem {
-  menuItemId: string;
-  name: string;
-  count: number;
-}
-
-export interface AnalyticsData {
-  date: string; // YYYY-MM-DD
-  totalOrders: number;
-  totalRevenue: number;
-  orderTypeBreakdown: {
-    dineIn: number;
-    takeaway: number;
-  };
-  paymentBreakdown: {
-    cash: number;
-    online: number;
-  };
-  topSellingItems: TopSellingItem[];
-}
 
 export interface MonthlyProfitData {
   month: string;
@@ -35,59 +15,56 @@ export interface MonthlyProfitData {
 })
 export class AnalyticsService {
   private http = inject(HttpClient);
-  private apiUrl = '/api/analytics';
+  private apiUrl = `${environment.apiUrl}/analytics`;
 
-  /**
-   * Fetches the current day's performance metrics
-   */
-  getTodayAnalytics(): Observable<AnalyticsData> {
-    return this.http.get<AnalyticsData>(`${this.apiUrl}/today`);
+  private readonly httpOptions = { withCredentials: true };
+
+  getTodayStats(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/today`, this.httpOptions);
   }
 
-  /**
-   * Fetches historical data (last 7 days) for the revenue chart
-   */
-  getHistoryAnalytics(): Observable<AnalyticsData[]> {
-    return this.http.get<AnalyticsData[]>(`${this.apiUrl}`);
+  /** Alias for components using getTodayAnalytics */
+  getTodayAnalytics() {
+    return this.getTodayStats();
   }
 
-  /**
-   * Fetches aggregated Profit & Loss data broken down by month for a specific year
-   */
-  getAnnualProfitLoss(year: number): Observable<MonthlyProfitData[]> {
-    return this.http.get<MonthlyProfitData[]>(`${this.apiUrl}/profit-loss-annual?year=${year}`);
+  getProfitLoss(year: number): Observable<MonthlyProfitData[]> {
+    return this.http.get<MonthlyProfitData[]>(
+      `${this.apiUrl}/profit-loss-annual?year=${year}`,
+      this.httpOptions
+    );
   }
 
-  /**
-   * Sends a manual expense record to the database
-   * Updated to handle Month and Year data
-   */
-  addExpense(expense: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/expenses`, expense);
+  /** Alias for components using getAnnualProfitLoss */
+  getAnnualProfitLoss(year: number) {
+    return this.getProfitLoss(year);
   }
 
-  /**
-   * Fetches all recorded expenses for the management table
-   */
-  getExpenseList(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/expenses/list`);
-  }
-
-  /**
-   * Updates an existing expense record (Description, Amount, Month, Year)
-   */
-  updateExpense(id: string, data: any): Observable<any> {
-    return this.http.put(`${this.apiUrl}/expenses/${id}`, data);
-  }
-
-  /**
-   * Fetches daily online vs offline totals for a specific month and year
-   */
   getPaymentComparison(month: number, year: number): Observable<any> {
-    return this.http.get(`${this.apiUrl}/payment-comparison?month=${month}&year=${year}`);
+    return this.http.get<any>(
+      `${this.apiUrl}/payment-comparison?month=${month}&year=${year}`,
+      this.httpOptions
+    );
   }
 
-  deleteExpense(id: string): Observable<any> {
-  return this.http.delete(`${this.apiUrl}/expenses/${id}`);
+  getExpenses(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/expenses/list`, this.httpOptions);
+  }
+
+  /** Alias for components using getExpenseList */
+  getExpenseList() {
+    return this.getExpenses();
+  }
+
+  addExpense(data: any) {
+    return this.http.post(`${this.apiUrl}/expenses`, data, this.httpOptions);
+  }
+
+  updateExpense(id: string, data: any) {
+    return this.http.put(`${this.apiUrl}/expenses/${id}`, data, this.httpOptions);
+  }
+
+  deleteExpense(id: string) {
+    return this.http.delete(`${this.apiUrl}/expenses/${id}`, this.httpOptions);
   }
 }

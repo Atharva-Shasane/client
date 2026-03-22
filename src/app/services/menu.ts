@@ -1,64 +1,48 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 import { MenuItem } from '../models/menu-item.model';
-import { AuthService } from './auth';
+import { Observable } from 'rxjs';
 
-@Injectable({ providedIn: 'root' })
+@Injectable({
+  providedIn: 'root',
+})
 export class MenuService {
   private http = inject(HttpClient);
-  private authService = inject(AuthService);
-  private apiUrl = 'http://localhost:5000/api/menu';
+  private apiUrl = `${environment.apiUrl}/menu`;
 
-  /**
-   * Public: Get available menu items
-   */
-  getMenu(): Observable<MenuItem[]> {
-    return this.http.get<MenuItem[]>(this.apiUrl);
+  private readonly httpOptions = { withCredentials: true };
+
+  getMenuItems(): Observable<MenuItem[]> {
+    return this.http.get<MenuItem[]>(this.apiUrl, this.httpOptions);
   }
 
-  /**
-   * Public: Get AI recommendations
-   */
-  getAiRecommendations(): Observable<MenuItem[]> {
-    const user = this.authService.currentUser();
-    // Using any cast to access ID properties if type definition is inconsistent
-    const userId = (user as any)?._id || (user as any)?.id || null;
-    
-    return this.http.post<MenuItem[]>(`${this.apiUrl}/recommendations`, {
-      userId: userId,
-    });
+  /** Aliases for component compatibility */
+  getMenu() { return this.getMenuItems(); }
+  getAllMenuItems() { return this.getMenuItems(); }
+
+  getRecommendations(userId?: string): Observable<MenuItem[]> {
+    return this.http.post<MenuItem[]>(
+      `${this.apiUrl}/recommendations`,
+      { userId: userId || null },
+      this.httpOptions
+    );
   }
 
-  /**
-   * Owner: Get ALL items (including unavailable) for management dashboard
-   */
-  getAllMenuItems(): Observable<MenuItem[]> {
-    return this.http.get<MenuItem[]>(`${this.apiUrl}?all=true`, {
-      withCredentials: true,
-    });
+  /** Alias for cart.ts and home.ts */
+  getAiRecommendations() {
+    return this.getRecommendations();
   }
 
-  /**
-   * Owner: Add new menu item
-   * UPDATED: Now accepts FormData to support Cloudinary image uploads
-   */
-  addMenuItem(formData: FormData): Observable<any> {
-    return this.http.post(this.apiUrl, formData, { withCredentials: true });
+  addMenuItem(formData: FormData) {
+    return this.http.post<MenuItem>(this.apiUrl, formData, this.httpOptions);
   }
 
-  /**
-   * Owner: Update existing menu item
-   * UPDATED: Now accepts FormData to support Cloudinary image updates
-   */
-  updateMenuItem(id: string, formData: FormData): Observable<any> {
-    return this.http.put(`${this.apiUrl}/${id}`, formData, { withCredentials: true });
+  updateMenuItem(id: string, formData: FormData) {
+    return this.http.put<MenuItem>(`${this.apiUrl}/${id}`, formData, this.httpOptions);
   }
 
-  /**
-   * Owner: Delete menu item from the system
-   */
-  deleteMenuItem(id: string): Observable<any> {
-    return this.http.delete(`${this.apiUrl}/${id}`, { withCredentials: true });
+  deleteMenuItem(id: string) {
+    return this.http.delete(`${this.apiUrl}/${id}`, this.httpOptions);
   }
 }

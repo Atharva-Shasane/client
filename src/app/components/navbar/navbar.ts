@@ -102,7 +102,7 @@ import { CartService } from '../../services/cart';
               </ng-container>
 
               <div *ngIf="authService.isLoggedIn()" class="user-control">
-                <!-- Fixed Greeting: Split name safely to handle empty states -->
+                <!-- Fixed Greeting: Accessing currentUser as a Signal with () -->
                 <span class="user-greeting">
                   Hi, {{ (authService.currentUser()?.name || '').split(' ')[0] || 'User' }}
                 </span>
@@ -530,17 +530,17 @@ export class NavbarComponent {
   }
 
   isOwner() {
+    // Corrected: Access currentUser Signal with ()
     return this.authService.currentUser()?.role === 'OWNER';
   }
 
   handleLogout() {
-    // Subscribing ensures the Observable triggers the backend cookie cleanup
     this.authService.logout().subscribe({
       next: () => {
         this.closeMenu();
         this.router.navigate(['/home']);
       },
-      error: (err) => {
+      error: (err: any) => {
         console.error('Logout error:', err);
         this.closeMenu();
         this.router.navigate(['/home']);
