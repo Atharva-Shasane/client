@@ -36,6 +36,7 @@ import { Router, RouterLink } from '@angular/router';
           <div class="card-header">
             <div class="meta">
               <span class="id">#{{ order.orderNumber }}</span>
+              <!-- DatePipe automatically handles local timezone conversion -->
               <span class="date">{{ order.createdAt | date: 'medium' }}</span>
             </div>
             <div class="status-group">
@@ -47,7 +48,7 @@ import { Router, RouterLink } from '@angular/router';
                 <span class="pulse"></span> Est. {{ calculateWait(order) }}m
               </div>
 
-              <!-- New Reply Badge: Visible if Admin has responded -->
+              <!-- New Reply Badge -->
               <span *ngIf="order.feedback?.ownerReply" class="reply-badge">Kitchen Replied</span>
 
               <span class="status" [ngClass]="order.orderStatus.toLowerCase()">
@@ -65,7 +66,6 @@ import { Router, RouterLink } from '@angular/router';
           </div>
 
           <div class="card-body">
-            <!-- Table Reference -->
             <div class="table-info" *ngIf="order.tableNumber">
               <span class="lbl">DINE-IN:</span> Table {{ order.tableNumber }}
             </div>
@@ -92,7 +92,6 @@ import { Router, RouterLink } from '@angular/router';
           <div class="card-footer">
             <div class="feedback-zone" *ngIf="order.orderStatus === 'COMPLETED'">
               <!-- Check if feedback exists AND is submitted -->
-              <!-- This fix relies on the backend sending the 'feedback' object via lookup -->
               <div
                 *ngIf="order.feedback && order.feedback.isSubmitted; else addFeedback"
                 class="feedback-pill"
@@ -103,7 +102,7 @@ import { Router, RouterLink } from '@angular/router';
                   <span class="rating-num">{{ order.feedback.rating }}.0 ★</span>
                   <span class="view-status">Feedback Given</span>
                 </div>
-                <span class="view-lbl">View Details & Admin Reply</span>
+                <span class="view-lbl">View Details & Reply</span>
               </div>
               <ng-template #addFeedback>
                 <button (click)="openFeedback(order, false)" class="btn-rate">Rate Order</button>
@@ -217,7 +216,6 @@ import { Router, RouterLink } from '@angular/router';
           opacity: 1;
         }
       }
-
       .reply-badge {
         background: #00ff88;
         color: #000;
@@ -226,18 +224,7 @@ import { Router, RouterLink } from '@angular/router';
         padding: 2px 8px;
         border-radius: 4px;
         text-transform: uppercase;
-        animation: bounce 2s infinite;
       }
-      @keyframes bounce {
-        0%,
-        100% {
-          transform: translateY(0);
-        }
-        50% {
-          transform: translateY(-3px);
-        }
-      }
-
       .progress-track {
         height: 4px;
         background: #111;
@@ -327,7 +314,6 @@ import { Router, RouterLink } from '@angular/router';
         background: rgba(255, 255, 255, 0.03);
         border: 1px solid rgba(255, 255, 255, 0.05);
         transition: 0.3s;
-        text-align: left;
       }
       .feedback-pill:hover {
         background: rgba(255, 255, 255, 0.06);
@@ -342,7 +328,6 @@ import { Router, RouterLink } from '@angular/router';
       .rating-num {
         font-weight: 900;
         color: #ffcc00;
-        font-size: 1rem;
       }
       .view-status {
         font-size: 0.7rem;
@@ -351,13 +336,11 @@ import { Router, RouterLink } from '@angular/router';
         text-transform: uppercase;
       }
       .view-lbl {
-        font-size: 0.6rem;
+        font-size: 0.65rem;
         color: #555;
         text-transform: uppercase;
         font-weight: 700;
-        display: block;
       }
-
       .btn-rate {
         background: #ff6600;
         color: white;
@@ -367,13 +350,7 @@ import { Router, RouterLink } from '@angular/router';
         font-weight: 800;
         cursor: pointer;
         font-size: 0.85rem;
-        transition: 0.3s;
       }
-      .btn-rate:hover {
-        background: #e65c00;
-        transform: scale(1.05);
-      }
-
       .action-buttons {
         display: flex;
         gap: 10px;
@@ -426,7 +403,6 @@ export class MyOrdersComponent implements OnInit {
 
   ngOnInit() {
     this.loadOrders();
-    // Refresh status every 20 seconds to catch kitchen updates
     setInterval(() => this.loadOrders(), 20000);
   }
 
@@ -448,14 +424,11 @@ export class MyOrdersComponent implements OnInit {
   }
 
   calculateWait(order: any): number {
-    // 25 mins for new, 12 mins for preparing
     return order.orderStatus === 'NEW' ? 25 : 12;
   }
 
   getRatingClass(rating: number): string {
-    if (rating >= 4) return 'excellent';
-    if (rating === 3) return 'good';
-    return 'poor';
+    return rating >= 4 ? 'excellent' : rating === 3 ? 'good' : 'poor';
   }
 
   openFeedback(order: any, viewOnly: boolean) {
