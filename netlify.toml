@@ -1,0 +1,8 @@
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[build]
+  command = "cd client && npm install && ng build --configuration production"
+  publish = "client/dist/client/browser"
