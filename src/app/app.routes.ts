@@ -43,7 +43,7 @@ export const routes: Routes = [
 
   // Owner Exclusive Routes with Admin Guard
   {
-    path: 'owner',
+    path: 'owner/dashboard',
     component: OwnerDashboardComponent,
     canActivate: [adminGuard],
   },

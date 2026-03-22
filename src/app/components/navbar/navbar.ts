@@ -1,6 +1,6 @@
 import { Component, inject, signal, HostListener, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { AuthService } from '../../services/auth';
 import { CartService } from '../../services/cart';
 
@@ -22,16 +22,14 @@ import { CartService } from '../../services/cart';
         <!-- Desktop & Mobile Link Container -->
         <div class="nav-content" [class.mobile-active]="isMenuOpen()">
           <ul class="nav-links">
-            <!-- Standard Menu Links -->
-            <li><a routerLink="/home" routerLinkActive="active" (click)="closeMenu()">Home</a></li>
+            <!-- Standard Menu Links (Public) -->
+            <li><a routerLink="/home" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" (click)="closeMenu()">Home</a></li>
             <li><a routerLink="/menu" routerLinkActive="active" (click)="closeMenu()">Menu</a></li>
 
-            <!-- Customer Specific -->
+            <!-- General Authenticated Links (Visible to both USER and OWNER) -->
             <ng-container *ngIf="authService.isLoggedIn()">
               <li>
-                <a routerLink="/my-orders" routerLinkActive="active" (click)="closeMenu()"
-                  >Orders</a
-                >
+                <a routerLink="/my-orders" routerLinkActive="active" (click)="closeMenu()">Orders</a>
               </li>
               <li>
                 <a routerLink="/profile" routerLinkActive="active" (click)="closeMenu()">Profile</a>
@@ -43,7 +41,7 @@ import { CartService } from '../../services/cart';
               <li class="nav-separator"></li>
               <li>
                 <a
-                  routerLink="/owner"
+                  routerLink="/owner/dashboard"
                   routerLinkActive="active"
                   [routerLinkActiveOptions]="{ exact: true }"
                   class="admin-link"
@@ -104,9 +102,10 @@ import { CartService } from '../../services/cart';
               </ng-container>
 
               <div *ngIf="authService.isLoggedIn()" class="user-control">
-                <span class="user-greeting"
-                  >Hi, {{ (authService.currentUser()?.name || '').split(' ')[0] }}</span
-                >
+                <!-- Fixed Greeting: Split name safely to handle empty states -->
+                <span class="user-greeting">
+                  Hi, {{ (authService.currentUser()?.name || '').split(' ')[0] || 'User' }}
+                </span>
                 <button (click)="handleLogout()" class="btn-logout">Logout</button>
               </div>
             </div>
@@ -114,7 +113,7 @@ import { CartService } from '../../services/cart';
         </div>
 
         <!-- Mobile Toggle Trigger -->
-        <button class="menu-toggle" (click)="toggleMenu()" [attr.aria-expanded]="isMenuOpen()">
+        <button class="menu-toggle" (click)="toggleMenu()" [attr.aria-expanded]="isMenuOpen()" aria-label="Toggle Menu">
           <div class="burger-lines" [class.is-open]="isMenuOpen()">
             <span></span>
             <span></span>
@@ -131,8 +130,9 @@ import { CartService } from '../../services/cart';
     `
       :host {
         --primary: #ff6600;
+        --primary-hover: #e65c00;
         --bg-dark: #0a0a0a;
-        --glass-bg: rgba(10, 10, 10, 0.85);
+        --glass-bg: rgba(10, 10, 10, 0.9);
         --border-white: rgba(255, 255, 255, 0.08);
         --nav-height: 90px;
         --nav-compact: 75px;
@@ -151,6 +151,7 @@ import { CartService } from '../../services/cart';
         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         border-bottom: 1px solid transparent;
         padding: 0 40px;
+        background: transparent;
       }
 
       .killa-navbar.scrolled {
@@ -181,6 +182,10 @@ import { CartService } from '../../services/cart';
         display: flex;
         align-items: center;
         z-index: 3002;
+        transition: transform 0.3s ease;
+      }
+      .brand-logo:hover {
+        transform: scale(1.02);
       }
       .highlight-k {
         color: var(--primary);
@@ -210,7 +215,7 @@ import { CartService } from '../../services/cart';
         color: #aaa;
         text-decoration: none;
         font-weight: 700;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         text-transform: uppercase;
         letter-spacing: 1px;
         transition: 0.3s;
@@ -221,6 +226,17 @@ import { CartService } from '../../services/cart';
       .nav-links li a:hover,
       .nav-links li a.active {
         color: var(--primary);
+      }
+
+      .nav-links li a.active::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background: var(--primary);
+        border-radius: 2px;
       }
 
       .admin-link {
@@ -242,15 +258,19 @@ import { CartService } from '../../services/cart';
         gap: 30px;
       }
 
+      .cart-anchor {
+        text-decoration: none;
+      }
+
       .cart-pill {
         position: relative;
         background: rgba(255, 255, 255, 0.05);
-        width: 50px;
-        height: 50px;
+        width: 48px;
+        height: 48px;
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 14px;
+        border-radius: 12px;
         transition: 0.3s;
         border: 1px solid var(--border-white);
       }
@@ -260,7 +280,7 @@ import { CartService } from '../../services/cart';
         border-color: var(--primary);
       }
       .cart-ico {
-        font-size: 1.4rem;
+        font-size: 1.2rem;
       }
 
       .cart-count {
@@ -271,8 +291,8 @@ import { CartService } from '../../services/cart';
         color: #fff;
         font-size: 0.7rem;
         font-weight: 900;
-        min-width: 22px;
-        height: 22px;
+        min-width: 20px;
+        height: 20px;
         border-radius: 50%;
         display: flex;
         align-items: center;
@@ -288,13 +308,14 @@ import { CartService } from '../../services/cart';
         gap: 15px;
       }
       .btn-auth {
-        padding: 12px 24px;
-        border-radius: 12px;
+        padding: 10px 20px;
+        border-radius: 10px;
         font-weight: 800;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         cursor: pointer;
         transition: 0.3s;
         border: none;
+        text-transform: uppercase;
       }
       .btn-login {
         background: transparent;
@@ -312,13 +333,16 @@ import { CartService } from '../../services/cart';
       }
       .btn-join:hover {
         transform: translateY(-2px);
+        background: var(--primary-hover);
         box-shadow: 0 10px 25px rgba(255, 102, 0, 0.4);
       }
 
       .user-control {
         display: flex;
         align-items: center;
-        gap: 20px;
+        gap: 15px;
+        padding-left: 15px;
+        border-left: 1px solid var(--border-white);
       }
       .user-greeting {
         font-size: 0.85rem;
@@ -327,19 +351,21 @@ import { CartService } from '../../services/cart';
         text-transform: uppercase;
       }
       .btn-logout {
-        background: none;
-        border: none;
+        background: rgba(255, 68, 68, 0.1);
+        border: 1px solid rgba(255, 68, 68, 0.2);
         color: #ff4444;
         font-weight: 800;
         cursor: pointer;
         text-transform: uppercase;
-        font-size: 0.75rem;
-        padding: 5px 10px;
+        font-size: 0.7rem;
+        padding: 6px 14px;
         border-radius: 50px;
         transition: 0.2s;
       }
       .btn-logout:hover {
-        background: rgba(255, 68, 68, 0.1);
+        background: #ff4444;
+        color: #fff;
+        border-color: #ff4444;
       }
 
       /* Mobile Interaction Elements */
@@ -347,14 +373,14 @@ import { CartService } from '../../services/cart';
         display: none;
         background: none;
         border: none;
-        padding: 15px;
+        padding: 10px;
         cursor: pointer;
         z-index: 3005;
       }
 
       .burger-lines {
-        width: 28px;
-        height: 20px;
+        width: 26px;
+        height: 18px;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
@@ -362,27 +388,27 @@ import { CartService } from '../../services/cart';
       .burger-lines span {
         display: block;
         width: 100%;
-        height: 3px;
+        height: 2px;
         background: #fff;
         border-radius: 10px;
         transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       }
       .burger-lines.is-open span:nth-child(1) {
-        transform: translateY(8.5px) rotate(45deg);
+        transform: translateY(8px) rotate(45deg);
       }
       .burger-lines.is-open span:nth-child(2) {
         opacity: 0;
-        transform: translateX(-20px);
+        transform: translateX(-10px);
       }
       .burger-lines.is-open span:nth-child(3) {
-        transform: translateY(-8.5px) rotate(-45deg);
+        transform: translateY(-8px) rotate(-45deg);
       }
 
       .nav-backdrop {
         position: fixed;
         inset: 0;
-        background: rgba(0, 0, 0, 0.7);
-        backdrop-filter: blur(12px);
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(8px);
         z-index: 2900;
         opacity: 0;
         visibility: hidden;
@@ -395,99 +421,78 @@ import { CartService } from '../../services/cart';
 
       /* RESPONSIVE BREAKPOINTS */
       @media (max-width: 1200px) {
-        .killa-navbar {
-          padding: 0 20px;
-        }
-        .nav-content {
-          gap: 30px;
-        }
-        .nav-links {
-          gap: 15px;
-        }
-        .nav-links li a {
-          font-size: 0.8rem;
-        }
+        .killa-navbar { padding: 0 20px; }
+        .nav-content { gap: 30px; }
+        .nav-links { gap: 20px; }
       }
 
       @media (max-width: 1000px) {
-        .menu-toggle {
-          display: block;
-        }
+        .menu-toggle { display: block; }
 
         .nav-content {
           position: fixed;
           top: 0;
           right: -100%;
-          width: 85%;
-          max-width: 380px;
+          width: 80%;
+          max-width: 350px;
           height: 100vh;
           background: #080808;
           flex-direction: column;
           align-items: flex-start;
           justify-content: flex-start;
-          padding: 120px 40px 60px;
-          gap: 40px;
+          padding: 100px 30px 60px;
+          gap: 30px;
           transition: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
           z-index: 3001;
-          box-shadow: -20px 0 60px rgba(0, 0, 0, 0.8);
-          border-left: 1px solid var(--border-white);
+          box-shadow: -15px 0 50px rgba(0, 0, 0, 0.9);
           overflow-y: auto;
         }
 
-        .nav-content.mobile-active {
-          right: 0;
-        }
+        .nav-content.mobile-active { right: 0; }
 
         .nav-links {
           flex-direction: column;
           align-items: flex-start;
           width: 100%;
-          gap: 10px;
+          gap: 5px;
         }
-        .nav-links li {
-          width: 100%;
-        }
+        .nav-links li { width: 100%; }
         .nav-links li a {
-          font-size: 1.4rem;
+          font-size: 1.2rem;
           padding: 15px 0;
           display: block;
+          border-bottom: 1px solid rgba(255,255,255,0.05);
         }
-        .nav-separator {
-          display: none;
-        }
+        .nav-links li a.active::after { display: none; }
 
         .admin-link {
-          background: rgba(255, 165, 0, 0.05);
-          padding-left: 20px !important;
-          border-radius: 12px;
-          border: 1px solid rgba(255, 165, 0, 0.1);
+          background: rgba(243, 156, 18, 0.05);
+          padding-left: 15px !important;
+          border-radius: 8px;
+          margin-top: 5px;
         }
+
+        .nav-separator { display: none; }
 
         .nav-actions {
           flex-direction: column;
           align-items: flex-start;
           width: 100%;
-          gap: 30px;
-          padding-top: 30px;
+          gap: 25px;
+          padding-top: 25px;
           border-top: 1px solid var(--border-white);
         }
         .auth-section {
           flex-direction: column;
           width: 100%;
-          gap: 12px;
+          gap: 15px;
         }
-        .btn-auth,
-        .user-control {
-          width: 100%;
-        }
-        .btn-auth {
-          padding: 18px;
-          font-size: 1rem;
-        }
+        .btn-auth, .user-control { width: 100%; }
         .user-control {
           flex-direction: column;
           align-items: flex-start;
-          gap: 10px;
+          border-left: none;
+          padding-left: 0;
         }
       }
     `,
@@ -496,6 +501,7 @@ import { CartService } from '../../services/cart';
 export class NavbarComponent {
   authService = inject(AuthService);
   cartService = inject(CartService);
+  router = inject(Router);
 
   isScrolled = signal(false);
   isMenuOpen = signal(false);
@@ -505,7 +511,6 @@ export class NavbarComponent {
     this.isScrolled.set(window.scrollY > 50);
   }
 
-  // Effect to lock scrolling when menu is open
   constructor() {
     effect(() => {
       if (this.isMenuOpen()) {
@@ -519,6 +524,7 @@ export class NavbarComponent {
   toggleMenu() {
     this.isMenuOpen.update((v) => !v);
   }
+  
   closeMenu() {
     this.isMenuOpen.set(false);
   }
@@ -528,7 +534,17 @@ export class NavbarComponent {
   }
 
   handleLogout() {
-    this.authService.logout();
-    this.closeMenu();
+    // Subscribing ensures the Observable triggers the backend cookie cleanup
+    this.authService.logout().subscribe({
+      next: () => {
+        this.closeMenu();
+        this.router.navigate(['/home']);
+      },
+      error: (err) => {
+        console.error('Logout error:', err);
+        this.closeMenu();
+        this.router.navigate(['/home']);
+      }
+    });
   }
 }
