@@ -36,7 +36,6 @@ import { Router, RouterLink } from '@angular/router';
           <div class="card-header">
             <div class="meta">
               <span class="id">#{{ order.orderNumber }}</span>
-              <!-- DatePipe automatically handles local timezone conversion -->
               <span class="date">{{ order.createdAt | date: 'medium' }}</span>
             </div>
             <div class="status-group">
@@ -48,7 +47,7 @@ import { Router, RouterLink } from '@angular/router';
                 <span class="pulse"></span> Est. {{ calculateWait(order) }}m
               </div>
 
-              <!-- New Reply Badge -->
+              <!-- Kitchen Reply Badge -->
               <span *ngIf="order.feedback?.ownerReply" class="reply-badge">Kitchen Replied</span>
 
               <span class="status" [ngClass]="order.orderStatus.toLowerCase()">
@@ -66,6 +65,7 @@ import { Router, RouterLink } from '@angular/router';
           </div>
 
           <div class="card-body">
+            <!-- Table Reference -->
             <div class="table-info" *ngIf="order.tableNumber">
               <span class="lbl">DINE-IN:</span> Table {{ order.tableNumber }}
             </div>
@@ -79,6 +79,7 @@ import { Router, RouterLink } from '@angular/router';
                     >({{ item.variant }})</span
                   >
                 </div>
+                <!-- Display Instructions if present -->
                 <p class="item-instr" *ngIf="item.instructions">"{{ item.instructions }}"</p>
               </div>
             </div>
@@ -152,6 +153,7 @@ import { Router, RouterLink } from '@angular/router';
         margin-top: 5px;
         font-size: 1rem;
       }
+
       .orders-grid {
         display: flex;
         flex-direction: column;
@@ -165,6 +167,7 @@ import { Router, RouterLink } from '@angular/router';
         background: rgba(10, 10, 10, 0.6);
         backdrop-filter: blur(15px);
       }
+
       .card-header {
         display: flex;
         justify-content: space-between;
@@ -182,6 +185,7 @@ import { Router, RouterLink } from '@angular/router';
         font-size: 0.75rem;
         color: #444;
       }
+
       .status-group {
         display: flex;
         align-items: center;
@@ -206,16 +210,10 @@ import { Router, RouterLink } from '@angular/router';
         animation: pulse-ring 1.5s infinite;
       }
       @keyframes pulse-ring {
-        0%,
-        100% {
-          transform: scale(0.8);
-          opacity: 0.5;
-        }
-        50% {
-          transform: scale(1.2);
-          opacity: 1;
-        }
+        0%, 100% { transform: scale(0.8); opacity: 0.5; }
+        50% { transform: scale(1.2); opacity: 1; }
       }
+
       .reply-badge {
         background: #00ff88;
         color: #000;
@@ -225,6 +223,8 @@ import { Router, RouterLink } from '@angular/router';
         border-radius: 4px;
         text-transform: uppercase;
       }
+
+      /* Progress Bar */
       .progress-track {
         height: 4px;
         background: #111;
@@ -235,8 +235,9 @@ import { Router, RouterLink } from '@angular/router';
       .p-bar {
         height: 100%;
         background: #ff6600;
-        transition: 1s ease;
+        transition: 1s cubic-bezier(0.4, 0, 0.2, 1);
       }
+
       .table-info {
         background: #000;
         border: 1px solid #1a1a1a;
@@ -248,6 +249,12 @@ import { Router, RouterLink } from '@angular/router';
         color: #00ff88;
         width: fit-content;
       }
+      .table-info .lbl {
+        color: #444;
+        margin-right: 5px;
+        font-size: 0.7rem;
+      }
+
       .item-list {
         display: flex;
         flex-direction: column;
@@ -258,11 +265,29 @@ import { Router, RouterLink } from '@angular/router';
         border-left: 2px solid #111;
         padding-left: 12px;
       }
+      .item-main-row {
+        font-size: 0.95rem;
+        font-weight: 600;
+      }
       .qty {
         color: #ff6600;
         font-weight: 900;
         margin-right: 8px;
       }
+      .variant {
+        font-size: 0.8rem;
+        color: #555;
+        text-transform: uppercase;
+        margin-left: 5px;
+      }
+      .item-instr {
+        font-size: 0.8rem;
+        color: #ffcc00;
+        font-style: italic;
+        margin-top: 4px;
+        font-weight: 500;
+      }
+
       .total-bar {
         margin-top: 15px;
         padding-top: 15px;
@@ -276,6 +301,12 @@ import { Router, RouterLink } from '@angular/router';
         font-size: 1.4rem;
         font-weight: 900;
       }
+      .total-bar .lbl {
+        color: #555;
+        font-size: 0.85rem;
+        font-weight: 700;
+      }
+
       .status {
         padding: 4px 10px;
         border-radius: 6px;
@@ -283,22 +314,10 @@ import { Router, RouterLink } from '@angular/router';
         font-weight: 900;
         text-transform: uppercase;
       }
-      .completed {
-        background: rgba(46, 204, 113, 0.1);
-        color: #2ecc71;
-      }
-      .new {
-        background: rgba(52, 152, 219, 0.1);
-        color: #3498db;
-      }
-      .preparing {
-        background: rgba(243, 156, 18, 0.1);
-        color: #f39c12;
-      }
-      .cancelled {
-        background: rgba(231, 76, 60, 0.1);
-        color: #e74c3c;
-      }
+      .completed { background: rgba(46, 204, 113, 0.1); color: #2ecc71; }
+      .new { background: rgba(52, 152, 219, 0.1); color: #3498db; }
+      .preparing { background: rgba(243, 156, 18, 0.1); color: #f39c12; }
+      .cancelled { background: rgba(231, 76, 60, 0.1); color: #e74c3c; }
 
       .card-footer {
         display: flex;
@@ -307,6 +326,7 @@ import { Router, RouterLink } from '@angular/router';
         border-top: 1px solid #111;
         padding-top: 15px;
       }
+
       .feedback-pill {
         cursor: pointer;
         padding: 10px 15px;
@@ -341,6 +361,7 @@ import { Router, RouterLink } from '@angular/router';
         text-transform: uppercase;
         font-weight: 700;
       }
+
       .btn-rate {
         background: #ff6600;
         color: white;
@@ -351,32 +372,36 @@ import { Router, RouterLink } from '@angular/router';
         cursor: pointer;
         font-size: 0.85rem;
       }
-      .action-buttons {
-        display: flex;
-        gap: 10px;
-      }
-      .btn-reorder,
-      .btn-cancel {
+      .btn-reorder {
+        background: #111;
+        color: white;
+        border: 1px solid #222;
         padding: 10px 20px;
         border-radius: 10px;
         font-weight: 800;
         cursor: pointer;
         font-size: 0.85rem;
       }
-      .btn-reorder {
-        background: #111;
-        color: white;
-        border: 1px solid #222;
-      }
       .btn-cancel {
         background: transparent;
         border: 1px solid #333;
         color: #444;
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-weight: 800;
+        cursor: pointer;
+        font-size: 0.85rem;
       }
+
       .empty-state {
         text-align: center;
         padding: 80px 40px;
         border-radius: 32px;
+      }
+      .empty-icon {
+        font-size: 4rem;
+        opacity: 0.2;
+        margin-bottom: 20px;
       }
       .btn-primary {
         background: #ff6600;
@@ -403,13 +428,14 @@ export class MyOrdersComponent implements OnInit {
 
   ngOnInit() {
     this.loadOrders();
+    // Auto-refresh order status for the user every 20 seconds
     setInterval(() => this.loadOrders(), 20000);
   }
 
   loadOrders() {
     this.orderService.getMyOrders().subscribe({
-      next: (data: any[]) => this.orders.set(data),
-      error: () => this.toast.show('Failed to sync history', 'error'),
+      next: (data) => this.orders.set(data),
+      error: () => this.toast.show('Failed to sync history', 'error')
     });
   }
 
@@ -428,7 +454,9 @@ export class MyOrdersComponent implements OnInit {
   }
 
   getRatingClass(rating: number): string {
-    return rating >= 4 ? 'excellent' : rating === 3 ? 'good' : 'poor';
+    if (rating >= 4) return 'excellent';
+    if (rating === 3) return 'good';
+    return 'poor';
   }
 
   openFeedback(order: any, viewOnly: boolean) {
@@ -444,13 +472,13 @@ export class MyOrdersComponent implements OnInit {
   }
 
   onCancel(orderId: string) {
-    if (confirm('Permanently cancel this order?')) {
+    if (confirm('Permanently cancel this legendary order?')) {
       this.orderService.cancelOrder(orderId).subscribe({
         next: () => {
-          this.toast.show('Order cancelled successfully.', 'success');
+          this.toast.show('Order successfully cancelled.', 'success');
           this.loadOrders();
         },
-        error: (err: any) => this.toast.show(err.error?.msg || 'Cancellation failed.', 'error'),
+        error: (err) => this.toast.show(err.error?.msg || 'Cancellation failed.', 'error'),
       });
     }
   }
