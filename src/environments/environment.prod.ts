@@ -1,7 +1,6 @@
 export const environment = {
   production: true,
-  // Your Render Backend URL
+  // This tells the hosted frontend to talk to Render, not your local computer
   apiUrl: 'https://server-xxm2.onrender.com/api',
-  // Your Render AIML URL
-  aimlUrl: 'https://killa-aiml.onrender.com/aiml'
+  aimlUrl: 'https://killa-aiml.onrender.com/aiml',
 };

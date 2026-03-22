@@ -1,7 +1,6 @@
 export const environment = {
   production: false,
-  // Local development API endpoint
+  // Change this to your hosted URL if you want to test the hosted backend locally
   apiUrl: 'http://localhost:5000/api',
-  // Local development AIML endpoint (if accessed directly from frontend)
-  aimlUrl: 'http://localhost:8000/aiml'
+  aimlUrl: 'http://localhost:8000/aiml',
 };
