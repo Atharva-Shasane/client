@@ -9,47 +9,67 @@ import { User } from '../models/user.model';
   providedIn: 'root',
 })
 export class AuthService {
-  private http = inject(HttpClient);
+  private http   = inject(HttpClient);
   private router = inject(Router);
   private apiUrl = `${environment.apiUrl}/auth`;
 
-  // Reactive state signal - Public to allow .set() in interceptors and profile
   currentUser = signal<User | null>(null);
-  loading = signal<boolean>(true);
+  loading     = signal<boolean>(true);
 
-  // Computed signal for login status
+  // FIX 1: isLoggedIn must remain a computed signal (correct as-is)
   isLoggedIn = computed(() => !!this.currentUser());
 
   private readonly httpOptions = { withCredentials: true };
 
   constructor() {
-    this.checkAuth();
+    // FIX 2: Do NOT call checkAuth() in the constructor.
+    // app.config.ts calls checkSession() as an APP_INITIALIZER which already
+    // runs checkAuth() once before the app renders. Calling it again here means
+    // two simultaneous GET /api/auth/me requests fire on every page load —
+    // the second one's 401 error propagates outside the catchError pipe because
+    // app.config.ts subscribes to the Observable returned by checkSession()
+    // separately, creating a second subscriber that doesn't share the catchError.
+    // Removing the constructor call eliminates the duplicate request and the
+    // console error entirely.
   }
 
   /**
-   * Alias for checkAuth to satisfy app.config.ts
+   * Called once by APP_INITIALIZER in app.config.ts before the app renders.
+   * Returns an Observable so app.config.ts can await completion before routing.
+   *
+   * FIX 3: Return the Observable itself (not .subscribe() inside the method).
+   * When checkAuth() called .subscribe() internally AND app.config.ts also
+   * subscribed to the return value, two subscriptions were created for the same
+   * HTTP call. Only one shared the catchError — the other surfaced the 401 raw.
+   * Now the caller (app.config.ts) is the single subscriber.
    */
-  checkSession() {
-    return this.checkAuth();
-  }
-
-  checkAuth() {
+  checkSession(): Observable<User | null> {
     return this.http
       .get<User>(`${this.apiUrl}/me`, this.httpOptions)
       .pipe(
-        tap((user) => this.currentUser.set(user)),
-        catchError(() => {
-          this.currentUser.set(null);
-          return of(null);
+        tap((user) => {
+          this.currentUser.set(user);
+          this.loading.set(false);
         }),
-        tap(() => this.loading.set(false))
-      )
-      .subscribe();
+        catchError((err) => {
+          // 401 = expected when no session exists — suppress console noise
+          // Log anything else (500, network error) as it's a real problem
+          if (err.status !== 401) {
+            console.error('[AuthService] Unexpected session check error:', err.message);
+          }
+          this.currentUser.set(null);
+          this.loading.set(false);
+          return of(null);
+        })
+      );
+    // NOTE: No .subscribe() here — app.config.ts subscribes via APP_INITIALIZER
   }
 
-  /**
-   * Satisfies profile.ts requirement
-   */
+  // Kept as an alias for any internal callers that used checkAuth() directly
+  checkAuth(): Observable<User | null> {
+    return this.checkSession();
+  }
+
   getProfile(): Observable<User> {
     return this.http.get<User>(`${this.apiUrl}/me`, this.httpOptions);
   }
@@ -90,7 +110,6 @@ export class AuthService {
   }
 
   isAdmin(): boolean {
-    const u = this.currentUser();
-    return !!u && u.role === 'OWNER';
+    return this.currentUser()?.role === 'OWNER';
   }
 }
