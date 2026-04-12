@@ -353,6 +353,8 @@ import { MenuItem } from '../../models/menu-item.model';
   `,
   styles: [
     `
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&display=swap');
+
       /* ═══════════════════════════════════════════
        GLOBAL / TOKENS
     ═══════════════════════════════════════════ */
@@ -373,7 +375,6 @@ import { MenuItem } from '../../models/menu-item.model';
         --font-display: 'Playfair Display', 'Georgia', serif;
       }
 
-      @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&display=swap');
 
       .page-wrap {
         background: var(--surface);
