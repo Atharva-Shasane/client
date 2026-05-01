@@ -592,7 +592,7 @@ import { ToastService } from '../../services/toast';
       min-height: 100vh;
       background: var(--surface);
       color: var(--text);
-      overflow: hidden;
+      overflow-x: hidden;
     }
     .co-bg { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
     .co-blob {
@@ -1271,7 +1271,7 @@ import { ToastService } from '../../services/toast';
     ═══════════════════════════════════════════ */
     @media (max-width: 960px) {
       .co-grid { grid-template-columns: 1fr; }
-      .receipt-col { position: static; order: -1; }
+      .receipt-col { position: static;}
       .step-label { display: none; }
       .stepper { padding: 14px 18px; }
     }
@@ -1281,7 +1281,7 @@ import { ToastService } from '../../services/toast';
       .table-map { grid-template-columns: repeat(3, 1fr); }
       .cs-grid { grid-template-columns: 1fr; }
       .co-title { font-size: 2rem; }
-      .modal-foot { flex-direction: column; }
+      .modal-foot { flex-direction: column-reverse; }
     }
   `],
 })

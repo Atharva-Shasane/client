@@ -768,7 +768,12 @@ function getUnitPrice(item: any): number {
     ═══════════════════════════════════════════ */
     @media (max-width: 960px) {
       .cart-layout { grid-template-columns: 1fr; }
-      .cart-right  { position: static; order: -1; }
+      .cart-right {
+  position: sticky;
+  bottom: 0;
+  top: auto;
+  z-index: 10;
+}
     }
     @media (max-width: 600px) {
       .cart-page  { padding: 88px 0 60px; }
