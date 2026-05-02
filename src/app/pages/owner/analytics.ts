@@ -159,67 +159,131 @@ interface InsightCard {
             </div>
           </div>
 
-          <!-- Chart canvas -->
+          <!-- SVG Chart -->
           <div class="chart-wrap" *ngIf="annualData().length; else noChart">
-            <!-- Y axis labels -->
-            <div class="chart-y-axis">
-              <span *ngFor="let tick of yAxisTicks()">{{ tick | number:'1.0-0' }}</span>
-            </div>
-
-            <!-- Bars -->
-            <div class="chart-inner">
-              <!-- Horizontal grid lines -->
-              <div class="grid-lines">
-                <div class="grid-line" *ngFor="let tick of yAxisTicks()"></div>
-              </div>
-
-              <div
-                class="chart-col"
-                *ngFor="let m of annualData()"
-                (mouseenter)="setHoveredMonth(m)"
-                (mouseleave)="setHoveredMonth(null)"
+            <div class="svg-chart-container">
+              <svg
+                class="annual-svg"
+                [attr.viewBox]="'0 0 ' + svgW + ' ' + svgH"
+                preserveAspectRatio="xMidYMid meet"
               >
-                <!-- Tooltip -->
-                <div class="chart-tooltip" [class.visible]="hoveredMonth()?.month === m.month">
-                  <div class="tt-month">{{ m.month }}</div>
-                  <div class="tt-row tt-rev">
-                    <span class="tt-dot ld-rev"></span>
-                    Revenue: <strong>₹{{ m.revenue | number:'1.0-0' }}</strong>
-                  </div>
-                  <div class="tt-row tt-exp">
-                    <span class="tt-dot ld-exp"></span>
-                    Expenses: <strong>₹{{ m.expenses | number:'1.0-0' }}</strong>
-                  </div>
-                  <div class="tt-row" [class.tt-pos]="m.profit >= 0" [class.tt-neg]="m.profit < 0">
-                    <span class="tt-dot ld-prof"></span>
-                    Profit: <strong>₹{{ m.profit | number:'1.0-0' }}</strong>
-                  </div>
-                </div>
+                <!-- ── Y-axis grid lines + labels ── -->
+                <ng-container *ngFor="let tick of yAxisTicks(); let i = index">
+                  <line
+                    [attr.x1]="svgPadL"
+                    [attr.y1]="getGridY(tick)"
+                    [attr.x2]="svgW - svgPadR"
+                    [attr.y2]="getGridY(tick)"
+                    stroke="rgba(255,255,255,0.07)"
+                    stroke-width="1"
+                  />
+                  <text
+                    [attr.x]="svgPadL - 8"
+                    [attr.y]="getGridY(tick) + 4"
+                    text-anchor="end"
+                    font-size="10"
+                    fill="#555"
+                    font-family="DM Sans, Segoe UI, sans-serif"
+                  >{{ tick | number:'1.0-0' }}</text>
+                </ng-container>
 
-                <!-- Bar group -->
-                <div class="bar-group">
-                  <div
-                    class="bar bar-rev"
-                    [style.height.%]="getBarHeight(m.revenue)"
-                    [title]="'Revenue: ₹' + m.revenue"
-                  ></div>
-                  <div
-                    class="bar bar-exp"
-                    [style.height.%]="getBarHeight(m.expenses)"
-                    [title]="'Expenses: ₹' + m.expenses"
-                  ></div>
-                  <div
-                    class="bar bar-prof"
-                    [class.bar-prof-neg]="m.profit < 0"
-                    [style.height.%]="getBarHeight(Math.abs(m.profit))"
-                    [title]="'Profit: ₹' + m.profit"
-                  ></div>
-                </div>
-                <span class="bar-label">{{ m.month }}</span>
-              </div>
+                <!-- ── Bars per month ── -->
+                <ng-container *ngFor="let m of annualData(); let i = index">
+                  <!-- Hover zone (invisible, full height) -->
+                  <rect
+                    [attr.x]="getColX(i)"
+                    [attr.y]="svgPadT"
+                    [attr.width]="colW"
+                    [attr.height]="chartH"
+                    fill="transparent"
+                    style="cursor:pointer"
+                    (mouseenter)="setHoveredMonth(m)"
+                    (mouseleave)="setHoveredMonth(null)"
+                  />
+
+                  <!-- Revenue bar -->
+                  <rect
+                    [attr.x]="getColX(i) + barOff(0)"
+                    [attr.y]="getSvgBarY(m.revenue)"
+                    [attr.width]="barW"
+                    [attr.height]="getSvgBarH(m.revenue)"
+                    rx="3"
+                    fill="#00e87a"
+                    [attr.opacity]="hoveredMonth()?.month === m.month ? 1 : 0.85"
+                  />
+                  <!-- Expenses bar -->
+                  <rect
+                    [attr.x]="getColX(i) + barOff(1)"
+                    [attr.y]="getSvgBarY(m.expenses)"
+                    [attr.width]="barW"
+                    [attr.height]="getSvgBarH(m.expenses)"
+                    rx="3"
+                    fill="#ff4444"
+                    [attr.opacity]="hoveredMonth()?.month === m.month ? 1 : 0.85"
+                  />
+                  <!-- Profit bar -->
+                  <rect
+                    [attr.x]="getColX(i) + barOff(2)"
+                    [attr.y]="getSvgBarY(Math.abs(m.profit))"
+                    [attr.width]="barW"
+                    [attr.height]="getSvgBarH(Math.abs(m.profit))"
+                    rx="3"
+                    [attr.fill]="m.profit >= 0 ? '#ffcc00' : '#ff6600'"
+                    [attr.opacity]="hoveredMonth()?.month === m.month ? 1 : 0.85"
+                  />
+
+                  <!-- Month label -->
+                  <text
+                    [attr.x]="getColX(i) + colW / 2"
+                    [attr.y]="svgPadT + chartH + 18"
+                    text-anchor="middle"
+                    font-size="9"
+                    fill="#555"
+                    font-weight="700"
+                    font-family="DM Sans, Segoe UI, sans-serif"
+                    letter-spacing="0.5"
+                  >{{ m.month.substring(0,3).toUpperCase() }}</text>
+                </ng-container>
+
+                <!-- ── Hover Tooltip (rendered last = on top) ── -->
+                <ng-container *ngIf="hoveredMonth() as hm">
+                  <!-- Tooltip box -->
+                  <rect
+                    [attr.x]="getTooltipX(hm)"
+                    [attr.y]="svgPadT + 4"
+                    width="148"
+                    height="88"
+                    rx="8"
+                    fill="#1c1c1c"
+                    stroke="rgba(255,255,255,0.14)"
+                    stroke-width="1"
+                  />
+                  <text
+                    [attr.x]="getTooltipX(hm) + 12"
+                    [attr.y]="svgPadT + 22"
+                    font-size="11"
+                    font-weight="700"
+                    fill="#f0f0f0"
+                    font-family="DM Sans, Segoe UI, sans-serif"
+                  >{{ hm.month }}</text>
+                  <!-- Revenue row -->
+                  <circle [attr.cx]="getTooltipX(hm)+12" [attr.cy]="svgPadT+38" r="4" fill="#00e87a"/>
+                  <text [attr.x]="getTooltipX(hm)+22" [attr.y]="svgPadT+42" font-size="10" fill="#aaa" font-family="DM Sans, Segoe UI, sans-serif">
+                    Rev: <tspan fill="#f0f0f0" font-weight="600">₹{{ hm.revenue | number:'1.0-0' }}</tspan>
+                  </text>
+                  <!-- Expenses row -->
+                  <circle [attr.cx]="getTooltipX(hm)+12" [attr.cy]="svgPadT+56" r="4" fill="#ff4444"/>
+                  <text [attr.x]="getTooltipX(hm)+22" [attr.y]="svgPadT+60" font-size="10" fill="#aaa" font-family="DM Sans, Segoe UI, sans-serif">
+                    Exp: <tspan fill="#f0f0f0" font-weight="600">₹{{ hm.expenses | number:'1.0-0' }}</tspan>
+                  </text>
+                  <!-- Profit row -->
+                  <circle [attr.cx]="getTooltipX(hm)+12" [attr.cy]="svgPadT+74" r="4" [attr.fill]="hm.profit >= 0 ? '#ffcc00' : '#ff6600'"/>
+                  <text [attr.x]="getTooltipX(hm)+22" [attr.y]="svgPadT+78" font-size="10" fill="#aaa" font-family="DM Sans, Segoe UI, sans-serif">
+                    Profit: <tspan [attr.fill]="hm.profit >= 0 ? '#ffcc00' : '#ff6600'" font-weight="600">₹{{ hm.profit | number:'1.0-0' }}</tspan>
+                  </text>
+                </ng-container>
+              </svg>
             </div>
-
-            <!-- X axis title -->
             <div class="chart-x-title">Month · {{ chartYear() }}</div>
           </div>
 
@@ -716,96 +780,21 @@ interface InsightCard {
     .ld-exp { background: var(--red); }
     .ld-prof { background: var(--yellow); }
 
+    /* ✅ SVG CHART — no float, no percentage-height chains, no overflow clipping */
     .chart-wrap {
       background: var(--bg1);
       border: 1px solid var(--border);
       border-radius: 24px;
-      padding: 32px;
+      padding: 24px 24px 12px;
     }
-    .chart-y-axis {
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      font-size: 0.62rem;
-      font-weight: 700;
-      color: var(--muted);
-      height: 300px;
-      text-align: right;
-      padding: 0 12px 0 0;
-      margin-bottom: 8px;
-      float: left;
-      min-width: 60px;
-    }
-    .chart-inner {
-      position: relative;
-      height: 300px;
-      overflow: hidden;
-      margin-left: 72px;
-    }
-    .grid-lines {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      pointer-events: none;
-    }
-    .grid-line {
+    .svg-chart-container {
       width: 100%;
-      height: 1px;
-      background: var(--border);
     }
-    .chart-col {
-      position: absolute;
-      bottom: 0;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-end;
-      cursor: pointer;
-    }
-    /* Position each of 12 months evenly */
-    .chart-col:nth-child(1) { left: 0%; width: 8.33%; }
-    .chart-col:nth-child(2) { left: 8.33%; width: 8.33%; }
-    .chart-col:nth-child(3) { left: 16.66%; width: 8.33%; }
-    .chart-col:nth-child(4) { left: 24.99%; width: 8.33%; }
-    .chart-col:nth-child(5) { left: 33.32%; width: 8.33%; }
-    .chart-col:nth-child(6) { left: 41.65%; width: 8.33%; }
-    .chart-col:nth-child(7) { left: 49.98%; width: 8.33%; }
-    .chart-col:nth-child(8) { left: 58.31%; width: 8.33%; }
-    .chart-col:nth-child(9) { left: 66.64%; width: 8.33%; }
-    .chart-col:nth-child(10) { left: 74.97%; width: 8.33%; }
-    .chart-col:nth-child(11) { left: 83.30%; width: 8.33%; }
-    .chart-col:nth-child(12) { left: 91.63%; width: 8.33%; }
-
-    .bar-group {
-      display: flex;
-      align-items: flex-end;
-      gap: 3px;
-      height: 90%;
-      padding: 0 6px;
-    }
-    .bar {
-      flex: 1;
-      border-radius: 5px 5px 0 0;
-      min-height: 2px;
-      transition: height 0.6s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s;
-    }
-    .bar-rev { background: linear-gradient(180deg, var(--green) 0%, rgba(0,232,122,0.4) 100%); }
-    .bar-exp { background: linear-gradient(180deg, var(--red) 0%, rgba(255,68,68,0.4) 100%); }
-    .bar-prof { background: linear-gradient(180deg, var(--yellow) 0%, rgba(255,204,0,0.4) 100%); }
-    .bar-prof-neg { background: linear-gradient(180deg, #ff6600 0%, rgba(255,102,0,0.4) 100%); }
-    .chart-col:hover .bar { opacity: 0.7; }
-    .chart-col:hover .bar:hover { opacity: 1; }
-
-    .bar-label {
-      font-size: 0.58rem;
-      font-weight: 800;
-      color: var(--muted);
-      text-transform: uppercase;
-      margin-top: 8px;
-      letter-spacing: 0.5px;
+    .annual-svg {
+      width: 100%;
+      height: auto;
+      display: block;
+      overflow: visible;
     }
     .chart-x-title {
       text-align: center;
@@ -1091,7 +1080,7 @@ export class AnalyticsComponent implements OnInit {
   formSuccess    = signal<string>('');
   editingId      = signal<string | null>(null);
 
-  // ── Static data (declared first so field initializers below can use it)
+  // ── Static data ──────────────────────────────────────────────────────────
   readonly monthNames = [
     'January','February','March','April','May','June',
     'July','August','September','October','November','December',
@@ -1102,13 +1091,13 @@ export class AnalyticsComponent implements OnInit {
   readonly currentMonthName = new Date().toLocaleDateString('en-IN', { month: 'long' });
   readonly Math = Math;
 
-  // ── Form state (proper two-way binding avoids FormData bugs) ──────────
+  // ── Form state ───────────────────────────────────────────────────────────
   formDesc   = '';
   formAmount: number | null = null;
   formMonth  = this.monthNames[new Date().getMonth()];
   formYear   = new Date().getFullYear();
 
-  // ── Computed: Owner Insights ────────────────────────────────────────────
+  // ── Computed: Owner Insights ─────────────────────────────────────────────
   ownerInsights = computed<InsightCard[]>(() => {
     const insights: InsightCard[] = [];
     const annual = this.annualData();
@@ -1210,7 +1199,7 @@ export class AnalyticsComponent implements OnInit {
     return insights;
   });
 
-  // ── Lifecycle ───────────────────────────────────────────────────────────
+  // ── Lifecycle ────────────────────────────────────────────────────────────
   ngOnInit() {
     this.refreshAll();
   }
@@ -1230,9 +1219,7 @@ export class AnalyticsComponent implements OnInit {
       this.expenses.set((expenses as Expense[]) || []);
       this.paymentStats.set(payment as PaymentStats | null);
 
-      // BUG FIX #2: API returns array directly — no need to unwrap .chartData
       const annualArr = Array.isArray(annual) ? annual : [];
-      // BUG FIX #3: Ensure profit field exists (API returns revenue, expenses, month)
       this.annualData.set(annualArr.map((m: any) => ({
         ...m,
         profit: (m.profit !== undefined) ? m.profit : m.revenue - m.expenses,
@@ -1262,7 +1249,7 @@ export class AnalyticsComponent implements OnInit {
       });
   }
 
-  // ── Form ────────────────────────────────────────────────────────────────
+  // ── Form ─────────────────────────────────────────────────────────────────
   submitExpense() {
     this.formError.set('');
     this.formSuccess.set('');
@@ -1337,7 +1324,7 @@ export class AnalyticsComponent implements OnInit {
     this.formSuccess.set('');
   }
 
-  // ── Event handlers ──────────────────────────────────────────────────────
+  // ── Event handlers ───────────────────────────────────────────────────────
   onMonthChange(event: Event) {
     this.selectedMonth.set(Number((event.target as HTMLSelectElement).value));
     this.refreshPayment();
@@ -1353,7 +1340,7 @@ export class AnalyticsComponent implements OnInit {
     const yr = Number((event.target as HTMLInputElement).value);
     if (yr >= 2000 && yr <= 2100) {
       this.chartYear.set(yr);
-      this.refreshAnnual(); // BUG FIX #6: only refresh annual, not all
+      this.refreshAnnual();
     }
   }
 
@@ -1361,7 +1348,7 @@ export class AnalyticsComponent implements OnInit {
     this.hoveredMonth.set(m);
   }
 
-  // ── Sparkline hover ─────────────────────────────────────────────────────
+  // ── Sparkline hover ──────────────────────────────────────────────────────
   onSparkHover(event: MouseEvent) {
     const stats = this.paymentStats()?.dailyStats;
     if (!stats?.length) return;
@@ -1399,11 +1386,28 @@ export class AnalyticsComponent implements OnInit {
     return 190 - (val / maxVal) * 170;
   }
 
-  // ── Chart helpers ───────────────────────────────────────────────────────
+  // ── SVG Chart constants ───────────────────────────────────────────────────
+  readonly svgW    = 900;   // viewBox width
+  readonly svgH    = 320;   // viewBox height
+  readonly svgPadL = 56;    // left padding for y-axis labels
+  readonly svgPadR = 12;    // right padding
+  readonly svgPadT = 16;    // top padding
+  readonly svgPadB = 30;    // bottom padding for x-axis labels
+  get chartH()  { return this.svgH - this.svgPadT - this.svgPadB; }  // 274
+  get chartW()  { return this.svgW - this.svgPadL - this.svgPadR; }  // 832
+  get colW()    { return this.chartW / 12; }                           // ~69
+  get barW()    { return Math.max(6, this.colW / 5 - 1); }            // ~12
+  barOff(i: 0|1|2): number {
+    const total = this.barW * 3 + 4;
+    const start = (this.colW - total) / 2;
+    return start + i * (this.barW + 2);
+  }
+
+  // ── SVG chart helpers ─────────────────────────────────────────────────────
   yAxisTicks(): number[] {
     const max = this.getMaxVal();
-    const step = max / 4;
-    return [max, max * 0.75, max * 0.5, max * 0.25, 0].reverse();
+    // top → bottom: max down to 0
+    return [max, max * 0.75, max * 0.5, max * 0.25, 0];
   }
 
   getMaxVal(): number {
@@ -1413,17 +1417,51 @@ export class AnalyticsComponent implements OnInit {
     return Math.max(...vals, 1000);
   }
 
+  /** SVG y-coordinate for a grid line at value `v` (max=top, 0=bottom) */
+  getGridY(v: number): number {
+    const max = this.getMaxVal();
+    return this.svgPadT + this.chartH * (1 - v / max);
+  }
+
+  /** X position of the left edge of column `i` */
+  getColX(i: number): number {
+    return this.svgPadL + i * this.colW;
+  }
+
+  /** SVG y of the top of a bar for value `v` */
+  getSvgBarY(v: number): number {
+    const max = this.getMaxVal();
+    const h = (v / max) * this.chartH;
+    return this.svgPadT + this.chartH - h;
+  }
+
+  /** SVG height of a bar for value `v` (min 2px when > 0) */
+  getSvgBarH(v: number): number {
+    if (!v) return 0;
+    const max = this.getMaxVal();
+    return Math.max((v / max) * this.chartH, 2);
+  }
+
+  /** Tooltip x — clamp so it never goes off-canvas */
+  getTooltipX(m: MonthlyProfitData): number {
+    const idx = this.annualData().indexOf(m);
+    const cx  = this.getColX(idx) + this.colW / 2;
+    return Math.min(Math.max(cx - 74, this.svgPadL), this.svgW - this.svgPadR - 152);
+  }
+
+  // Kept for any legacy callers
   getBarHeight(val: number): number {
     const max = this.getMaxVal();
     if (max === 0) return 0;
     return Math.max((val / max) * 100, val > 0 ? 1 : 0);
   }
+  getBarHeightPx(val: number): number {
+    return this.getSvgBarH(val);
+  }
 
-  // ── KPI computed helpers ─────────────────────────────────────────────────
-  // BUG FIX #3: getMonthData now correctly matches 3-letter abbreviation from API
+  // ── KPI computed helpers ──────────────────────────────────────────────────
   private getMonthData(): MonthlyProfitData | undefined {
     const currentIdx = new Date().getMonth();
-    // API returns 3-letter e.g. "JAN", "FEB" — match against that
     const shortName  = this.monthNames[currentIdx].substring(0, 3).toUpperCase();
     const fullName   = this.monthNames[currentIdx].toUpperCase();
     return this.annualData().find(m => {
@@ -1468,14 +1506,11 @@ export class AnalyticsComponent implements OnInit {
     return new Date(this.selectedYear(), this.selectedMonth(), 0).getDate();
   }
 
-  // ── Sparkline points ─────────────────────────────────────────────────────
+  // ── Sparkline points ──────────────────────────────────────────────────────
   getLinePoints(type: 'online' | 'offline'): string {
     const stats = this.paymentStats()?.dailyStats;
-    // BUG FIX #7: fallback for < 2 points
     if (!stats || stats.length < 1) return '';
-    if (stats.length === 1) {
-      return `0,100 1000,100`;
-    }
+    if (stats.length === 1) return `0,100 1000,100`;
     const maxVal = Math.max(...stats.map(d => Math.max(d.online, d.offline)), 1);
     return stats
       .map((d, i) => {
